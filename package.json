@@ -12,7 +12,6 @@
         "@polkadot/util": "^0.33.36",
         "cennznet-api": "^0.5.8",
         "cennznet-runtime-types": "^0.5.8",
-        "dockerode": "^2.5.8",
         "shelljs": "^0.8.3",
         "yargs": "^12.0.5"
     }

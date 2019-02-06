@@ -1,7 +1,8 @@
 
 
 const node = require('../api/bootNode')
-const {sleep} = require('../api/util')
+const {bootNodeApi} = require('../api/websocket')
+const {sleep, loadTestCase} = require('../api/util')
 
 describe('Start running test cases...', function () {
     
@@ -14,17 +15,18 @@ describe('Start running test cases...', function () {
 
         // wait the node standing up
         await sleep(5000)
+
     })
 
     after(function(){
         this.timeout(60000)
+
         // remove all containers
         console.log('Stop nodes and remove all containers...')
         node.removeNodeContainers()
     })
     
-    // require('./testNode')
-    require('./testNewNodeJoin')
-    
+    // load and run all testcases from folder
+    loadTestCase(__dirname + '/testcase')
 });
 

@@ -2,23 +2,19 @@
 "use strict";
 
 const assert = require('assert')
-const node = require('../api/bootNode')
-const {sleep} = require('../api/util')
-const {bootNodeApi} = require('../api/websocket')
+const node = require('../../api/bootNode')
+const {sleep} = require('../../api/util')
+const {bootNodeApi} = require('../../api/websocket')
 
 
 describe('Boot Node test cases', function () {
     
     before(async function(){
-        
         // init websocket api
         await bootNodeApi.init()
     })
 
     after(function(){
-        this.timeout(60000)
-        // remove all containers
-        node.removeNodeContainers()
         // close websocket
         bootNodeApi.close()
     })

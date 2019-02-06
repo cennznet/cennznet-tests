@@ -2,9 +2,9 @@
 "use strict";
 
 const assert = require('assert')
-const node = require('../api/bootNode')
-const {sleep} = require('../api/util')
-const {bootNodeApi, WsApi} = require('../api/websocket')
+const node = require('../../api/bootNode')
+const {sleep} = require('../../api/util')
+const {bootNodeApi, WsApi} = require('../../api/websocket')
 
 
 describe('Test cases: New node join in ...', function () {
@@ -18,7 +18,7 @@ describe('Test cases: New node join in ...', function () {
         bootNodeApi.close()
     })
     
-    it('New node joins the network and gets same blocks', async function() {
+    it('New node joins the network and sync blocks', async function() {
         this.timeout(60000)
 
         let bGetSameBlock = false

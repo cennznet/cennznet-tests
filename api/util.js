@@ -7,5 +7,12 @@ function sleep(ms)
 }
 
 
+// load and run all testcases from 'integraton_test/testcase/' folder
+function loadTestCase( testcaseFolderPath ){
+    require("fs").readdirSync(testcaseFolderPath).forEach(function(fileName) {
+        require(testcaseFolderPath + '/' + fileName);
+    });
+}
 
 module.exports.sleep = sleep
+module.exports.loadTestCase = loadTestCase
