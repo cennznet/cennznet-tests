@@ -7,7 +7,7 @@ const {sleep} = require('../../api/util')
 const {bootNodeApi, WsApi} = require('../../api/websocket')
 
 
-describe('Test cases: New node join in ...', function () {
+describe('New node joins in ...', function () {
     
     before(async function(){
         // init websocket api

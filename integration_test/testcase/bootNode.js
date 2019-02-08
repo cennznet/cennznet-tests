@@ -3,7 +3,6 @@
 
 const assert = require('assert')
 const node = require('../../api/bootNode')
-const {sleep} = require('../../api/util')
 const {bootNodeApi} = require('../../api/websocket')
 
 
@@ -17,6 +16,7 @@ describe('Boot Node test cases', function () {
     after(function(){
         // close websocket
         bootNodeApi.close()
+        
     })
     
     it('The node should be able to generate new blocks', async function() {
