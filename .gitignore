@@ -1,5 +1,5 @@
 .vscode
 .DS_Store
-_*
+__*
 node_modules
 cennznet-node

@@ -3,7 +3,7 @@
 
 const assert = require('assert')
 const { bootNodeApi } = require('../../api/websocket')
-const { getAccount, getNonce } = require('../../api/bootNode')
+const { getAccount, getNonce } = require('../../api/node')
 const { bnToHex } = require('@polkadot/util');
 
 
@@ -28,10 +28,11 @@ async function getClaim(holderAddress, issuerAddress, topic) {
 describe('Attestation test cases', function () {
 
     before(async function () {
-        await bootNodeApi.init()
+        await bootNodeApi.init(10)
 
         // set Alice as the holder
-        holder = getAccount('Alice')
+        holder = getAccount('EVE')
+        
         // set Bob as the issuer
         issuer = getAccount('Bob')
     })
@@ -41,7 +42,7 @@ describe('Attestation test cases', function () {
     })
 
     it('Set a new claim and retrieve it', async function () {
-        this.timeout(60000)
+        this.timeout(30000)
 
         // get api
         const api = await bootNodeApi.getApi()
@@ -59,11 +60,12 @@ describe('Attestation test cases', function () {
                     resolve(hash) 
                 }
             }).catch((error) => {
-                console.log('Error =', error);
-                done();
+                // console.log('Error =', error);
+                reject(error)
+                // done();
             });
         });
-
+        
         // check the result
         assert(hash.toString().length == 66, `SetClaim has not been finalised. (result = ${hash})`)
 
@@ -75,7 +77,7 @@ describe('Attestation test cases', function () {
     });
 
     it('Remove an existing claim and check if it is removed', async function () {
-        this.timeout(60000)
+        this.timeout(30000)
 
         // get api
         const api = await bootNodeApi.getApi()
@@ -98,13 +100,12 @@ describe('Attestation test cases', function () {
                     resolve(hash) 
                 }
             }).catch((error) => {
-                console.log('Error =', error);
-                done();
+                reject(error)
             });
         });
 
         // check the result
-        assert(hash.toString().length == 66, `SetClaim has not been finalised. (result = ${hash})`) // TODO: make a promise
+        assert(hash.toString().length == 66, `SetClaim has not been finalised. (result = ${hash})`) 
 
         // query the value after remove
         const claimValueAfterRemove = await getClaim(holder.address(), issuer.address(), topic)

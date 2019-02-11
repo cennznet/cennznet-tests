@@ -1,6 +1,6 @@
 "use strict";
 
-const { nodeServerWsIp } = require('./getArgs')
+const { nodeServerWsIp } = require('./args')
 const { ApiPromise } = require('@polkadot/api');
 const { Api } = require('cennznet-api')
 const { WsProvider } = require('@polkadot/rpc-provider');
@@ -12,29 +12,32 @@ typeRegistry.default.register({
     AssetOptions: { total_supply: 'Balance' }
 });
 
+const apiType = {
+    CENNZ:      0,
+    POLKDOT:    10
+}
 
 class WsApi{
-    constructor(ip = 'ws://127.0.0.1:9944'){
+    constructor(ip = 'ws://127.0.0.1:9944', ){
         this._wsIp = ip
         this._provider = null
         this._api = null
+        // this._type = apiType.CENNZ
     }
 
     async init(){
         this._provider = new WsProvider(this._wsIp, false)
         this._provider.connect()
-        // this._api = await ApiPromise.create( this._provider )
-        this._api = await Api.create( this._provider )
+        this._api = await Api.create( this._provider )  // cennznet-api
+        // this._api = await ApiPromise.create( this._provider )    // polkdot-api
     }
 
     async getApi(){
         if ( this._api == null ){
-            console.log('null =====')
             await this.init()
         }
         return this._api
     }
-
 
     close(){
         // this._provider.websocket.onClose = null
@@ -43,7 +46,6 @@ class WsApi{
         this._api = null
     }
 }
-
 
 module.exports.bootNodeApi = new WsApi(nodeServerWsIp)
 module.exports.WsApi = WsApi
