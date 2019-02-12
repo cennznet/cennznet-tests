@@ -27,8 +27,8 @@ describe('New node joins in ...', function () {
         node.joinNewNode()
         await sleep(5000)
 
-        // init the connection to the new node
-        const newNodeWsIp = 'ws://127.0.0.1:9945'
+        // init the connection to the new node, using 'ws://127.0.0.1:9945'
+        const newNodeWsIp = bootNodeApi.getWsIp().replace('9944','9945')
         const newNodeApi = new WsApi(newNodeWsIp)
         await newNodeApi.init()
 

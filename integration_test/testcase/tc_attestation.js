@@ -25,7 +25,7 @@ async function getClaim(holderAddress, issuerAddress, topic) {
     return bnToHex(claim);
 }
 
-describe('Attestation test cases', function () {
+describe('Attestation test cases...', function () {
 
     before(async function () {
         await bootNodeApi.init(10)

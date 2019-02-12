@@ -32,6 +32,9 @@ describe('Start running test cases...', function () {
         // process.exit()
     })
     
+    // first test case: start up bootnode
+    require('./testcase/bootNode')
+
     // load and run all normal testcases
     loadTestCase(__dirname + '/testcase')
 

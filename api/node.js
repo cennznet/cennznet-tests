@@ -18,14 +18,28 @@ const currency = {
     SPEND:  10,
 }
 
+const ciImageName = 'integration_test'
 const nodeContainerName = 'integration_test_node'
 const chainDataFolder = '/tmp/node_data'
 
-function startBootNode() {
+// var nodeServerWsIp = getBootNodeIp()
 
-    shell.exec(`docker run -d --name ${nodeContainerName} \
+
+function startBootNode() {
+    
+    let linkStr = ''
+
+    // check if there is a integration_test container running
+    const ciContainerName = getRunContainer(ciImageName)
+    if (ciContainerName.length > 0 ){
+        // find container running
+        linkStr = `--link ${ciContainerName}`
+    }
+
+
+    // shell.exec(`docker run --rm -d --name ${nodeContainerName}  ${linkStr}  \
+    shell.exec(`docker run --rm -d --name ${nodeContainerName}  ${linkStr}  \
                 -p 9945:9945 -p 9944:9944 -p 30333:30333 -p 30334:30334 \
-                -v ${chainDataFolder}:${chainDataFolder} \
                 cennznet-node --dev --base-path ${chainDataFolder}/alice \
                 --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
                 --bootnodes /ip4/127.0.0.1/tcp/30334/p2p/QmXiB3jqqn2rpiKU7k1h7NJYeBg8WNSx9DiTRKz9ti2KSK \
@@ -35,12 +49,18 @@ function startBootNode() {
                 --validator \
                 --ws-external \
                 --ws-port 9944`,
-                { silent: true },
+                // { silent: true },
                 function (code, stdout, stderr) {
                     // console.log('Shell CMD exit code:', code);
                     // console.log('Shell CMD output:', stdout);
                     // console.log('Shell CMD stderr:', stderr);
                 });
+            
+    if (ciContainerName.length > 0) {
+        // find container running, reset the wsIp
+        const wsIp = getBootNodeIp()
+        bootNodeApi.setWsIp(wsIp)
+    }
 }
 
 function joinNewNode() {
@@ -63,8 +83,18 @@ function joinNewNode() {
                 });
 }
 
-function shutdownNewNode(){
+function getBootNodeIp(){
 
+    const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${nodeContainerName}`,
+                            { silent: true })
+    console.log('wsip =', wsIp.stdout)
+    return wsIp.stdout.toString()
+}
+
+function getRunContainer(image){
+    let result = shell.exec(`docker ps --format '{{.Names}}' --filter ancestor=${image}`,
+                            { silent: true })
+    return result.stdout.toString()
 }
 
 function removeNodeContainers(){
@@ -79,7 +109,7 @@ async function awaitBlock( blockId, nodeApi = bootNodeApi) {
     // listening to the new block
     const currBlockId = await new Promise(async (resolve,reject) => {
         await api.rpc.chain.subscribeNewHead(async (header) => {
-            // console.log('subscribeNewHead...')
+            console.log('blockNumber...', header.blockNumber.toString())
             let blockNo = parseInt(header.blockNumber.toString())
             if (blockNo >= blockId){
                 resolve(blockNo)

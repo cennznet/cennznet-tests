@@ -18,7 +18,7 @@ const apiType = {
 }
 
 class WsApi{
-    constructor(ip = 'ws://127.0.0.1:9944', ){
+    constructor(ip = 'ws://127.0.0.1:9944'){
         this._wsIp = ip
         this._provider = null
         this._api = null
@@ -26,10 +26,24 @@ class WsApi{
     }
 
     async init(){
-        this._provider = new WsProvider(this._wsIp, false)
-        this._provider.connect()
-        this._api = await Api.create( this._provider )  // cennznet-api
-        // this._api = await ApiPromise.create( this._provider )    // polkdot-api
+        try{
+            this._provider = await new WsProvider(this._wsIp, false)
+            this._provider.connect()
+            this._api = await Api.create( {provider: this._provider} )  // cennznet-api
+            // this._api = await ApiPromise.create( this._provider )    // polkdot-api
+        }
+        catch(e){
+            console.log('Init api failed!')
+            console.log('ws =', this._wsIp)
+        }
+    }
+
+    setWsIp(wsIp){
+        this._wsIp = wsIp
+    }
+
+    getWsIp(){
+        return this._wsIp
     }
 
     async getApi(){
@@ -40,14 +54,14 @@ class WsApi{
     }
 
     close(){
-        // this._provider.websocket.onClose = null
+        this._provider.websocket.onClose = null
         this._provider.websocket.close()
         this._provider = null
         this._api = null
     }
 }
 
-module.exports.bootNodeApi = new WsApi(nodeServerWsIp)
+module.exports.bootNodeApi = new WsApi()
 module.exports.WsApi = WsApi
 
 

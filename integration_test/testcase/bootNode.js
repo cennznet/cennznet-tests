@@ -9,6 +9,7 @@ const {bootNodeApi} = require('../../api/websocket')
 describe('Boot Node test cases', function () {
     
     before(async function(){
+        this.timeout(10000)
         // init websocket api
         await bootNodeApi.init()
     })

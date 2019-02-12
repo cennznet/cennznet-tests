@@ -6,7 +6,7 @@ const {bootNodeApi} = require('../../api/websocket')
 const {transfer, queryFreeBalance, currency} = require('../../api/node')
 
 
-describe('Transfer Token test cases', function () {
+describe('Transfer Token test cases...', function () {
     
     before(async function(){
         await bootNodeApi.init()

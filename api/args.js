@@ -1,14 +1,18 @@
 
 
+// const {getBootNodeIp} = require('./node')
 
-var nodeServerWsIp = ""
+var nodeServerWsIp = ''//getBootNodeIp()
+// var ciImageName = ''
 
-function _getArgs()
-{
-    const argv = require('yargs').argv;
-    argv.ws ? nodeServerWsIp = argv.ws : nodeServerWsIp = 'ws://127.0.0.1:9944';
-}
+// function _getArgs()
+// {
+//     // get env parameters defined with 'env KEY=YOUR_KEY'
+//     // nodeServerWsIp = process.env.ws
+//     // nodeServerWsIp = getBootNodeIp()
+//     process.env.ci ? ciImageName = process.env.ci : ciImageName = 'integration_test'
+// }
 
-_getArgs()
+// _getArgs()
 
 module.exports.nodeServerWsIp = nodeServerWsIp
