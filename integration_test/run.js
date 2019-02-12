@@ -4,7 +4,7 @@ const node = require('../api/node')
 // const {bootNodeApi} = require('../api/websocket')
 const {sleep, loadTestCase} = require('../api/util')
 
-describe('Start running test cases...', function () {
+describe('Cennznet node test cases...', function () {
     
     before(async function(){
         this.timeout(60000)
@@ -12,10 +12,10 @@ describe('Start running test cases...', function () {
         console.log('Start a boot node...')
         // remove older containers
         node.removeNodeContainers()
-        // remove older chain data
+        // remove old chain data
         rimraf.sync(node.chainDataFolder)
         // start boot node
-        node.startBootNode()
+        await node.startBootNode()
 
         // wait the node standing up
         await sleep(5000)

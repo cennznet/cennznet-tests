@@ -6,7 +6,7 @@ const node = require('../../api/node')
 const {bootNodeApi} = require('../../api/websocket')
 
 
-describe('Waiting for 50 blocks ...', function () {
+describe('Waiting for 15 blocks ...', function () {
     
     before(async function(){
         await bootNodeApi.init()
@@ -16,7 +16,7 @@ describe('Waiting for 50 blocks ...', function () {
         bootNodeApi.close()
     })
     
-    it('Node could generate 50 blocks', async function() {
+    it('Node could generate 15 blocks', async function() {
         this.timeout(600000)
         
         let aimBlockId = 15

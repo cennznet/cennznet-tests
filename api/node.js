@@ -25,7 +25,7 @@ const chainDataFolder = '/tmp/node_data'
 // var nodeServerWsIp = getBootNodeIp()
 
 
-function startBootNode() {
+async function startBootNode() {
     
     let linkStr = ''
 
@@ -36,11 +36,9 @@ function startBootNode() {
         linkStr = `--link ${ciContainerName}`
     }
 
-
-    // shell.exec(`docker run --rm -d --name ${nodeContainerName}  ${linkStr}  \
-    shell.exec(`docker run --rm -d --name ${nodeContainerName}  ${linkStr}  \
+    const cmd = `docker run --rm --name ${nodeContainerName} ${linkStr} \
                 -p 9945:9945 -p 9944:9944 -p 30333:30333 -p 30334:30334 \
-                cennznet-node --dev --base-path ${chainDataFolder}/alice \
+                cennznet-node --dev --base-path /tmp/node_data/alice \
                 --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
                 --bootnodes /ip4/127.0.0.1/tcp/30334/p2p/QmXiB3jqqn2rpiKU7k1h7NJYeBg8WNSx9DiTRKz9ti2KSK \
                 --port 30333 \
@@ -48,18 +46,34 @@ function startBootNode() {
                 --name ALICE \
                 --validator \
                 --ws-external \
-                --ws-port 9944`,
-                // { silent: true },
+                --ws-port 9944`
+
+    shell.exec( cmd,
+                { silent: true },
                 function (code, stdout, stderr) {
                     // console.log('Shell CMD exit code:', code);
                     // console.log('Shell CMD output:', stdout);
                     // console.log('Shell CMD stderr:', stderr);
                 });
             
+    // get the ws ip of node
     if (ciContainerName.length > 0) {
-        // find container running, reset the wsIp
-        const wsIp = getBootNodeIp()
-        bootNodeApi.setWsIp(wsIp)
+        // find container running, reset the wsIp. Only used when test running in docker image.
+        let wsIp = ''
+        for ( let i = 0; i < 60; i++ ){
+            wsIp = getBootNodeIp()
+            if ( wsIp != '' ){
+                break
+            }
+            await sleep(1000)
+        }
+
+        if (wsIp == ''){
+            throw new Error('Cannot get boot node ip')
+        }
+        
+        // console.log('wsIp =',wsIp)
+        bootNodeApi.setWsIp(`ws://${wsIp}:9944`)
     }
 }
 
@@ -86,20 +100,22 @@ function joinNewNode() {
 function getBootNodeIp(){
 
     const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${nodeContainerName}`,
-                            { silent: true })
-    console.log('wsip =', wsIp.stdout)
-    return wsIp.stdout.toString()
+                            { silent: true },
+                            { async: false} )
+    
+    return wsIp.stdout.toString().replace('\n', '')
 }
 
 function getRunContainer(image){
     let result = shell.exec(`docker ps --format '{{.Names}}' --filter ancestor=${image}`,
-                            { silent: true })
-    return result.stdout.toString()
+                            { silent: true },
+                            { async: false})
+    return result.stdout.toString().replace('\n', '')
 }
 
 function removeNodeContainers(){
     // remove all relevant containers 
-    shell.exec(`docker rm -f $(docker ps -a -q --filter name=${nodeContainerName})`, { silent: true }) 
+    shell.exec(`docker rm -f $(docker ps -a -q --filter name=${nodeContainerName})`, { silent: true }, { async: false}) 
 }
 
 async function awaitBlock( blockId, nodeApi = bootNodeApi) {
@@ -244,20 +260,10 @@ module.exports.getNonce = getNonce
 
 // --------- test code
 async function test(){
-    await bootNodeApi.init()
     
-    let hash = await transfer('Bob', '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ', 1000, 0)
-    console.log('hash = ', hash)
-
-    await queryFreeBalance('5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ', 0)
-    await queryFreeBalance('5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ', 10 ) 
-
-    await queryFreeBalance('Bob', 0)
-    await queryFreeBalance('Bob', 10 ) 
-    
-
-    bootNodeApi.close()
-
-    process.exit()
+    await startBootNode()
+    // process.exit()
 }
+
+// test()
 

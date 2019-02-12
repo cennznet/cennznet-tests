@@ -36,7 +36,8 @@ pipeline {
         sh 'docker run --rm \
             --name ${TEST_CONTAINER_NAME} \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            ${TEST_IMAGE_NAME}'
+            ${TEST_IMAGE_NAME} \
+            npm test integration_test/run.js'
       }
     }
   }

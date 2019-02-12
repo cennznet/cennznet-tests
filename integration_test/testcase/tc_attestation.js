@@ -31,7 +31,7 @@ describe('Attestation test cases...', function () {
         await bootNodeApi.init(10)
 
         // set Alice as the holder
-        holder = getAccount('EVE')
+        holder = getAccount('Alice')
         
         // set Bob as the issuer
         issuer = getAccount('Bob')

@@ -33,7 +33,7 @@ class WsApi{
             // this._api = await ApiPromise.create( this._provider )    // polkdot-api
         }
         catch(e){
-            console.log('Init api failed!')
+            console.log('Init api failed! Error =', e)
             console.log('ws =', this._wsIp)
         }
     }
