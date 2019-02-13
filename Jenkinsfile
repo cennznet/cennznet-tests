@@ -26,8 +26,9 @@ pipeline {
     stage('Build cennznet-node image') {
       steps {
         echo 'Build cennznet-node image...'
-        sh 'cd cennznet-node'
-        sh './scripts/build-docker.sh' 
+        dir('cennznet-node') {
+            sh './scripts/build-docker.sh' 
+        }
       }
     }
 
