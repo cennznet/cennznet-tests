@@ -18,7 +18,8 @@ pipeline {
     stage('Build test image') {
       steps {
         echo 'Build test image...'
-        sh 'docker build -f integration_test/Dockerfile -t ${TEST_IMAGE_NAME} .' 
+        sh 'docker build -f integration_test/Dockerfile -t ${TEST_IMAGE_NAME} \
+            --build-arg GEMFURY=H39FzaepFzxeWAwRCpRu .' 
       }
     }
 
