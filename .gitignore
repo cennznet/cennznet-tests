@@ -1,6 +1,6 @@
 .vscode
-.DS_Store*
+.DS_Store
 node_modules
 cennznet-node
 _*
-*package-lock
+package-lock.json
