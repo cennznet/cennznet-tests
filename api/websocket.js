@@ -2,6 +2,7 @@
 
 const { nodeServerWsIp } = require('./args')
 const { ApiPromise } = require('@polkadot/api');
+const { sleep } = require('./util')
 const { Api } = require('cennznet-api')
 const { WsProvider } = require('@polkadot/rpc-provider');
 const typeRegistry = require('@polkadot/types/codec/typeRegistry');
@@ -12,10 +13,6 @@ typeRegistry.default.register({
     AssetOptions: { total_supply: 'Balance' }
 });
 
-const apiType = {
-    CENNZ:      0,
-    POLKDOT:    10
-}
 
 class WsApi{
     constructor(ip = 'ws://127.0.0.1:9944'){
@@ -26,15 +23,28 @@ class WsApi{
     }
 
     async init(){
-        try{
-            this._provider = await new WsProvider(this._wsIp, false)
-            this._provider.connect()
-            this._api = await Api.create( {provider: this._provider} )  // cennznet-api
-            // this._api = await ApiPromise.create( this._provider )    // polkdot-api
+        
+        // repeat trying 
+        for ( let i = 0; i < 120; i++ ){
+            try{
+                this._provider = await new WsProvider(this._wsIp, false)
+                this._provider.connect()
+                this._api = await Api.create( {provider: this._provider} )  // cennznet-api
+                // this._api = await ApiPromise.create( this._provider )    // polkdot-api
+
+                break
+            }
+            catch(e){
+                // console.log('Init api failed!')
+                this._provider = null
+                this._api = null
+            }
+
+            await sleep(500)
         }
-        catch(e){
-            console.log('Init api failed! Error =', e)
-            console.log('ws =', this._wsIp)
+
+        if ( this._api == null ){
+            throw new Error('Api.create(...) failed!')
         }
     }
 

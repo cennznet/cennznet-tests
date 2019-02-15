@@ -125,7 +125,7 @@ async function awaitBlock( blockId, nodeApi = bootNodeApi) {
     // listening to the new block
     const currBlockId = await new Promise(async (resolve,reject) => {
         await api.rpc.chain.subscribeNewHead(async (header) => {
-            console.log('blockNumber...', header.blockNumber.toString())
+            // console.log('blockNumber...', header.blockNumber.toString())
             let blockNo = parseInt(header.blockNumber.toString())
             if (blockNo >= blockId){
                 resolve(blockNo)

@@ -25,7 +25,7 @@ describe('New node joins in ...', function () {
 
         // Join a new node
         node.joinNewNode()
-        await sleep(5000)
+        // await sleep(5000) 
 
         // init the connection to the new node, using 'ws://127.0.0.1:9945'
         const newNodeWsIp = bootNodeApi.getWsIp().replace('9944','9945')
@@ -46,15 +46,16 @@ describe('New node joins in ...', function () {
             let blockNo2 = parseInt(header2.blockNumber.toString())
             let parentHash2 = header2.parentHash.toString()
 
-            // check if they are same blocks
+            // check if they are the same block
             if ( blockNo1 == blockNo2 && parentHash1 === parentHash2){
                 // console.log(`Got ${sameBlockCnt} sync blocks`)
                 bGetSameBlock = true
                 break
             }
 
-            // sleep 4s for next check.
-            await sleep(4000)
+            // wait for next block appearing.
+            // await sleep(4000)
+            await node.awaitBlock(blockNo1 + 1)
         }
 
         // judge the result

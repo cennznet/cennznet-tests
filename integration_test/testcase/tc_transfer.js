@@ -37,7 +37,8 @@ describe('Transfer Token test cases...', function () {
 
         assert( (afterTx_cennz - beforeTx_cennz) == transAmt, 
                 `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_cennz}] to [${afterTx_cennz}]`)
-        assert( beforeTx_spend == afterTx_spend, `Spending token changed from ${beforeTx_spend} to ${afterTx_spend}`)
+        assert( beforeTx_spend == afterTx_spend, 
+                `Spending token changed from ${beforeTx_spend} to ${afterTx_spend}`)
 
     });
 
