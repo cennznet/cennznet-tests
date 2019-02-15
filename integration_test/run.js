@@ -28,7 +28,6 @@ describe('Cennznet-Node test cases...', function () {
         node.removeNodeContainers()
         // remove chain data
         rimraf.sync(node.chainDataFolder)
-        // process.exit()
     })
     
     // first test case: start up bootnode
