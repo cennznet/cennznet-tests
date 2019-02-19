@@ -5,6 +5,7 @@ const assert = require('assert')
 const { bootNodeApi } = require('../../api/websocket')
 const { getAccount, getNonce } = require('../../api/node')
 const { bnToHex } = require('@polkadot/util');
+const { setClaim, getClaim, removeClaim } = require('../../api/attestation')
 
 
 // value to be claimed
@@ -19,11 +20,11 @@ var holder = null
 // issuer
 var issuer = null
 
-async function getClaim(holderAddress, issuerAddress, topic) {
-    let api = await bootNodeApi.getApi()
-    let claim = await api.query.attestation.values([holderAddress, issuerAddress, topic]);
-    return bnToHex(claim);
-}
+// async function getClaim(holderAddress, issuerAddress, topic) {
+//     let api = await bootNodeApi.getApi()
+//     let claim = await api.query.attestation.values([holderAddress, issuerAddress, topic]);
+//     return bnToHex(claim);
+// }
 
 describe('Attestation test cases...', function () {
 
@@ -44,30 +45,11 @@ describe('Attestation test cases...', function () {
     it('Set a new claim and retrieve it', async function () {
         this.timeout(30000)
 
-        // get api
-        const api = await bootNodeApi.getApi()
-
-        // get valid nonce
-        const nonce = await getNonce(issuer.address());
-
         // set a claim
-        const hash = await new Promise(async (resolve,reject) => {
-            await api.tx.attestation.setClaim(holder.address(), topic, value)
-            .sign(issuer, nonce)
-            .send( ({ events = [], status, type }) => {
-                if (type == 'Finalised') {
-                    let hash = status.raw.toString() // get hash
-                    resolve(hash) 
-                }
-            }).catch((error) => {
-                // console.log('Error =', error);
-                reject(error)
-                // done();
-            });
-        });
+        const txResult = await setClaim(issuer, holder, topic, value)
         
         // check the result
-        assert(hash.toString().length == 66, `SetClaim has not been finalised. (result = ${hash})`)
+        assert(txResult.hash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult})`)
 
         // query the value
         const claimValue = await getClaim(holder.address(), issuer.address(), topic)
@@ -79,33 +61,16 @@ describe('Attestation test cases...', function () {
     it('Remove an existing claim and check if it is removed', async function () {
         this.timeout(30000)
 
-        // get api
-        const api = await bootNodeApi.getApi()
-
-        // get valid nonce
-        const nonce = await getNonce(issuer.address());
-
         // query the value before remove
         const claimValueBeforeRemove = await getClaim(holder.address(), issuer.address(), topic)
         // remove '0x' and check if the retrieved value contains the expected value
         assert(claimValueBeforeRemove.toString().indexOf(value.slice(2)) > 0, `The retrieved value(${claimValueBeforeRemove}) is not the expected one(${value}).`)
 
         // remove the claim
-        const hash = await new Promise(async (resolve,reject) => {
-            await api.tx.attestation.removeClaim(holder.address(), topic)
-            .sign(issuer, nonce)
-            .send( ({ events = [], status, type }) => {
-                if (type == 'Finalised') {
-                    let hash = status.raw.toString() // get hash
-                    resolve(hash) 
-                }
-            }).catch((error) => {
-                reject(error)
-            });
-        });
+        const txResult = await removeClaim(issuer, holder, topic)
 
         // check the result
-        assert(hash.toString().length == 66, `SetClaim has not been finalised. (result = ${hash})`) 
+        assert(txResult.hash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult})`) 
 
         // query the value after remove
         const claimValueAfterRemove = await getClaim(holder.address(), issuer.address(), topic)
@@ -114,5 +79,6 @@ describe('Attestation test cases...', function () {
         assert( parseInt(claimValueAfterRemove) == 0, `The retrieved value(${claimValueAfterRemove}) is not removed.`)
 
     });
+
 })
 

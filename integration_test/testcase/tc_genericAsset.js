@@ -37,7 +37,7 @@ describe('Generic Asset test cases...', function () {
         const assetOwner = 'Alice'
         const assetAmount = 100000
 
-        const ownerSpendingBal_beforeTx = await node.queryFreeBalance(assetOwner, 10)
+        // const ownerSpendingBal_beforeTx = await node.queryFreeBalance(assetOwner, 10)
 
         // create the asset and get id
         const txResult = await ga.createNewToken(assetOwner, assetAmount)
@@ -45,7 +45,7 @@ describe('Generic Asset test cases...', function () {
         const tokenBalance_ga = await ga.queryTokenBalance(newTokenId, assetOwner)
         const tokenBalance_owner = await node.queryFreeBalance(assetOwner, newTokenId)
 
-        const ownerSpendingBal_afterTx = await node.queryFreeBalance(assetOwner, 10)
+        // const ownerSpendingBal_afterTx = await node.queryFreeBalance(assetOwner, 10)
 
         assert(newTokenId >= 100000, `Token ID (current id = ${newTokenId}) should larger than 1,000,000.`)
         assert(BigNumber(tokenBalance_ga).minus(assetAmount) == 0, 
@@ -60,7 +60,7 @@ describe('Generic Asset test cases...', function () {
         // console.log('newTokenId =', newTokenId)
     });
 
-    it.skip('Test_Case_2', async function() {
+    it.skip('Transfer new token', async function() {
         this.timeout(60000)
         // TODO:
     });
