@@ -2,9 +2,10 @@
 "use strict";
 
 // const {spawn} = require('child_process');
-const {sleep} = require('./util')
-const {bootNodeApi} = require('./websocket');
+const { sleep } = require('./util')
+const { bootNodeApi } = require('./websocket');
 const shell = require('shelljs');
+const { getRunContainer } = require('./docker');
 
 const { xxhashAsHex } = require('@polkadot/util-crypto');
 const { Keyring, decodeAddress } = require('@polkadot/keyring');
@@ -21,8 +22,6 @@ const currency = {
 const ciImageName = 'integration_test'
 const nodeContainerName = 'integration_test_node'
 const chainDataFolder = '/tmp/node_data'
-
-// var nodeServerWsIp = getBootNodeIp()
 
 
 async function startBootNode() {
@@ -106,18 +105,6 @@ function getBootNodeIp(){
     return wsIp.stdout.toString().replace('\n', '')
 }
 
-function getRunContainer(image){
-    let result = shell.exec(`docker ps --format '{{.Names}}' --filter ancestor=${image}`,
-                            { silent: true },
-                            { async: false})
-    return result.stdout.toString().replace('\n', '')
-}
-
-function removeNodeContainers(){
-    // remove all relevant containers 
-    shell.exec(`docker rm -f $(docker ps -a -q --filter name=${nodeContainerName})`, { silent: true }, { async: false}) 
-}
-
 async function awaitBlock( blockId, nodeApi = bootNodeApi) {
 
     const api = await nodeApi.getApi()
@@ -168,29 +155,28 @@ async function transfer(fromSeed, toAddress, amount, assetId = currency.CENNZ, n
     // get account of seed
     const fromAccount = tempKeyring.addFromSeed(stringToU8a(_fromSeed));
 
-    // create wallet
-    const wallet = new Wallet();
-    await wallet.createNewVault('a passphrase');
-    const keyring = new SimpleKeyring();
-    await keyring.addFromSeed(stringToU8a(_fromSeed));
-    await wallet.addKeyring(keyring);
+    await setApiSigner(api, fromSeed)
 
-    // set wallet as signer of api
-    api.setSigner(wallet)
+    const nonce = await getNonce(fromAccount.address())
 
     // Send and wait nonce changed
-    const hash = await new Promise(async (resolve,reject) => {
-        await api.tx.genericAsset.transfer(assetId, toAddress, amount).send({ from: fromAccount.address() }, r => {
+    const txResult = await new Promise(async (resolve,reject) => {
+        const trans = api.tx.genericAsset.transfer(assetId, toAddress, amount)
+        // get tx length (byte)
+        const txLen  = trans.sign(fromAccount, nonce).encodedLength;
+        await trans.send( r => {
             if ( r.type == 'Finalised' ){
                 // console.log('hash =', r.status.raw.toString())
-                resolve(r.status.raw.toString()); // get hash
+                const txHash = r.status.raw.toString()
+                const result = {txHash: txHash, txLength: txLen}
+                resolve(result); 
             }
         }).catch((error) => {
             reject(error);
         });
     });
 
-    return hash
+    return txResult
 }
 
 function getAccount(seed){
@@ -242,13 +228,26 @@ async function queryFreeBalance( address, assetId = currency.CENNZ, nodeApi = bo
     return balance;
 }
 
+async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alice'
+    // create wallet
+    const wallet = new Wallet();
+    await wallet.createNewVault('a passphrase');
+    const keyring = new SimpleKeyring();
+    await keyring.addFromSeed(stringToU8a(signerSeed.padEnd(32, ' ')));
+    await wallet.addKeyring(keyring);
 
+    // set wallet as signer of api
+    api.setSigner(wallet)
+
+    return api
+}
+
+module.exports.setApiSigner = setApiSigner
 module.exports.chainDataFolder = chainDataFolder
 module.exports.currency = currency
 module.exports.awaitBlock = awaitBlock
 module.exports.startBootNode = startBootNode
 module.exports.joinNewNode = joinNewNode
-module.exports.removeNodeContainers = removeNodeContainers
 module.exports.transfer = transfer
 module.exports.queryLastBlock = queryLastBlock
 module.exports.queryFreeBalance = queryFreeBalance
@@ -261,8 +260,9 @@ module.exports.getNonce = getNonce
 // --------- test code
 async function test(){
     
-    await startBootNode()
-    // process.exit()
+    let bal = await queryFreeBalance('Alice', 1000006)
+    console.log(bal)
+    process.exit()
 }
 
 // test()

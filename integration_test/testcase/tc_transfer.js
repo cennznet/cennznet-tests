@@ -9,11 +9,11 @@ const {transfer, queryFreeBalance, currency} = require('../../api/node')
 describe('Transfer Token test cases...', function () {
     
     before(async function(){
-        await bootNodeApi.init()
+        // await bootNodeApi.init()
     })
 
     after(function(){
-        bootNodeApi.close()
+        // bootNodeApi.close()
     })
     
     it('Transfer staking token', async function() {
@@ -42,7 +42,7 @@ describe('Transfer Token test cases...', function () {
 
     });
 
-    it('Transfer spending token', async function() {
+    it.skip('Transfer spending token', async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'

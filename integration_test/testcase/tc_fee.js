@@ -15,7 +15,9 @@ describe('Fee test cases...', function () {
     after(function(){
         bootNodeApi.close()
     })
-    
+
+    // TODO: change config and check dynamic fee, also check if fee are moved to system account
+
     it('Fee of transferring staking token', async function() {
         this.timeout(60000)
 
@@ -23,7 +25,7 @@ describe('Fee test cases...', function () {
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
         const assetId = currency.CENNZ
-        const expectFee = 157
+        const expectFee = 157   // TODO: calculate a real fee
 
         // get bal before tx
         const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
@@ -49,7 +51,7 @@ describe('Fee test cases...', function () {
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
         const assetId = currency.SPEND
-        const expectFee = 157
+        const expectFee = 157   // TODO: calculate a real fee
 
         // get bal before tx
         const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
