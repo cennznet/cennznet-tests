@@ -1,7 +1,7 @@
 "use strict";
 
-const { nodeServerWsIp } = require('./args')
-const { ApiPromise } = require('@polkadot/api');
+// const { nodeServerWsIp } = require('./args')
+// const { ApiPromise } = require('@polkadot/api');
 const { sleep } = require('./util')
 const { Api } = require('cennznet-api')
 const { WsProvider } = require('@polkadot/rpc-provider');
@@ -23,8 +23,12 @@ class WsApi{
     }
 
     async init(){
+        // if api is existing , just use it
+        if ( this._api != null ){
+            return
+        }
         
-        // repeat trying 
+        // repeat trying if connection is failed
         for ( let i = 0; i < 120; i++ ){
             try{
                 this._provider = await new WsProvider(this._wsIp, false)
