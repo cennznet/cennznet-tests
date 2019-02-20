@@ -13,6 +13,7 @@ const { stringToU8a, u8aToHex } = require('@polkadot/util');
 const { Address, u32, u128 } = require('@polkadot/types') ;
 const { AssetId } = require('cennznet-runtime-types');
 const { SimpleKeyring, Wallet } = require('cennznet-wallet')
+const { SystemFee } = require('./fee')
 
 const currency = {
     CENNZ:  0,
@@ -186,6 +187,13 @@ function getAccount(seed){
     return account
 }
 
+async function calTransferFee(byteLength){
+    const systemFee = new SystemFee()
+    await systemFee.fetchSysFee()
+    const totalTransferFee = systemFee.transferFee + systemFee.baseFee + systemFee.byteFee * byteLength
+    return totalTransferFee
+}
+
 // retrive nonce and conver to integer
 async function getNonce(address){
     let api = await bootNodeApi.getApi()
@@ -253,6 +261,7 @@ module.exports.queryLastBlock = queryLastBlock
 module.exports.queryFreeBalance = queryFreeBalance
 module.exports.getAccount = getAccount
 module.exports.getNonce = getNonce
+module.exports.calTransferFee = calTransferFee
 
 
 // _getArgs()

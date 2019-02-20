@@ -2,18 +2,17 @@
 
 const assert = require('assert')
 const {bootNodeApi} = require('../../api/websocket')
-const {transfer, queryFreeBalance, currency} = require('../../api/node')
+const {transfer, queryFreeBalance, currency, calTransferFee} = require('../../api/node')
 const BigNumber = require('big-number');
 
 
 describe('Fee test cases...', function () {
     
     before(async function(){
-        await bootNodeApi.init()
     })
 
     after(function(){
-        bootNodeApi.close()
+        
     })
 
     // TODO: change config and check dynamic fee, also check if fee are moved to system account
@@ -25,14 +24,15 @@ describe('Fee test cases...', function () {
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
         const assetId = currency.CENNZ
-        const expectFee = 157   // TODO: calculate a real fee
+        
 
         // get bal before tx
         const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
         const beforeTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
 
         // transfer
-        await transfer(fromSeed, toAddress, transAmt, assetId)
+        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
+        const expectFee = await calTransferFee(txResult.txLength) 
 
         // get bal after tx
         const afterTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
@@ -51,14 +51,14 @@ describe('Fee test cases...', function () {
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
         const assetId = currency.SPEND
-        const expectFee = 157   // TODO: calculate a real fee
 
         // get bal before tx
         const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
         const beforeTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
 
         // transfer
-        await transfer(fromSeed, toAddress, transAmt, assetId)
+        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
+        const expectFee = await calTransferFee(txResult.txLength) 
 
         // get bal after tx
         const afterTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)

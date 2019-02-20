@@ -1,14 +1,6 @@
 
 
 const { bootNodeApi } = require('./websocket');
-const { getRunContainer } = require('./docker');
-
-const { xxhashAsHex } = require('@polkadot/util-crypto');
-const { Keyring, decodeAddress } = require('@polkadot/keyring');
-const { stringToU8a, u8aToHex } = require('@polkadot/util');
-const { Address, u32, u128 } = require('@polkadot/types') ;
-const { AssetId } = require('cennznet-runtime-types');
-const { SimpleKeyring, Wallet } = require('cennznet-wallet')
 
 
 class SystemFee{
@@ -45,7 +37,7 @@ class SystemFee{
     }
 }
 
-
+module.exports.SystemFee = SystemFee
 
 
 // ---- test code 

@@ -15,10 +15,11 @@ For V2, following need to be included:
 const assert = require('assert')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
-const BigNumber = require('big-number');
+const BigNumber = require('big-number')
+const {transfer, queryFreeBalance, currency} = require('../../api/node')
 
-// issuer
-var issuer = null
+// asset id
+var newTokenId = null
 
 describe('Generic Asset test cases...', function () {
     
@@ -41,7 +42,7 @@ describe('Generic Asset test cases...', function () {
 
         // create the asset and get id
         const txResult = await ga.createNewToken(assetOwner, assetAmount)
-        const newTokenId = txResult.assetId.toString()
+        newTokenId = txResult.assetId.toString()
         const tokenBalance_ga = await ga.queryTokenBalance(newTokenId, assetOwner)
         const tokenBalance_owner = await node.queryFreeBalance(assetOwner, newTokenId)
 
@@ -53,17 +54,30 @@ describe('Generic Asset test cases...', function () {
         assert(BigNumber(tokenBalance_owner).minus(assetAmount) == 0, 
                 `Token owner's balance is incorrect. (expected Value = ${assetAmount}, actual value = ${tokenBalance_ga} )`)       
 
-        // console.log('ownerSpendingBal_beforeTx =',ownerSpendingBal_beforeTx)
-        // console.log('tokenBalance_ga =', tokenBalance_ga)
-        // console.log('tokenBalance_owner =',tokenBalance_owner)
-        // console.log('ownerSpendingBal_afterTx =',ownerSpendingBal_afterTx)
-        // console.log('newTokenId =', newTokenId)
     });
 
-    it.skip('Transfer new token', async function() {
+    it('Transfer new token', async function() {
         this.timeout(60000)
-        // TODO:
-    });
 
-    // TODO: add more test cases below...
+        const fromSeed = 'Alice'
+        const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
+        const transAmt = 1000
+        const assetId = newTokenId
+
+        // get bal before tx
+        let beforeTx_stake = await queryFreeBalance(toAddress, assetId)
+        let beforeTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+
+        // transfer
+        await transfer(fromSeed, toAddress, transAmt, assetId)
+
+        // get bal after tx
+        let afterTx_stake = await queryFreeBalance(toAddress, assetId)
+        let afterTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+
+        assert( (afterTx_stake - beforeTx_stake) == transAmt, 
+                `Transfer tx (${fromSeed} -> transfer amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_stake}] to [${afterTx_stake}]`)
+        assert( beforeTx_spend == afterTx_spend, 
+                `Spending token changed from ${beforeTx_spend} to ${afterTx_spend}`)
+    });
 });
