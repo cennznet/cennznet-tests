@@ -12,12 +12,9 @@ describe('Fee test cases...', function () {
     })
 
     after(function(){
-        
     })
 
-    // TODO: change config and check dynamic fee, also check if fee are moved to system account
-
-    it('Fee of transferring staking token', async function() {
+    it.skip('Fee of transferring staking token', async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'
@@ -25,7 +22,6 @@ describe('Fee test cases...', function () {
         const transAmt = 1000
         const assetId = currency.CENNZ
         
-
         // get bal before tx
         const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
         const beforeTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
@@ -44,7 +40,7 @@ describe('Fee test cases...', function () {
         assert( currFee == expectFee, `Current fee [${currFee}] did not equal to expected fee [${expectFee}].`)
     });
 
-    it('Fee of transferring spending token', async function() {
+    it.skip('Fee of transferring spending token', async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'
@@ -68,4 +64,18 @@ describe('Fee test cases...', function () {
         assert( beforeTx_cennz == afterTx_cennz, `Staking token changed from ${beforeTx_cennz} to ${afterTx_cennz}. Should be the same.` )
         assert( difference == expectFee + transAmt, `Spending balance is wrong. Changed [${difference}], but expected value is [${expectFee + transAmt}].`)
     });
+
+    it.skip('TODO: Fee for setting a new claim', async function() {
+        this.timeout(60000)
+    });
+
+    it.skip('TODO: Fee for removing a claim', async function() {
+        this.timeout(60000)
+    });
+
+    it.skip('TODO: Fee for creating new token', async function() {
+        this.timeout(60000)
+    });
+
+    
 });
