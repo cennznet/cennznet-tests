@@ -27,19 +27,21 @@ class WsApi{
         if ( this._api != null ){
             return
         }
-        
+
         // repeat trying if connection is failed
         for ( let i = 0; i < 120; i++ ){
             try{
-                this._provider = await new WsProvider(this._wsIp, false)
-                this._provider.connect()
-                this._api = await Api.create( {provider: this._provider} )  // cennznet-api
-                // this._api = await ApiPromise.create( this._provider )    // polkdot-api
-
+                // this._provider = await new WsProvider(this._wsIp, false)
+                this._provider = await new WsProvider(this._wsIp)
+                // console.log('wsip =', this._wsIp)
+                // this._provider.connect()
+                    
+                // this._api = await Api.create( {provider: this._provider} )  // cennznet-api
+                this._api = await Api.create(this._provider)
                 break
             }
             catch(e){
-                // console.log('Init api failed!')
+                console.log('Init api failed!')
                 this._provider = null
                 this._api = null
             }

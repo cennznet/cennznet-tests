@@ -9,11 +9,12 @@ const { getRunContainer } = require('./docker');
 
 const { xxhashAsHex } = require('@polkadot/util-crypto');
 const { Keyring, decodeAddress } = require('@polkadot/keyring');
-const { stringToU8a, u8aToHex } = require('@polkadot/util');
+const { stringToU8a, u8aToHex, hexToBn } = require('@polkadot/util');
 const { Address, u32, u128 } = require('@polkadot/types') ;
 const { AssetId } = require('cennznet-runtime-types');
 const { SimpleKeyring, Wallet } = require('cennznet-wallet')
 const { SystemFee } = require('./fee')
+const BigNumber = require('big-number');
 
 const currency = {
     CENNZ:  0,
@@ -21,9 +22,10 @@ const currency = {
 }
 
 const ciImageName = 'integration_test'
-const nodeContainerName = 'integration_test_node'
+const bootNodeContainerName = 'integration_test_node'
 const chainDataFolder = '/tmp/node_data'
-
+var bootNodeIp = ''
+var nodeKey = 1
 
 async function startBootNode() {
     
@@ -36,11 +38,26 @@ async function startBootNode() {
         linkStr = `--link ${ciContainerName}`
     }
 
-    const cmd = `docker run --rm --name ${nodeContainerName} ${linkStr} \
-                -p 9945:9945 -p 9944:9944 -p 30333:30333 -p 30334:30334 \
-                cennznet-node --dev --base-path /tmp/node_data/alice \
+    // const cmd = `docker run --rm --name ${bootNodeContainerName} ${linkStr} \
+    //             -p 9945:9945 -p 9944:9944 -p 9946:9946 \
+    //             -p 30333:30333 -p 30334:30334 -p 30335:30335 \
+    //             cennznet-node --dev --base-path /tmp/node_data/alice \
+    //             --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
+    //             --bootnodes /ip4/127.0.0.1/tcp/30334/p2p/QmXiB3jqqn2rpiKU7k1h7NJYeBg8WNSx9DiTRKz9ti2KSK \
+    //             --port 30333 \
+    //             --key Alice \
+    //             --name ALICE \
+    //             --validator \
+    //             --ws-external \
+    //             --ws-port 9944`
+    
+    const cmd = `docker run --rm --name ${bootNodeContainerName} ${linkStr} \
+                -v /tmp:/tmp \
+                -p 9945:9945 -p 9944:9944 -p 9946:9946 \
+                -p 30333:30333 -p 30334:30334 -p 30335:30335 \
+                cennznet-node --dev --base-path ${chainDataFolder}/alice \
+                --chain /tmp/nodeConfig.json \
                 --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
-                --bootnodes /ip4/127.0.0.1/tcp/30334/p2p/QmXiB3jqqn2rpiKU7k1h7NJYeBg8WNSx9DiTRKz9ti2KSK \
                 --port 30333 \
                 --key Alice \
                 --name ALICE \
@@ -59,37 +76,58 @@ async function startBootNode() {
     // get the ws ip of node
     if (ciContainerName.length > 0) {
         // find container running, reset the wsIp. Only used when test running in docker image.
-        let wsIp = ''
+        bootNodeIp = ''
         for ( let i = 0; i < 60; i++ ){
-            wsIp = getBootNodeIp()
-            if ( wsIp != '' ){
+            bootNodeIp = getBootNodeIp()
+            if ( bootNodeIp != '' ){
                 break
             }
             await sleep(1000)
         }
 
-        if (wsIp == ''){
+        if (bootNodeIp == ''){
             throw new Error('Cannot get boot node ip')
         }
         
         // console.log('wsIp =',wsIp)
-        bootNodeApi.setWsIp(`ws://${wsIp}:9944`)
+        bootNodeApi.setWsIp(`ws://${bootNodeIp}:9944`)
     }
 }
 
-function joinNewNode() {
+function joinNewValidator(containerName, keySeed, htmlPort, wsPort) {
 
-    shell.exec(`docker exec ${nodeContainerName} \
-                ./usr/local/bin/cennznet --dev --base-path ${chainDataFolder}/bob \
-                --node-key 0000000000000000000000000000000000000000000000000000000000000002 \
-                --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
-                --port 30334 \
-                --key Bob \
-                --name BOB \
+    // run a validator node in the same container.
+    //  Note: cannot use '-it' ( will block the process )
+    // const cmd = `docker exec ${bootNodeContainerName} \
+    //             ./usr/local/bin/cennznet --dev --base-path ${chainDataFolder}/${keySeed} \
+    //             --chain /tmp/nodeConfig.json \
+    //             --node-key 000000000000000000000000000000000000000000000000000000000000000${++nodeKey} \
+    //             --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
+    //             --port ${htmlPort} \
+    //             --key ${keySeed} \
+    //             --name ${keySeed} \
+    //             --validator \
+    //             --ws-external \
+    //             --ws-port ${wsPort}`
+    const _bootNodeIp = getBootNodeIp()
+
+    const cmd = `docker run --net bridge --rm --name ${containerName} \
+                -v /tmp:/tmp \
+                -p ${wsPort}:${wsPort} \
+                cennznet-node --dev --base-path ${chainDataFolder}/${keySeed} \
+                --chain /tmp/nodeConfig.json \
+                --node-key 000000000000000000000000000000000000000000000000000000000000000${++nodeKey} \
+                --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
+                --port ${htmlPort} \
+                --key ${keySeed} \
+                --name ${keySeed} \
                 --validator \
                 --ws-external \
-                --ws-port 9945`,
-                { silent: true },
+                --ws-port ${wsPort}`
+
+    console.log('cmd =', cmd)
+    shell.exec( cmd,
+                { silent: true }, 
                 function (code, stdout, stderr) {
                     // console.log('Shell CMD exit code:', code);
                     // console.log('Shell CMD output:', stdout);
@@ -99,7 +137,7 @@ function joinNewNode() {
 
 function getBootNodeIp(){
 
-    const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${nodeContainerName}`,
+    const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${bootNodeContainerName}`,
                             { silent: true },
                             { async: false} )
     
@@ -113,7 +151,7 @@ async function awaitBlock( blockId, nodeApi = bootNodeApi) {
     // listening to the new block
     const currBlockId = await new Promise(async (resolve,reject) => {
         await api.rpc.chain.subscribeNewHead(async (header) => {
-            // console.log('blockNumber...', header.blockNumber.toString())
+            console.log('blockNumber...', header.blockNumber.toString())
             let blockNo = parseInt(header.blockNumber.toString())
             if (blockNo >= blockId){
                 resolve(blockNo)
@@ -160,9 +198,11 @@ async function transfer(fromSeed, toAddress, amount, assetId = currency.CENNZ, n
 
     const nonce = await getNonce(fromAccount.address())
 
+    const amountBN = hexToBn(amount.toString(16))
+
     // Send and wait nonce changed
     const txResult = await new Promise(async (resolve,reject) => {
-        const trans = api.tx.genericAsset.transfer(assetId, toAddress, amount)
+        const trans = api.tx.genericAsset.transfer(assetId, toAddress, amountBN)
         // get tx length (byte)
         const txLen  = trans.sign(fromAccount, nonce).encodedLength;
         await trans.send( r => {
@@ -255,7 +295,7 @@ module.exports.chainDataFolder = chainDataFolder
 module.exports.currency = currency
 module.exports.awaitBlock = awaitBlock
 module.exports.startBootNode = startBootNode
-module.exports.joinNewNode = joinNewNode
+module.exports.joinNewValidator = joinNewValidator
 module.exports.transfer = transfer
 module.exports.queryLastBlock = queryLastBlock
 module.exports.queryFreeBalance = queryFreeBalance

@@ -32,24 +32,24 @@
       },
       "balances": {
         "existentialDeposit": 50,
-        "transferFee": 1,
+        "transferFee": 2,
         "creationFee": 1,
-        "transactionBaseFee": 1,
-        "transactionByteFee": 1
+        "transactionBaseFee": 4,
+        "transactionByteFee": 3
       },
       "session": {
         "validators": [
           "0xd172a74cda4c865912c32ba0a80a57ae69abae410e5ccb59dee84e2f4432db4f"
         ],
-        "sessionLength": 10
+        "sessionLength": 3
       },
       "staking": {
-        "validatorCount": 2,
+        "validatorCount": 3,
         "minimumValidatorCount": 1,
-        "sessionsPerEra": 5,
+        "sessionsPerEra": 2,
         "sessionReward": 10,
         "offlineSlash": 10,
-        "offlineSlashGrace": 0,
+        "offlineSlashGrace": 1,
         "bondingDuration": 1440,
         "invulnerables": [
           "0xd172a74cda4c865912c32ba0a80a57ae69abae410e5ccb59dee84e2f4432db4f"
@@ -58,8 +58,8 @@
         "intentions": [
           "0xd172a74cda4c865912c32ba0a80a57ae69abae410e5ccb59dee84e2f4432db4f"
         ],
-        "currentSessionReward": 0,
-        "currentOfflineSlash": 0
+        "currentSessionReward": 1,
+        "currentOfflineSlash": 2
       },
       "democracy": {
         "launchPeriod": 9,
