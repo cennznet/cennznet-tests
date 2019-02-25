@@ -10,6 +10,7 @@ typeRegistry.default.register({
     AssetId: 'u32',
     Topic: 'u256', 
     Value: 'u256',
+    Amount: 'u128',
     AssetOptions: { total_supply: 'Balance' }
 });
 
@@ -31,12 +32,7 @@ class WsApi{
         // repeat trying if connection is failed
         for ( let i = 0; i < 120; i++ ){
             try{
-                // this._provider = await new WsProvider(this._wsIp, false)
                 this._provider = await new WsProvider(this._wsIp)
-                // console.log('wsip =', this._wsIp)
-                // this._provider.connect()
-                    
-                // this._api = await Api.create( {provider: this._provider} )  // cennznet-api
                 this._api = await Api.create(this._provider)
                 break
             }
@@ -70,7 +66,6 @@ class WsApi{
     }
 
     close(){
-        this._provider.websocket.onClose = null
         this._provider.websocket.close()
         this._provider = null
         this._api = null

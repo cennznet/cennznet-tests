@@ -37,19 +37,6 @@ async function startBootNode() {
         // find container running
         linkStr = `--link ${ciContainerName}`
     }
-
-    // const cmd = `docker run --rm --name ${bootNodeContainerName} ${linkStr} \
-    //             -p 9945:9945 -p 9944:9944 -p 9946:9946 \
-    //             -p 30333:30333 -p 30334:30334 -p 30335:30335 \
-    //             cennznet-node --dev --base-path /tmp/node_data/alice \
-    //             --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
-    //             --bootnodes /ip4/127.0.0.1/tcp/30334/p2p/QmXiB3jqqn2rpiKU7k1h7NJYeBg8WNSx9DiTRKz9ti2KSK \
-    //             --port 30333 \
-    //             --key Alice \
-    //             --name ALICE \
-    //             --validator \
-    //             --ws-external \
-    //             --ws-port 9944`
     
     const cmd = `docker run --rm --name ${bootNodeContainerName} ${linkStr} \
                 -v /tmp:/tmp \
@@ -94,21 +81,9 @@ async function startBootNode() {
     }
 }
 
-function joinNewValidator(containerName, keySeed, htmlPort, wsPort) {
+function startNewValidator(containerName, keySeed, htmlPort, wsPort) {
 
     // run a validator node in the same container.
-    //  Note: cannot use '-it' ( will block the process )
-    // const cmd = `docker exec ${bootNodeContainerName} \
-    //             ./usr/local/bin/cennznet --dev --base-path ${chainDataFolder}/${keySeed} \
-    //             --chain /tmp/nodeConfig.json \
-    //             --node-key 000000000000000000000000000000000000000000000000000000000000000${++nodeKey} \
-    //             --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
-    //             --port ${htmlPort} \
-    //             --key ${keySeed} \
-    //             --name ${keySeed} \
-    //             --validator \
-    //             --ws-external \
-    //             --ws-port ${wsPort}`
     const _bootNodeIp = getBootNodeIp()
 
     const cmd = `docker run --net bridge --rm --name ${containerName} \
@@ -125,7 +100,20 @@ function joinNewValidator(containerName, keySeed, htmlPort, wsPort) {
                 --ws-external \
                 --ws-port ${wsPort}`
 
-    console.log('cmd =', cmd)
+    // console.log('cmd =', cmd)
+    shell.exec( cmd,
+                { silent: true }, 
+                function (code, stdout, stderr) {
+                    // console.log('Shell CMD exit code:', code);
+                    // console.log('Shell CMD output:', stdout);
+                    // console.log('Shell CMD stderr:', stderr);
+                });
+}
+
+function dropNode(containerName) {
+
+    const cmd = `docker stop ${containerName}`
+
     shell.exec( cmd,
                 { silent: true }, 
                 function (code, stdout, stderr) {
@@ -144,9 +132,26 @@ function getBootNodeIp(){
     return wsIp.stdout.toString().replace('\n', '')
 }
 
-async function awaitBlock( blockId, nodeApi = bootNodeApi) {
+function queryNodeContainer(containerName){
+    // query the exact container
+    const cmd = `docker ps -q --filter name=^/${containerName}$`
+
+    const result = shell.exec( cmd,
+                    { silent: true }, 
+                    { async: false});
+
+    return result.stdout.toString().replace('\n', '')
+}
+
+// await specified block number
+async function awaitBlock( blockNum, nodeApi = bootNodeApi) {
 
     const api = await nodeApi.getApi()
+
+    const lastBlockHeader = await queryLastBlock(nodeApi)
+    const lastBlockNum = parseInt(lastBlockHeader.blockNumber.toString())
+    // get objective block id
+    const blockId = lastBlockNum + blockNum
 
     // listening to the new block
     const currBlockId = await new Promise(async (resolve,reject) => {
@@ -160,6 +165,8 @@ async function awaitBlock( blockId, nodeApi = bootNodeApi) {
             reject(error);
         });
     });
+
+    // TODO: unsubscribe...
 
     return currBlockId
 }
@@ -295,7 +302,9 @@ module.exports.chainDataFolder = chainDataFolder
 module.exports.currency = currency
 module.exports.awaitBlock = awaitBlock
 module.exports.startBootNode = startBootNode
-module.exports.joinNewValidator = joinNewValidator
+module.exports.dropNode = dropNode
+module.exports.queryNodeContainer = queryNodeContainer
+module.exports.startNewValidator = startNewValidator
 module.exports.transfer = transfer
 module.exports.queryLastBlock = queryLastBlock
 module.exports.queryFreeBalance = queryFreeBalance
