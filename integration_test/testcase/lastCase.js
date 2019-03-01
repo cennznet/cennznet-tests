@@ -2,25 +2,22 @@
 "use strict";
 
 const assert = require('assert')
-const node = require('../../api/node')
-const {bootNodeApi} = require('../../api/websocket')
+const block = require('../../api/block')
 
+const totalWaitBlockCnt = 50
 
-describe('Waiting for 15 blocks ...', function () {
+describe(`Waiting for ${totalWaitBlockCnt} blocks ...`, function () {
     
     before(async function(){
-        await bootNodeApi.init()
     })
 
     after(function(){
-        bootNodeApi.close()
     })
     
-    it('Node could generate 15 blocks', async function() {
+    it(`Node could produce at least ${totalWaitBlockCnt} blocks`, async function() {
         this.timeout(600000)
         
-        let aimBlockId = 15
-        let currBlockId = await node.awaitBlock(aimBlockId)
-        assert( currBlockId >= aimBlockId, `Node should generate more than ${aimBlockId + 1} blocks, but current Block Id is ${currBlockId}`)
+        let currBlockId = await block.waitBlockId(totalWaitBlockCnt)
+        assert( currBlockId >= totalWaitBlockCnt - 1, `Node should generate more than ${totalWaitBlockCnt} blocks, but current Block Id is ${currBlockId}`)
     });
 });

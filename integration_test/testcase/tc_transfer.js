@@ -3,7 +3,7 @@
 
 const assert = require('assert')
 const {bootNodeApi} = require('../../api/websocket')
-const {transfer, queryFreeBalance, currency} = require('../../api/node')
+const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 
 
 describe('Transfer Token test cases...', function () {
@@ -22,18 +22,18 @@ describe('Transfer Token test cases...', function () {
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
-        const assetId = currency.CENNZ
+        const assetId = CURRENCY.STAKE
 
         // get bal before tx
-        let beforeTx_cennz = await queryFreeBalance(toAddress, currency.CENNZ)
-        let beforeTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+        let beforeTx_cennz = await queryFreeBalance(toAddress, CURRENCY.STAKE)
+        let beforeTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         // transfer
         await transfer(fromSeed, toAddress, transAmt, assetId)
 
         // get bal after tx
-        let afterTx_cennz = await queryFreeBalance(toAddress, currency.CENNZ)
-        let afterTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+        let afterTx_cennz = await queryFreeBalance(toAddress, CURRENCY.STAKE)
+        let afterTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         assert( (afterTx_cennz - beforeTx_cennz) == transAmt, 
                 `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_cennz}] to [${afterTx_cennz}]`)
@@ -42,24 +42,24 @@ describe('Transfer Token test cases...', function () {
 
     });
 
-    it.skip('Transfer spending token', async function() {
+    it('Transfer spending token', async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
-        const assetId = currency.SPEND
+        const assetId = CURRENCY.SPEND
 
         // get bal before tx
-        let beforeTx_cennz = await queryFreeBalance(toAddress, currency.CENNZ)
-        let beforeTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+        let beforeTx_cennz = await queryFreeBalance(toAddress, CURRENCY.STAKE)
+        let beforeTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         // transfer
         await transfer(fromSeed, toAddress, transAmt, assetId)
 
         // get bal after tx
-        let afterTx_cennz = await queryFreeBalance(toAddress, currency.CENNZ)
-        let afterTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+        let afterTx_cennz = await queryFreeBalance(toAddress, CURRENCY.STAKE)
+        let afterTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         assert( (afterTx_spend - beforeTx_spend) == transAmt, 
                 `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${afterTx_spend}] to [${beforeTx_spend}]`)

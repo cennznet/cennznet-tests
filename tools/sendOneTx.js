@@ -46,5 +46,5 @@ run()
 
 /*
 // run code:
-       node tools/sendOneTx -f Bob -t 5E351ovfS6wiWwuXx7W17AApcZkVcAh2GGKs5uPvazDU6ycb -a 10000000000 --ws ws://127.0.0.1:9944
+       node tools/sendOneTx -f Bob -t 5E351ovfS6wiWwuXx7W17AApcZkVcAh2GGKs5uPvazDU6ycb -a 1000 --ws ws://127.0.0.1:9944
 */

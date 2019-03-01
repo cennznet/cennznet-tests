@@ -20,12 +20,12 @@ describe('Boot Node test cases', function () {
 
     })
     
-    it('The node should be able to generate new blocks', async function() {
+    it('The Boot Node is able to produce new blocks', async function() {
         this.timeout(60000)
         
-        let aimBlockId = 5
-        let currBlockId = await node.awaitBlock(aimBlockId)
-        assert( currBlockId >= aimBlockId, `Node should generate more than ${aimBlockId + 1} blocks, but current Block Id is ${currBlockId}`)
+        let aimBlockCnt = 5
+        let currBlockId = await node.awaitBlockCnt(aimBlockCnt)
+        assert( currBlockId >= aimBlockCnt - 1, `Node should generate more than ${aimBlockCnt} blocks, but current Block Id is ${currBlockId}`)
     });
 
 });

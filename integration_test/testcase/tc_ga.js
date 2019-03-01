@@ -16,7 +16,7 @@ const assert = require('assert')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
 const BigNumber = require('big-number')
-const {transfer, queryFreeBalance, currency} = require('../../api/node')
+const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 
 // asset id
 var newTokenId = null
@@ -66,14 +66,14 @@ describe('Generic Asset test cases...', function () {
 
         // get bal before tx
         let beforeTx_stake = await queryFreeBalance(toAddress, assetId)
-        let beforeTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+        let beforeTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         // transfer
         await transfer(fromSeed, toAddress, transAmt, assetId)
 
         // get bal after tx
         let afterTx_stake = await queryFreeBalance(toAddress, assetId)
-        let afterTx_spend = await queryFreeBalance(toAddress, currency.SPEND)
+        let afterTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         assert( (afterTx_stake - beforeTx_stake) == transAmt, 
                 `Transfer tx (${fromSeed} -> transfer amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_stake}] to [${afterTx_stake}]`)

@@ -20,12 +20,6 @@ var holder = null
 // issuer
 var issuer = null
 
-// async function getClaim(holderAddress, issuerAddress, topic) {
-//     let api = await bootNodeApi.getApi()
-//     let claim = await api.query.attestation.values([holderAddress, issuerAddress, topic]);
-//     return bnToHex(claim);
-// }
-
 describe('Attestation test cases...', function () {
 
     before(async function () {

@@ -1,8 +1,8 @@
 "use strict";
 
 const assert = require('assert')
-const {bootNodeApi} = require('../../api/websocket')
-const {transfer, queryFreeBalance, currency, calTransferFee} = require('../../api/node')
+const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
+const {calulateTxFee, queryTxFee} = require('../../api/fee')
 const BigNumber = require('big-number');
 
 
@@ -14,25 +14,41 @@ describe('Fee test cases...', function () {
     after(function(){
     })
 
-    it.skip('Fee of transferring staking token', async function() {
+    it(`Transfer Fee from query = transferFee + baseFee + byteFee * byteLength`, async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
-        const assetId = currency.CENNZ
+        const assetId = CURRENCY.STAKE
+
+        // transfer and get fee
+        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
+        const fee_cal = await calulateTxFee(txResult.byteLength)                    // calculated fee
+        const fee_query = await queryTxFee(txResult.blockHash, txResult.txHash)     // queried fee
+
+        assert( fee_cal == fee_query, `Transfer fee [${fee_query}] did not equal to expected fee [${fee_cal}].`)
+    });
+
+    it('Fee of transferring staking token', async function() {
+        this.timeout(60000)
+
+        const fromSeed = 'Bob'
+        const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
+        const transAmt = 1000
+        const assetId = CURRENCY.STAKE
         
         // get bal before tx
-        const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
-        const beforeTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
+        const beforeTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
+        const beforeTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         // transfer
         const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
-        const expectFee = await calTransferFee(txResult.txLength) 
+        const expectFee = await queryTxFee(txResult.blockHash, txResult.txHash)
 
         // get bal after tx
-        const afterTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
-        const afterTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
+        const afterTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
+        const afterTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
         const currFee = BigNumber(beforeTx_spend).minus(afterTx_spend).toString()
 
         assert( BigNumber(beforeTx_cennz).minus(afterTx_cennz) == transAmt, 
@@ -40,25 +56,25 @@ describe('Fee test cases...', function () {
         assert( currFee == expectFee, `Current fee [${currFee}] did not equal to expected fee [${expectFee}].`)
     });
 
-    it.skip('Fee of transferring spending token', async function() {
+    it('Fee of transferring spending token', async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
-        const assetId = currency.SPEND
+        const assetId = CURRENCY.SPEND
 
         // get bal before tx
-        const beforeTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
-        const beforeTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
+        const beforeTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
+        const beforeTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         // transfer
         const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
-        const expectFee = await calTransferFee(txResult.txLength) 
+        const expectFee = await queryTxFee(txResult.blockHash, txResult.txHash)
 
         // get bal after tx
-        const afterTx_cennz = await queryFreeBalance(fromSeed, currency.CENNZ)
-        const afterTx_spend = await queryFreeBalance(fromSeed, currency.SPEND)
+        const afterTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
+        const afterTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         const difference = BigNumber(beforeTx_spend).minus(afterTx_spend)
         assert( beforeTx_cennz == afterTx_cennz, `Staking token changed from ${beforeTx_cennz} to ${afterTx_cennz}. Should be the same.` )

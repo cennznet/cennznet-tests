@@ -45,7 +45,7 @@ module.exports.unstake = async function(stakerSeed, nodeApi = bootNodeApi){
 
     // get Intention Index
     const intentionIndex = await this.queryStakerIndex(stakerSeed, nodeApi)
-    console.log('intentionIndex =', intentionIndex)
+    // console.log('intentionIndex =', intentionIndex)
 
     // set a claim
     const txResult = await new Promise(async (resolve, reject) => {
@@ -53,7 +53,7 @@ module.exports.unstake = async function(stakerSeed, nodeApi = bootNodeApi){
         const txLen = trans.sign(stakerAccount, nonce).encodedLength
 
         await trans.send(({ events = [], status, type }) => {
-            console.log('type =', type)
+            // console.log('type =', type)
             if (type == 'Finalised') {
                 const _hash = status.raw.toString() // get hash
                 const result = {hash: _hash, txLength: txLen}

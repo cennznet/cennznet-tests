@@ -1,9 +1,11 @@
 
 const rimraf = require("rimraf")
 const node = require('../api/node')
-// const {bootNodeApi} = require('../api/websocket')
+const {validatorNode, chainDataFolder} = require('../api/definition')
 const {loadTestCase} = require('../api/util')
 const {removeNodeContainers} = require('../api/docker')
+
+
 
 describe('Cennznet-Node test cases...', function () {
     
@@ -16,7 +18,7 @@ describe('Cennznet-Node test cases...', function () {
         // remove older containers
         removeNodeContainers()
         // remove old chain data
-        rimraf.sync(node.chainDataFolder)
+        rimraf.sync(chainDataFolder)
         // start boot node
         await node.startBootNode()
     })
@@ -28,7 +30,7 @@ describe('Cennznet-Node test cases...', function () {
         console.log('Stop nodes and remove all containers...')
         removeNodeContainers()
         // remove chain data
-        rimraf.sync(node.chainDataFolder)
+        rimraf.sync(chainDataFolder)
     })
     
     // first test case: start up bootnode
