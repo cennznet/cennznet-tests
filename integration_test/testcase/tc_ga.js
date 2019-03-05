@@ -23,14 +23,6 @@ var newTokenId = null
 
 describe('Generic Asset test cases...', function () {
     
-    before(async function(){
-        // await bootNodeApi.init()
-    })
-
-    after(function(){
-        // bootNodeApi.close()
-    })
-    
     it('Create a new token', async function() {
         this.timeout(60000)
 

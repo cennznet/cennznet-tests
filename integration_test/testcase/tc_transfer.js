@@ -8,14 +8,6 @@ const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 
 describe('Transfer Token test cases...', function () {
     
-    before(async function(){
-        // await bootNodeApi.init()
-    })
-
-    after(function(){
-        // bootNodeApi.close()
-    })
-    
     it('Transfer staking token', async function() {
         this.timeout(60000)
 

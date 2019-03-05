@@ -6,12 +6,13 @@ const { sleep } = require('./util')
 const { Api } = require('cennznet-api')
 const { WsProvider } = require('@polkadot/rpc-provider');
 const typeRegistry = require('@polkadot/types/codec/typeRegistry');
-typeRegistry.default.register({
+typeRegistry.default().register({
     AssetId: 'u32',
     Topic: 'u256', 
     Value: 'u256',
     Amount: 'u128',
-    AssetOptions: { total_supply: 'Balance' }
+    AssetOptions: { total_supply: 'Balance' },
+    // PermissionOptions: null // TODO: temperary value, need to change later
 });
 
 

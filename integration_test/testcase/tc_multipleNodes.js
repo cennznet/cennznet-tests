@@ -13,15 +13,6 @@ const {validatorNode} = require('../../api/definition')
 
 
 describe('Multiple Nodes test cases ...', function () {
-    
-    before(async function(){
-        // init websocket api
-        // await bootNodeApi.init()
-    })
-
-    after(function(){
-        // bootNodeApi.close()
-    })
 
     it('New validator node(Bob) joins in', async function() {
         this.timeout(60000)
@@ -89,7 +80,9 @@ describe('Multiple Nodes test cases ...', function () {
     
         const validator = validatorNode.james
 
-        // check if the container node is existing
+        // check if the validator is in stake
+        const stakerId = await staking.queryStakerIndex(validator.seed)
+
         const containerId = node.queryNodeContainer(validator.containerName)
         assert( containerId.length > 0, `Container node (${validator.containerName}) is not existing.`)
         

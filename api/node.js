@@ -54,7 +54,7 @@ async function startBootNode() {
                 --ws-external \
                 --ws-port ${validatorNode.alice.wsPort}`
 
-    console.log(cmd)
+    // console.log(cmd)
 
     shell.exec( cmd,
                 { silent: true },
@@ -104,7 +104,7 @@ function startNewValidator(containerName, keySeed, htmlPort, wsPort, workFolder)
                 --ws-external \
                 --ws-port ${wsPort}`
 
-    console.log(cmd)
+    // console.log(cmd)
 
     shell.exec( cmd,
                 { silent: true }, 
@@ -225,6 +225,55 @@ async function transfer(fromSeed, toAddress, amount, assetId = CURRENCY.STAKE, n
     return txResult
 }
 
+async function signAndSendTx(transaction, seed){
+    const txResult = new TxResult()
+    // get staker account
+    const account = getAccount(seed)
+    // get valid nonce
+    const nonce = await getNonce(account.address());
+
+    // Send and wait nonce changed
+    await new Promise(async (resolve,reject) => {
+        // get tx hash and length (byte)
+        const signedTx = transaction.sign(account, nonce)
+        txResult.txHash = signedTx.hash.toString()
+        txResult.byteLength = signedTx.encodedLength
+        // send tx
+        await transaction.send( r => {
+            if ( r.type == 'Finalised' ){
+                // get block hash
+                txResult.blockHash = r.status.asFinalised.toHex()
+                // get extrinsic id
+                txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
+                // set tx result symbol
+                txResult.bSucc = true
+                // get all events
+                txResult.events = r.events
+
+                // check if the extrinsic succeeded
+                r.events.forEach(({ phase, event: { data, method, section } }) => {
+                    if ( method == 'ExtrinsicFailed'){
+                        txResult.bSucc = false
+                        txResult.message = `Transaction failed: ${section}.${method}`
+                    }
+                });
+
+                resolve(true); 
+            }
+            else if (r.type == 'Invalid'){
+                txResult.bSucc = false
+                txResult.events = r.events
+                txResult.message = `Transaction type = ${r.type}`
+                resolve(true);
+            }
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+
+    return txResult
+}
+
 function getAccount(seed){
     const _seed = seed.padEnd(32, ' ');
     const keyring = new Keyring();
@@ -288,6 +337,7 @@ module.exports.dropNode = dropNode
 module.exports.queryNodeContainer = queryNodeContainer
 module.exports.startNewValidator = startNewValidator
 module.exports.transfer = transfer
+module.exports.signAndSendTx = signAndSendTx
 // module.exports.queryLastBlock = queryLastBlock
 module.exports.queryFreeBalance = queryFreeBalance
 module.exports.getAccount = getAccount

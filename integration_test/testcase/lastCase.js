@@ -8,12 +8,6 @@ const totalWaitBlockCnt = 50
 
 describe(`Waiting for ${totalWaitBlockCnt} blocks ...`, function () {
     
-    before(async function(){
-    })
-
-    after(function(){
-    })
-    
     it(`Node could produce at least ${totalWaitBlockCnt} blocks`, async function() {
         this.timeout(600000)
         

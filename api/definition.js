@@ -8,11 +8,13 @@ module.exports.CURRENCY = {
 module.exports.TxResult = class {
     constructor(){
         this.bSucc = false
+        this.message = ''
         this.blockHash = ''
         this.txHash = ''
         this.extrinsicIndex = -1
         this.byteLength = 0
         this.txFee = 0
+        this.events = []
     }
 }
 

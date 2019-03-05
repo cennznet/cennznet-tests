@@ -7,14 +7,8 @@ const BigNumber = require('big-number');
 
 
 describe('Fee test cases...', function () {
-    
-    before(async function(){
-    })
 
-    after(function(){
-    })
-
-    it(`Transfer Fee from query = transferFee + baseFee + byteFee * byteLength`, async function() {
+    it(`Transfer Fee = transferFee + baseFee + ( byteFee * byteLength )`, async function() {
         this.timeout(60000)
 
         const fromSeed = 'Bob'

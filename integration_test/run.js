@@ -1,5 +1,6 @@
 
 const rimraf = require("rimraf")
+const fs = require('fs')
 const node = require('../api/node')
 const {validatorNode, chainDataFolder} = require('../api/definition')
 const {loadTestCase} = require('../api/util')
@@ -11,7 +12,7 @@ describe('Cennznet-Node test cases...', function () {
     
     before(async function(){
         this.timeout(60000)
-        console.error = function(){}    // disable error message
+        console.error = function(){}    // disable error message, some unexpected error message coming from polkdot
         // console.log = function(){}    // disable log message
         
         console.log('Start a boot node...')
@@ -19,6 +20,8 @@ describe('Cennznet-Node test cases...', function () {
         removeNodeContainers()
         // remove old chain data
         rimraf.sync(chainDataFolder)
+        // copy chain config file into /tmp
+        fs.copyFileSync(__dirname + '/../dependency/nodeConfig.json', '/tmp/nodeConfig.json')
         // start boot node
         await node.startBootNode()
     })

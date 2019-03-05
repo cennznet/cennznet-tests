@@ -32,10 +32,6 @@ describe('Attestation test cases...', function () {
         issuer = getAccount('Bob')
     })
 
-    after(function () {
-        bootNodeApi.close()
-    })
-
     it('Set a new claim and retrieve it', async function () {
         this.timeout(30000)
 

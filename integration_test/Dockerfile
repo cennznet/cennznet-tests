@@ -1,6 +1,5 @@
 FROM node:10.15.1-stretch-slim
 
-
 WORKDIR /integration_test
 COPY . /integration_test
 
