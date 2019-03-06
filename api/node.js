@@ -11,7 +11,7 @@ const { TxResult, CURRENCY } = require('./definition');
 const { xxhashAsHex } = require('@polkadot/util-crypto');
 const { Keyring, decodeAddress } = require('@polkadot/keyring');
 const { stringToU8a, u8aToHex, hexToBn } = require('@polkadot/util');
-const { Address, u32, u128 } = require('@polkadot/types') ;
+const { Address, u32, u128 } = require('@polkadot/types');
 const { AssetId } = require('cennznet-runtime-types');
 const { SimpleKeyring, Wallet } = require('cennznet-wallet')
 const { GenericAsset}  = require('cennznet-generic-asset')
@@ -104,7 +104,7 @@ function startNewValidator(containerName, keySeed, htmlPort, wsPort, workFolder)
                 --ws-external \
                 --ws-port ${wsPort}`
 
-    // console.log(cmd)
+    console.log(cmd)
 
     shell.exec( cmd,
                 { silent: true }, 

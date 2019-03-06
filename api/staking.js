@@ -1,34 +1,16 @@
 
-const { getNonce, getAccount } = require('./node')
+const node = require('./node')
 const { bootNodeApi } = require('./websocket');
 
 module.exports.stake = async function(stakerSeed, nodeApi = bootNodeApi){ 
     // get api
     const api = await nodeApi.getApi()
     
-    // get staker account
-    const stakerAccount = getAccount(stakerSeed)
-    
-    // get valid nonce
-    const nonce = await getNonce(stakerAccount.address());
+    // make the tx
+    const trans = api.tx.staking.stake()
 
-    // set a claim
-    const txResult = await new Promise(async (resolve, reject) => {
-        const trans = api.tx.staking.stake()
-        const txLen = trans.sign(stakerAccount, nonce).encodedLength
-
-        await trans.send(({ events = [], status, type }) => {
-            // console.log('type =', type)
-            if (type == 'Finalised') {
-                const _hash = status.raw.toString() // get hash
-                const result = {hash: _hash, txLength: txLen}
-
-                resolve(result)
-            }
-        }).catch((error) => {
-            reject(error)
-        });
-    });
+    // stake the validator
+    const txResult = await node.signAndSendTx(trans, stakerSeed)
 
     return txResult
 }
@@ -37,35 +19,33 @@ module.exports.unstake = async function(stakerSeed, nodeApi = bootNodeApi){
     // get api
     const api = await nodeApi.getApi()
 
-    // get staker account
-    const stakerAccount = getAccount(stakerSeed)
-
-    // get valid nonce
-    const nonce = await getNonce(stakerAccount.address());
-
     // get Intention Index
-    const intentionIndex = await this.queryStakerIndex(stakerSeed, nodeApi)
-    // console.log('intentionIndex =', intentionIndex)
+    const intentionIndex = await this.queryIntentionIndex(stakerSeed, nodeApi)
+    
+    // make the tx
+    const trans = api.tx.staking.unstake(intentionIndex)
 
-    // set a claim
-    const txResult = await new Promise(async (resolve, reject) => {
-        const trans = api.tx.staking.unstake(intentionIndex)
-        const txLen = trans.sign(stakerAccount, nonce).encodedLength
-
-        await trans.send(({ events = [], status, type }) => {
-            // console.log('type =', type)
-            if (type == 'Finalised') {
-                const _hash = status.raw.toString() // get hash
-                const result = {hash: _hash, txLength: txLen}
-
-                resolve(result)
-            }
-        }).catch((error) => {
-            reject(error)
-        });
-    });
+    // unstake the validator
+    const txResult = await node.signAndSendTx(trans, stakerSeed)
 
     return txResult
+}
+
+module.exports.queryIntentionIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
+    let index = -1;
+
+    // get api
+    const api = await nodeApi.getApi()
+
+    const stakerAddress = node.getAccount(stakerSeed).address()
+
+    // get intentions list
+    const intentionList = await api.query.staking.intentions()
+
+    // get the intention index
+    index = intentionList.indexOf(stakerAddress)
+    
+    return index
 }
 
 module.exports.queryStakerIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
@@ -74,18 +54,14 @@ module.exports.queryStakerIndex = async function(stakerSeed, nodeApi = bootNodeA
     // get api
     const api = await nodeApi.getApi()
 
-    const stakerAddress = getAccount(stakerSeed).address()
+    const stakerAddress = node.getAccount(stakerSeed).address()
 
-    // get validator address list
+    // get intentions list
     const stakerList = await api.query.session.validators()
 
-    // get the address id of array
-    for (let i = 0; i < stakerList.length; i++ ){
-        if ( stakerList[i].toString() == stakerAddress ){
-            index = i
-        }
-    }
-
+    // get the intention index
+    index = stakerList.indexOf(stakerAddress)
+    
     return index
 }
 

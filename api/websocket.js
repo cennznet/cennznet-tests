@@ -12,7 +12,8 @@ typeRegistry.default().register({
     Value: 'u256',
     Amount: 'u128',
     AssetOptions: { total_supply: 'Balance' },
-    // PermissionOptions: null // TODO: temperary value, need to change later
+    // PermissionOptions: null, // TODO: temperary value, need to change later
+    // PKB:    null
 });
 
 

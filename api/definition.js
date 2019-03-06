@@ -29,7 +29,7 @@ module.exports.validatorNode = {
         workFolder: '/tmp',
     },
     bob: {
-        containerName: 'integration_test_node1',
+        containerName: 'integration_test_node_1',
         htmlPort: '30334',
         wsPort: '9945',
         seed: 'Bob',
@@ -37,11 +37,19 @@ module.exports.validatorNode = {
         workFolder: '/tmp',
     },
     james: {
-        containerName: 'integration_test_node2',
+        containerName: 'integration_test_node_2',
         htmlPort: '30335',
         wsPort: '9946',
         seed: 'James',
         address: '5GcKi8sUm91QpzaVn3zpD8HkUNT7vEF1HgyAW1t9X1ke7afj',
+        workFolder: '/tmp',
+    },
+    eve: {
+        containerName: 'integration_test_node_3',
+        htmlPort: '30336',
+        wsPort: '9947',
+        seed: 'Eve',
+        address: '5CNLHq4doqBbrrxLCxAakEgaEvef5tjSrN7QqJwcWzNd7W7k',
         workFolder: '/tmp',
     }
 }

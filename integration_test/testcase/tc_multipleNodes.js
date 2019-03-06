@@ -33,17 +33,7 @@ describe('Multiple Nodes test cases ...', function () {
     it('Make validator Bob begin to stake', async function() {
         this.timeout(60000)
 
-        // stake
-        await staking.stake(validatorNode.bob.seed)
-
-        // validator will be added in next era
-        await staking.waitEraChange()
-
-        // get staker sequence id
-        const stakerId = await staking.queryStakerIndex(validatorNode.bob.seed)
-        
-        // check if the validator is in the staker list
-        assert( stakerId >= 0, `Failed to make validator [${validatorNode.bob.seed}] stake.`)
+        await stakeValidator(validatorNode.bob.seed)
     });
 
     it('Start validator James (new account) and make it stake', async function() {
@@ -58,45 +48,44 @@ describe('Multiple Nodes test cases ...', function () {
         // judge the peer count
         assert( txResult == true, `New validator [${validatorNode.james.seed}] failed to join the boot node.`)
 
-        // await sleep(10000)
-        // await node.awaitBlockCnt(5)
-
         // stake
-        await staking.stake(validatorNode.james.seed)
-
-        // validator will be added in next era
-        await staking.waitEraChange()
-
-        // get staker sequence id
-        const stakerId = await staking.queryStakerIndex(validatorNode.james.seed)
-        
-        // check if the validator is in the staker list
-        assert( stakerId >= 0, `Failed to make validator [${validatorNode.james.seed}] stake.`)
+        await stakeValidator(validatorNode.james.seed)
     
     });
 
     it('Staking validator (James) obtains reward', async function() {
         this.timeout(60000)
     
-        const validator = validatorNode.james
-
-        // check if the validator is in stake
-        const stakerId = await staking.queryStakerIndex(validator.seed)
-
-        const containerId = node.queryNodeContainer(validator.containerName)
-        assert( containerId.length > 0, `Container node (${validator.containerName}) is not existing.`)
-        
-        const bal_preSession = await node.queryFreeBalance(validator.address, node.CURRENCY.STAKE)
-    
-        await staking.waitSessionChange()
-    
-        const bal_afterSession = await node.queryFreeBalance(validator.address, node.CURRENCY.STAKE)
-    
-        assert( BigNumber(bal_afterSession).minus(bal_preSession).gt(0),
-                `Validator [${validator.seed}] did not get reward.(Bal before tx = ${bal_preSession}, Bal after tx = ${bal_afterSession})`)
+        await checkReward(validatorNode.james)
     });
 
-    it('One of three validators drops off (node James), chain is still working', async function() {
+    it('Let richer validator (eve) stake and validator James will be replaced', async function() {
+        this.timeout(120000)
+    
+        await stakeValidator(validatorNode.eve.seed)
+
+        // await staking.waitEraChange()
+
+        const stakeId_eve = await staking.queryStakerIndex(validatorNode.eve.seed)
+        const stakeId_james = await staking.queryStakerIndex(validatorNode.james.seed)
+
+        assert( stakeId_eve >= 0, `Failed to make richer validator [${validatorNode.eve.seed}] into staking list.`)
+        assert( stakeId_james < 0, `Failed to kick validator [${validatorNode.james.seed}] out from staking list.`)
+    });
+
+    it('Unstake validator (eve) and validator James came back', async function() {
+        this.timeout(120000)
+    
+        await unstakeValidator(validatorNode.eve.seed)
+
+        const stakeId_eve = await staking.queryStakerIndex(validatorNode.eve.seed)
+        const stakeId_james = await staking.queryStakerIndex(validatorNode.james.seed)
+
+        assert( stakeId_eve < 0, `Failed to unstake validator [${validatorNode.eve.seed}].`)
+        assert( stakeId_james >= 0, `Failed to put validator [${validatorNode.james.seed}] back to staking list.`)
+    });
+
+    it('Shutdown one of three validators (node James), chain is still working', async function() {
         this.timeout(60000)
         
         // stop the docker container
@@ -130,52 +119,12 @@ describe('Multiple Nodes test cases ...', function () {
     it('Make validator Bob unstake', async function() {
         this.timeout(60000)
 
-        // get staker id before tx
-        const stakerId_beforeTx = await staking.queryStakerIndex(validatorNode.bob.seed)
-        assert( stakerId_beforeTx >= 0, `Validator [${validatorNode.bob.seed}] is not in staker list. Maybe drop out somehow before.`)
-
-        // unstake
-        await staking.unstake(validatorNode.bob.seed)
-
-        // validator will be removed in next era
-        await staking.waitEraChange()
-
-        // get staker id after tx
-        const stakerId_AfterTx = await staking.queryStakerIndex(validatorNode.bob.seed)
-        
-        // check if the validator is removed from the staker list
-        assert( stakerId_AfterTx < 0, `Failed to make validator [${validatorNode.bob.seed}] unstake.[Actual ID = ${stakerId_AfterTx}]`)
-    });
-
-    it.skip('TODO: Make validator James(New account) unstake', async function() {
-        this.timeout(60000)
-
-        const seed = 'James'
-        let stakerId = 0
-
-        const stakerId_beforeTx = await staking.queryStakerIndex(seed)
-        assert( stakerId_beforeTx >= 0, `Validator [${seed}] is not in staker list.`)
-
-        // unstake
-        await staking.unstake(seed)
-
-        // get staker sequence id, wait for it changed
-        for ( let i = 0; i < 60; i++ ){
-            stakerId = await staking.queryStakerIndex(seed)
-            console.log('stakerId =', stakerId)
-            if ( stakerId < 0 ){
-                break
-            }
-            await sleep(500)
-        }
-        
-        // check if the validator is removed from the staker list
-        assert( stakerId < 0, `Failed to make validator [${seed}] unstake.`)
+        await unstakeValidator(validatorNode.bob.seed)
     });
 
 });
 
-
+// make a new validator join newwork
 async function joinNewValidator( validator ) {
 
     // check peer count before new node joins in
@@ -212,4 +161,61 @@ async function joinNewValidator( validator ) {
     newNodeApi.close()
 
     return txResult
+}
+
+async function stakeValidator(validatorSeed){
+    // stake
+    await staking.stake(validatorSeed)
+
+    // validator will be added in next era
+    await staking.waitEraChange()
+
+    // get staker sequence id
+    const stakerId = await staking.queryStakerIndex(validatorSeed)
+
+    // check if the validator is in the staker list
+    assert( stakerId >= 0, `Failed to make validator [${validatorSeed}] stake.`)
+}
+
+async function unstakeValidator(validatorSeed){
+    // get staker id before tx
+    const stakerId_beforeTx = await staking.queryStakerIndex(validatorSeed)
+    assert( stakerId_beforeTx >= 0, `Validator [${validatorSeed}] is not in staking list.`)
+
+    // unstake
+    await staking.unstake(validatorSeed)
+
+    // validator will be removed in next era
+    await staking.waitEraChange()
+
+    // // get staker id after tx
+    const stakerId_AfterTx = await staking.queryStakerIndex(validatorSeed)
+    
+    // check if the validator is removed from the staker list
+    assert( stakerId_AfterTx < 0, `Failed to make validator [${validatorSeed}] unstake.[Actual ID = ${stakerId_AfterTx}]`)
+}
+
+// check if any reward is saved into account
+async function checkReward(validator){
+
+    let bRet = false
+
+    // check if the validator is in stake
+    const stakerId = await staking.queryStakerIndex(validator.seed)
+    assert(stakerId >= 0, `Validator (${validator.seed}) is not in staking list.`)
+
+    const containerId = node.queryNodeContainer(validator.containerName)
+    assert(containerId.length > 0, `Container node (${validator.containerName}) is not existing.`)
+
+    const bal_preSession = await node.queryFreeBalance(validator.address, node.CURRENCY.STAKE)
+
+    await staking.waitSessionChange()
+
+    const bal_afterSession = await node.queryFreeBalance(validator.address, node.CURRENCY.STAKE)
+
+    assert(BigNumber(bal_afterSession).minus(bal_preSession).gt(0),
+        `Validator [${validator.seed}] did not get reward.(Bal before tx = ${bal_preSession}, Bal after tx = ${bal_afterSession})`)
+
+    bRet = true
+    return bRet
 }
