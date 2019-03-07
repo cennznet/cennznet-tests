@@ -6,7 +6,7 @@ const {bootNodeApi} = require('../../api/websocket')
 const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 
 
-describe('Transfer Token test cases...', function () {
+describe('Transfer Token test suite:', function () {
     
     it('Transfer staking token', async function() {
         this.timeout(60000)

@@ -94,11 +94,3 @@ module.exports.queryTxFee = async function (blockHash, txHash, nodeApi = bootNod
 
     return parseInt(txFee)
 }
-
-// ---- test code 
-async function test(){
-
-    console.log(  systemFee )
-}
-
-// test()

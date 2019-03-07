@@ -1,10 +1,10 @@
 const { bootNodeApi } = require('./websocket')
-const { getAccount, setApiSigner, getNonce } = require('./node')
+const node = require('./node')
 const { GenericAsset } = require('cennznet-generic-asset');
 const { AssetId } = require('cennznet-runtime-types');
 const { bnToHex } = require('@polkadot/util');
 
-module.exports.setClaim = async function(issuer, holder, topic, value, nodeApi = bootNodeApi){ // issuer, holder : KeyringPair type
+module.exports.setClaim2 = async function(issuer, holder, topic, value, nodeApi = bootNodeApi){ // issuer, holder : KeyringPair type
     // get api
     const api = await nodeApi.getApi()
 
@@ -30,7 +30,18 @@ module.exports.setClaim = async function(issuer, holder, topic, value, nodeApi =
     return txResult
 }
 
-module.exports.removeClaim = async function(issuer, holder, topic, nodeApi = bootNodeApi){
+module.exports.setClaim = async function(issuerAccount, holderAccount, topic, value, nodeApi = bootNodeApi){ // issuer, holder : KeyringPair type
+    // get api
+    const api = await nodeApi.getApi()
+
+    const trans = api.tx.attestation.setClaim(holderAccount.address(), topic, value)
+
+    const txResult = await node.signAndSendTx(trans, issuerAccount)
+
+    return txResult
+}
+
+module.exports.removeClaim2 = async function(issuer, holder, topic, nodeApi = bootNodeApi){
     // get api
     const api = await nodeApi.getApi()
 
@@ -52,6 +63,17 @@ module.exports.removeClaim = async function(issuer, holder, topic, nodeApi = boo
             reject(error)
         });
     });
+
+    return txResult
+}
+
+module.exports.removeClaim = async function(issuerAccount, holderAccount, topic, nodeApi = bootNodeApi){
+    // get api
+    const api = await nodeApi.getApi()
+
+    const trans = api.tx.attestation.removeClaim(holderAccount.address(), topic)
+
+    const txResult = await node.signAndSendTx(trans, issuerAccount)
 
     return txResult
 }

@@ -2,11 +2,9 @@
 const { bootNodeApi } = require('./websocket')
 const { getAccount, setApiSigner, getNonce } = require('./node')
 const { GenericAsset } = require('cennznet-generic-asset');
-// const { SimpleKeyring, Wallet } = require('cennznet-wallet')
-// const { stringToU8a } = require('@polkadot/util');
 const { AssetId } = require('cennznet-runtime-types');
 
-async function createNewToken(ownerSeed, totalAmount, nodeApi = bootNodeApi){
+module.exports.createNewToken = async function (ownerSeed, totalAmount, nodeApi = bootNodeApi){
 
     const assetOwner = getAccount(ownerSeed)
 
@@ -55,7 +53,7 @@ async function createNewToken(ownerSeed, totalAmount, nodeApi = bootNodeApi){
 }
 
 
-async function queryTokenBalance(assetId, assetOwnerSeed, nodeApi = bootNodeApi){
+module.exports.queryTokenBalance = async function (assetId, assetOwnerSeed, nodeApi = bootNodeApi){
 
     const assetOwner = getAccount(assetOwnerSeed)
 
@@ -71,16 +69,5 @@ async function queryTokenBalance(assetId, assetOwnerSeed, nodeApi = bootNodeApi)
     return balance.toString()
 }
 
-module.exports.queryTokenBalance = queryTokenBalance
-module.exports.createNewToken = createNewToken
 
-//----- test code 
-async function _test(){
-    let id = await createNewToken('Alice', 12345)
-    console.log('id =', id)
-    await queryTokenBalance(id, 'Alice')
-    process.exit()
-}
-
-// _test()
 

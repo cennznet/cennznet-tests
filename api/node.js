@@ -2,221 +2,29 @@
 "use strict";
 
 // const {spawn} = require('child_process');
-const { sleep } = require('./util')
 const { bootNodeApi } = require('./websocket');
-const shell = require('shelljs');
-const { getRunContainer } = require('./docker');
 const { TxResult, CURRENCY } = require('./definition');
-
-const { xxhashAsHex } = require('@polkadot/util-crypto');
-const { Keyring, decodeAddress } = require('@polkadot/keyring');
-const { stringToU8a, u8aToHex, hexToBn } = require('@polkadot/util');
-const { Address, u32, u128 } = require('@polkadot/types');
-const { AssetId } = require('cennznet-runtime-types');
+const { Keyring } = require('@polkadot/keyring');
+const { stringToU8a, hexToBn } = require('@polkadot/util');
 const { SimpleKeyring, Wallet } = require('cennznet-wallet')
 const { GenericAsset}  = require('cennznet-generic-asset')
-
 const { queryTxFee } = require('./fee')
-const { validatorNode } = require('./definition')
-const BigNumber = require('big-number');
 
-
-// const CURRENCY = {
-//     CENNZ:  0,
-//     SPEND:  10,
-// }
-
-const ciImageName = 'integration_test'
-var bootNodeIp = ''
-var nodeKey = 2 // start from 2
-
-async function startBootNode() {
-    
-    let linkStr = ''
-
-    // check if there is a integration_test container running
-    const ciContainerName = getRunContainer(ciImageName)
-    if (ciContainerName.length > 0 ){
-        // find container running
-        linkStr = `--link ${ciContainerName}`
-    }
-
-    const cmd = `docker run --net bridge --rm --name ${validatorNode.alice.containerName} ${linkStr} \
-                -v ${validatorNode.alice.workFolder}:${validatorNode.alice.workFolder} \
-                -p ${validatorNode.alice.wsPort}:${validatorNode.alice.wsPort} \
-                cennznet-node --dev --base-path ${validatorNode.alice.workFolder}/node_data/${validatorNode.alice.seed} \
-                --chain ${validatorNode.alice.workFolder}/nodeConfig.json \
-                --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
-                --port ${validatorNode.alice.htmlPort} \
-                --key ${validatorNode.alice.seed} \
-                --name ${validatorNode.alice.seed} \
-                --validator \
-                --ws-external \
-                --ws-port ${validatorNode.alice.wsPort}`
-
-    // console.log(cmd)
-
-    shell.exec( cmd,
-                { silent: true },
-                function (code, stdout, stderr) {
-                    // console.log('Shell CMD exit code:', code);
-                    // console.log('Shell CMD output:', stdout);
-                    // console.log('Shell CMD stderr:', stderr);
-                });
-            
-    // get the ws ip of node
-    if (ciContainerName.length > 0) {
-        // find container running, reset the wsIp. Only used when test running in docker image.
-        bootNodeIp = ''
-        for ( let i = 0; i < 60; i++ ){
-            bootNodeIp = getBootNodeIp()
-            if ( bootNodeIp != '' ){
-                break
-            }
-            await sleep(1000)
-        }
-
-        if (bootNodeIp == ''){
-            throw new Error('Cannot get boot node ip')
-        }
-        
-        // console.log('wsIp =',wsIp)
-        bootNodeApi.setWsIp(`ws://${bootNodeIp}:9944`)
-    }
-}
-
-function startNewValidator(containerName, keySeed, htmlPort, wsPort, workFolder) {
-
-    // run a validator node in the same container.
-    const _bootNodeIp = getBootNodeIp()
-
-    const cmd = `docker run --net bridge --rm --name ${containerName} \
-                -v ${workFolder}:${workFolder} \
-                -p ${wsPort}:${wsPort} \
-                cennznet-node --dev --base-path ${workFolder}/node_data/${keySeed} \
-                --chain ${workFolder}/nodeConfig.json \
-                --node-key 000000000000000000000000000000000000000000000000000000000000000${nodeKey++} \
-                --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
-                --port ${htmlPort} \
-                --key ${keySeed} \
-                --name ${keySeed} \
-                --validator \
-                --ws-external \
-                --ws-port ${wsPort}`
-
-    console.log(cmd)
-
-    shell.exec( cmd,
-                { silent: true }, 
-                function (code, stdout, stderr) {
-                    // console.log('Shell CMD exit code:', code);
-                    // console.log('Shell CMD output:', stdout);
-                    // console.log('Shell CMD stderr:', stderr);
-                });
-}
-
-function dropNode(containerName) {
-
-    const cmd = `docker stop ${containerName}`
-
-    shell.exec( cmd,
-                { silent: true }, 
-                function (code, stdout, stderr) {
-                    // console.log('Shell CMD exit code:', code);
-                    // console.log('Shell CMD output:', stdout);
-                    // console.log('Shell CMD stderr:', stderr);
-                });
-}
-
-function getBootNodeIp(){
-
-    const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${validatorNode.alice.containerName}`,
-                            { silent: true },
-                            { async: false} )
-    
-    return wsIp.stdout.toString().replace('\n', '')
-}
-
-function queryNodeContainer(containerName){
-    // query the exact container
-    const cmd = `docker ps -q --filter name=^/${containerName}$`
-
-    const result = shell.exec( cmd,
-                    { silent: true }, 
-                    { async: false});
-
-    return result.stdout.toString().replace('\n', '')
-}
-
-// await specified block number
-async function awaitBlockCnt( blockNum, nodeApi = bootNodeApi) {
-
-    const api = await nodeApi.getApi()
-
-    let unsubscribe = null
-
-    // listening to the new block
-    const currBlockId = await new Promise(async (resolve,reject) => {
-        let currblockCnt = 0
-        unsubscribe = await api.rpc.chain.subscribeNewHead(async (header) => {
-            console.log('blockNumber...', header.blockNumber.toString())
-            currblockCnt++
-            let blockNo = parseInt(header.blockNumber.toString())
-            // if (blockNo >= blockId){
-            if (currblockCnt >= blockNum){
-                resolve(blockNo)
-            }
-        }).catch((error) => {
-            reject(error);
-        });
-    });
-
-    // unsubscribe...
-    unsubscribe()
-    
-    return currBlockId
-}
 
 async function transfer(fromSeed, toAddress, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi) {
     // console.log('api = ', nodeApi._api)
     const api = await nodeApi.getApi()
 
-    // get account of seed
-    const fromAccount = getAccount(fromSeed)
-
     await setApiSigner(api, fromSeed)
-
-    const nonce = await getNonce(fromAccount.address())
 
     const amountBN = hexToBn(amount.toString(16))
 
     // convert to address if input is a seed
     const _toAddress = getAddressFromSeed(toAddress)
 
-    const txResult = new TxResult()
+    const trans = api.tx.genericAsset.transfer(assetId, _toAddress, amountBN)
 
-    // Send and wait nonce changed
-    await new Promise(async (resolve,reject) => {
-        const trans = api.tx.genericAsset.transfer(assetId, _toAddress, amountBN)
-        // get tx hash and length (byte)
-        const signedTx = trans.sign(fromAccount, nonce)
-        txResult.txHash = signedTx.hash.toString()
-        txResult.byteLength = signedTx.encodedLength
-        // send tx
-        await trans.send( r => {
-            if ( r.type == 'Finalised' ){
-                // get block hash
-                txResult.blockHash = r.status.asFinalised.toHex()
-                // get extrinsic id
-                txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
-                // set tx result symbol
-                txResult.bSucc = true
-                resolve(true); 
-            }
-        }).catch((error) => {
-            reject(error);
-        });
-    });
+    const txResult = await signAndSendTx(trans, fromSeed)
 
     if (txResult.bSucc){
         txResult.txFee = await queryTxFee(txResult.blockHash, txResult.txHash, nodeApi)
@@ -225,10 +33,14 @@ async function transfer(fromSeed, toAddress, amount, assetId = CURRENCY.STAKE, n
     return txResult
 }
 
-async function signAndSendTx(transaction, seed){
+async function signAndSendTx(transaction, seedOrAccount){
     const txResult = new TxResult()
-    // get staker account
-    const account = getAccount(seed)
+
+    let account = null
+
+    // seed is String, account is Object
+    typeof(seedOrAccount) == 'string' ? account = getAccount(seedOrAccount) : account = seedOrAccount
+    
     // get valid nonce
     const nonce = await getNonce(account.address());
 
@@ -331,29 +143,10 @@ async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alic
 
 module.exports.setApiSigner = setApiSigner
 module.exports.CURRENCY = CURRENCY
-module.exports.awaitBlockCnt = awaitBlockCnt
-module.exports.startBootNode = startBootNode
-module.exports.dropNode = dropNode
-module.exports.queryNodeContainer = queryNodeContainer
-module.exports.startNewValidator = startNewValidator
 module.exports.transfer = transfer
 module.exports.signAndSendTx = signAndSendTx
-// module.exports.queryLastBlock = queryLastBlock
 module.exports.queryFreeBalance = queryFreeBalance
 module.exports.getAccount = getAccount
 module.exports.getNonce = getNonce
 module.exports.getAddressFromSeed = getAddressFromSeed
-
-
-// _getArgs()
-
-// --------- test code
-async function test(){
-    
-    let bal = await queryFreeBalance('Alice', 1000006)
-    console.log(bal)
-    process.exit()
-}
-
-// test()
 

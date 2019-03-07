@@ -1,14 +1,14 @@
 
 const rimraf = require("rimraf")
 const fs = require('fs')
-const node = require('../api/node')
-const {validatorNode, chainDataFolder} = require('../api/definition')
+const docker = require('../api/docker')
+const {chainDataFolder} = require('../api/definition')
 const {loadTestCase} = require('../api/util')
 const {removeNodeContainers} = require('../api/docker')
 
 
 
-describe('Cennznet-Node test cases...', function () {
+describe('Cennznet-Node Integration Test...', function () {
     
     before(async function(){
         this.timeout(60000)
@@ -23,7 +23,7 @@ describe('Cennznet-Node test cases...', function () {
         // copy chain config file into /tmp
         fs.copyFileSync(__dirname + '/../dependency/nodeConfig.json', '/tmp/nodeConfig.json')
         // start boot node
-        await node.startBootNode()
+        await docker.startBootNode()
     })
 
     after(function(){

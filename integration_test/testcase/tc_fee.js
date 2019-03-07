@@ -6,7 +6,7 @@ const {calulateTxFee, queryTxFee} = require('../../api/fee')
 const BigNumber = require('big-number');
 
 
-describe('Fee test cases...', function () {
+describe('Fee test suite:', function () {
 
     it(`Transfer Fee = transferFee + baseFee + ( byteFee * byteLength )`, async function() {
         this.timeout(60000)

@@ -48,7 +48,7 @@ module.exports.queryIntentionIndex = async function(stakerSeed, nodeApi = bootNo
     return index
 }
 
-module.exports.queryStakerIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
+module.exports.queryStakingIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
     let index = -1;
 
     // get api

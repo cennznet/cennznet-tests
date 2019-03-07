@@ -21,7 +21,7 @@ const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 // asset id
 var newTokenId = null
 
-describe('Generic Asset test cases...', function () {
+describe('Generic Asset test suite:', function () {
     
     it('Create a new token', async function() {
         this.timeout(60000)

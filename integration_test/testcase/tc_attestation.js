@@ -20,10 +20,10 @@ var holder = null
 // issuer
 var issuer = null
 
-describe('Attestation test cases...', function () {
+describe('Attestation test suite:', function () {
 
     before(async function () {
-        await bootNodeApi.init(10)
+        await bootNodeApi.init()
 
         // set Alice as the holder
         holder = getAccount('Alice')
@@ -39,7 +39,7 @@ describe('Attestation test cases...', function () {
         const txResult = await setClaim(issuer, holder, topic, value)
         
         // check the result
-        assert(txResult.hash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult})`)
+        assert(txResult.txHash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult.toString()})`)
 
         // query the value
         const claimValue = await getClaim(holder.address(), issuer.address(), topic)
@@ -60,7 +60,7 @@ describe('Attestation test cases...', function () {
         const txResult = await removeClaim(issuer, holder, topic)
 
         // check the result
-        assert(txResult.hash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult})`) 
+        assert(txResult.txHash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult.toString()})`) 
 
         // query the value after remove
         const claimValueAfterRemove = await getClaim(holder.address(), issuer.address(), topic)
