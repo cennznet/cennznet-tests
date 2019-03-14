@@ -1,21 +1,8 @@
 "use strict";
 
-// const { nodeServerWsIp } = require('./args')
-// const { ApiPromise } = require('@polkadot/api');
 const { sleep } = require('./util')
-const { Api } = require('cennznet-api')
-const { WsProvider } = require('@polkadot/rpc-provider');
-const typeRegistry = require('@polkadot/types/codec/typeRegistry');
-typeRegistry.default().register({
-    AssetId: 'u32',
-    Topic: 'u256', 
-    Value: 'u256',
-    Amount: 'u128',
-    AssetOptions: { total_supply: 'Balance' },
-    // PermissionOptions: null, // TODO: temperary value, need to change later
-    // PKB:    null
-});
-
+const { Api } = require('@cennznet/api')
+const { WsProvider } = require('@cennznet/api/polkadot')
 
 class WsApi{
     constructor(ip = 'ws://127.0.0.1:9944'){
@@ -40,6 +27,7 @@ class WsApi{
             }
             catch(e){
                 console.log('Init api failed!')
+                console.log('error =', e)
                 this._provider = null
                 this._api = null
             }
@@ -76,5 +64,7 @@ class WsApi{
 
 module.exports.bootNodeApi = new WsApi()
 module.exports.WsApi = WsApi
+
+// global.testApi = new WsApi()
 
 

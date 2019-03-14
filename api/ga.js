@@ -1,8 +1,8 @@
 
 const { bootNodeApi } = require('./websocket')
 const { getAccount, setApiSigner, getNonce } = require('./node')
-const { GenericAsset } = require('cennznet-generic-asset');
-const { AssetId } = require('cennznet-runtime-types');
+const { GenericAsset } = require('@cennznet/generic-asset');
+const { AssetId } = require('@cennznet/types');
 
 module.exports.createNewToken = async function (ownerSeed, totalAmount, nodeApi = bootNodeApi){
 
@@ -18,7 +18,7 @@ module.exports.createNewToken = async function (ownerSeed, totalAmount, nodeApi 
     const ga = new GenericAsset(api)
 
     const txResult = await new Promise(async (resolve,reject) => {
-        const trans = ga.create({totalSupply: totalAmount})
+        const trans = ga.create({initialIssuance: totalAmount})
         const txLen  = trans.sign(assetOwner, nonce).encodedLength;
 
         await trans.send( async (status) => {
@@ -64,8 +64,7 @@ module.exports.queryTokenBalance = async function (assetId, assetOwnerSeed, node
     const ga = new GenericAsset(api)
 
     const balance = await ga.getFreeBalance(assetId, assetOwner.address());
-    
-    // console.log('balance =',balance.toString())
+
     return balance.toString()
 }
 

@@ -14,7 +14,7 @@ const endowment = 1001
 
 describe('Smart Contract test suite:', function () {
     
-    it('Deploy a smart contract (Spin2Win) using putCode()', async function() {
+    it('Put a smart contract code (Spin2Win) onto chain', async function() {
         this.timeout(60000)
 
         let _contractHash= ''

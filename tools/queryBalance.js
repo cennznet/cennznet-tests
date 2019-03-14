@@ -29,6 +29,6 @@ run()
 
 /*  run cmd:
     1. local:   
-        node tools/queryBalance -a 5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ --ws ws://127.0.0.1:9944
+        node tools/queryBalance -a Alice -i 0 --ws ws://127.0.0.1:9944
 */
 

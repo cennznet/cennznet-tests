@@ -1,9 +1,9 @@
 const shell = require('shelljs');
+const block = require('./block')
 const {validatorNode} = require('./definition')
 
 const ciImageName = 'integration_test'
 var bootNodeIp = ''
-var nodeKey = 2 // start from 2
 
 module.exports.getRunContainer = function(image){
     let result = shell.exec(`docker ps --format '{{.Names}}' --filter ancestor=${image}`,
@@ -14,7 +14,9 @@ module.exports.getRunContainer = function(image){
 
 module.exports.removeNodeContainers = function(){
     for(let key in validatorNode){
-        let result = shell.exec(`docker rm -f $(docker ps -a -q --filter name=${validatorNode[key].containerName})`, { silent: true }, { async: false}) 
+        let cmd = `docker rm -f $(docker ps -a -q --filter name=${validatorNode[key].containerName})`
+        // console.log('cmd =', cmd)
+        let result = shell.exec(cmd, { silent: true }, { async: false}) 
         // console.log('result =', result.code)
     }
 }
@@ -35,7 +37,7 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
                 -p ${validator.wsPort}:${validator.wsPort} \
                 cennznet-node --dev --base-path ${validator.workFolder}/node_data/${validator.seed} \
                 --chain ${validator.workFolder}/nodeConfig.json \
-                --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
+                --node-key ${validator.nodeKey} \
                 --port ${validator.htmlPort} \
                 --key ${validator.seed} \
                 --name ${validator.seed} \
@@ -73,15 +75,20 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
         bootNodeApi.setWsIp(`ws://${bootNodeIp}:9944`)
     }
 
-    // TODO: save log into file
+    // TODO: set config to save log into file
+
+    // wait for 2 blocks to ensure the node start working
+    block.waitBlockCnt(2)
+
 }
 
-module.exports.startNewValidator = function(validator = validatorNode.bob) {
+module.exports.startNewValidator = function(validator) {
     const containerName = validator.containerName
     const keySeed = validator.seed
     const htmlPort = validator.htmlPort
     const wsPort = validator.wsPort
     const workFolder = validator.workFolder
+    const nodeKey = validator.nodeKey
 
     // run a validator node in the same container.
     const _bootNodeIp = this.getBootNodeIp()
@@ -91,7 +98,7 @@ module.exports.startNewValidator = function(validator = validatorNode.bob) {
                 -p ${wsPort}:${wsPort} \
                 cennznet-node --dev --base-path ${workFolder}/node_data/${keySeed} \
                 --chain ${workFolder}/nodeConfig.json \
-                --node-key 000000000000000000000000000000000000000000000000000000000000000${nodeKey++} \
+                --node-key ${nodeKey} \
                 --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
                 --port ${htmlPort} \
                 --key ${keySeed} \
@@ -100,7 +107,7 @@ module.exports.startNewValidator = function(validator = validatorNode.bob) {
                 --ws-external \
                 --ws-port ${wsPort}`
 
-    // console.log(cmd)
+    console.log(cmd)
 
     shell.exec( cmd,
                 { silent: true }, 

@@ -1,13 +1,11 @@
 
 "use strict";
 
-// const {spawn} = require('child_process');
 const { bootNodeApi } = require('./websocket');
 const { TxResult, CURRENCY } = require('./definition');
-const { Keyring } = require('@polkadot/keyring');
-const { stringToU8a, hexToBn } = require('@polkadot/util');
-const { SimpleKeyring, Wallet } = require('cennznet-wallet')
-const { GenericAsset}  = require('cennznet-generic-asset')
+const { stringToU8a, hexToBn, Keyring } = require('@cennznet/util');
+const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
+const { GenericAsset}  = require('@cennznet/generic-asset')
 const { queryTxFee } = require('./fee')
 
 

@@ -2,13 +2,13 @@
 "use strict";
 
 const assert = require('assert')
-const {bootNodeApi} = require('../../api/websocket')
 const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 
 
 describe('Transfer Token test suite:', function () {
     
     it('Transfer staking token', async function() {
+        //this.timeout(60000)
         this.timeout(60000)
 
         const fromSeed = 'Bob'
@@ -35,6 +35,7 @@ describe('Transfer Token test suite:', function () {
     });
 
     it('Transfer spending token', async function() {
+        //this.timeout(60000)
         this.timeout(60000)
 
         const fromSeed = 'Bob'
@@ -57,4 +58,5 @@ describe('Transfer Token test suite:', function () {
                 `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${afterTx_spend}] to [${beforeTx_spend}]`)
         assert( beforeTx_cennz == afterTx_cennz, `Spending token changed from ${beforeTx_cennz} to ${afterTx_cennz}`)
     });
+
 });

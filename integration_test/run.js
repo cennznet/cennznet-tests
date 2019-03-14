@@ -8,7 +8,7 @@ const {removeNodeContainers} = require('../api/docker')
 
 
 
-describe('Cennznet-Node Integration Test...', function () {
+describe('Cennznet-Node Integration Test', function () {
     
     before(async function(){
         this.timeout(60000)

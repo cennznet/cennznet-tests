@@ -21,8 +21,8 @@ module.exports.waitBlockId = async function(blockId, nodeApi = bootNodeApi){
     return blockHash
 }
 
-// await specified block number
-module.exports.awaitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi) {
+// await new count of blocks appear
+module.exports.waitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi) {
 
     const api = await nodeApi.getApi()
 
@@ -36,7 +36,7 @@ module.exports.awaitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi)
             currblockCnt++
             let blockNo = parseInt(header.blockNumber.toString())
             // if (blockNo >= blockId){
-            if (currblockCnt >= blockNum){
+            if (currblockCnt >= blockNum + 1){ // the first block is current block, so the number should add 1 more.
                 resolve(blockNo)
             }
         }).catch((error) => {
@@ -45,9 +45,19 @@ module.exports.awaitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi)
     });
 
     // unsubscribe...
-    if (blockNum > 0){
-        unsubscribe()
+    try{
+        if (blockNum > 0){
+            unsubscribe()
+        }
+    }
+    catch(e){
+        throw Error('Unsubscribe head info failed. Maybe the node is not existing.')
     }
         
     return currBlockId
+}
+
+// await specified block number
+module.exports.getCurrentBlockNumber = async function ( blockNum, nodeApi = bootNodeApi) {
+    return await this.waitBlockCnt(0)
 }

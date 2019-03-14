@@ -6,11 +6,12 @@ const {calulateTxFee, queryTxFee} = require('../../api/fee')
 const BigNumber = require('big-number');
 
 
-describe('Fee test suite:', function () {
+describe('Fee test suite', function () {
 
-    it(`Transfer Fee = transferFee + baseFee + ( byteFee * byteLength )`, async function() {
+    it.skip("TODO: Transfer Fee formula check", async function() {
+        // formula: transferFee + baseFee + byteFee * byteLength
         this.timeout(60000)
-
+        
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
@@ -24,9 +25,11 @@ describe('Fee test suite:', function () {
         assert( fee_cal == fee_query, `Transfer fee [${fee_query}] did not equal to expected fee [${fee_cal}].`)
     });
 
-    it('Fee of transferring staking token', async function() {
-        this.timeout(60000)
 
+    it('Fee of transferring staking token', async function() {
+        //this.timeout(60000)
+        this.timeout(60000)
+        
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
         const transAmt = 1000
@@ -51,6 +54,7 @@ describe('Fee test suite:', function () {
     });
 
     it('Fee of transferring spending token', async function() {
+        //this.timeout(60000)
         this.timeout(60000)
 
         const fromSeed = 'Bob'

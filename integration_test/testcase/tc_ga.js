@@ -28,7 +28,7 @@ describe('Generic Asset test suite:', function () {
 
         // input data
         const assetOwner = 'Alice'
-        const assetAmount = 100000
+        const assetAmount = 10000 // 1000000000000000000000000
 
         // const ownerSpendingBal_beforeTx = await node.queryFreeBalance(assetOwner, 10)
 
@@ -43,7 +43,7 @@ describe('Generic Asset test suite:', function () {
         assert(newTokenId >= 100000, `Token ID (current id = ${newTokenId}) should larger than 1,000,000.`)
         assert(BigNumber(tokenBalance_ga).minus(assetAmount) == 0, 
                 `ga.getFreeBalance() did not get correct balance for new token. (expected Value = ${assetAmount}, actual value = ${tokenBalance_ga} )`)
-        assert(BigNumber(tokenBalance_owner).minus(assetAmount) == 0, 
+        assert(BigNumber(tokenBalance_owner).minus(assetAmount) == 0,
                 `Token owner's balance is incorrect. (expected Value = ${assetAmount}, actual value = ${tokenBalance_ga} )`)       
 
     });

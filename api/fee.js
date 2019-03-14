@@ -5,17 +5,20 @@ const { bootNodeApi } = require('./websocket');
 
 class SystemFee{
     constructor(){
-        this.baseFee = 0
-        this.byteFee = 0
-        this.transferFee = 0
-        this.creationFee = 0
+        this.baseFee = -1
+        this.byteFee = -1
+        this.transferFee = -1
+        this.creationFee = -1
     }
 
     async fetchSysFees(){
-        this.baseFee = await this._queryBaseFee()
-        this.byteFee = await this._queryByteFee()
-        this.transferFee = await this._queryTransferFee()
-        this.creationFee = await this._queryCreationFee()
+        if ( this.baseFee == -1 && this.byteFee == -1 && this.transferFee == -1){
+            this.baseFee = await this._queryBaseFee()
+            this.byteFee = await this._queryByteFee()
+            this.transferFee = await this._queryTransferFee()
+            // this.creationFee = await this._queryCreationFee()
+        }
+        
         return this
     }
 
@@ -33,13 +36,13 @@ class SystemFee{
     
     async _queryTransferFee(){
         const api = await bootNodeApi.getApi()
-        let fee =  await api.query.balances.transferFee()
+        let fee =  await api.query.genericAsset.transferFee()
         return parseInt(fee.toString())
     }
 
     async _queryCreationFee(){
         const api = await bootNodeApi.getApi()
-        let fee =  await api.query.balances.creationFee()
+        let fee =  await api.query.genericAsset.creationFee()
         return parseInt(fee.toString())
     }
 
@@ -52,11 +55,12 @@ class SystemFee{
 
 // create a global fee object
 const systemFee = new SystemFee()
-systemFee.fetchSysFees()
+
 module.exports.systemFee = systemFee
 
 
 module.exports.calulateTxFee = async function(txByteLength){
+    systemFee.fetchSysFees()
     return systemFee.calulateTransferFee(txByteLength)
 }
 
@@ -91,6 +95,15 @@ module.exports.queryTxFee = async function (blockHash, txHash, nodeApi = bootNod
             }
         }
     });
+
+    return parseInt(txFee)
+}
+
+module.exports.queryTxFee2 = async function (txHash, nodeApi = bootNodeApi){
+    const api = await nodeApi.getApi()
+    let txFee = await api.query.fees.currentTransactionFee(txHash)
+
+
 
     return parseInt(txFee)
 }

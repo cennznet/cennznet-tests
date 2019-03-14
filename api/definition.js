@@ -26,6 +26,7 @@ module.exports.validatorNode = {
         wsPort: '9944',
         seed: 'Alice',
         address: '5GoKvZWG5ZPYL1WUovuHW3zJBWBP5eT8CbqjdRY4Q6iMaDtZ',
+        nodeKey: '0000000000000000000000000000000000000000000000000000000000000001',
         workFolder: '/tmp',
     },
     bob: {
@@ -34,6 +35,7 @@ module.exports.validatorNode = {
         wsPort: '9945',
         seed: 'Bob',
         address: '5Gw3s7q4QLkSWwknsiPtjujPv3XM4Trxi5d4PgKMMk3gfGTE',
+        nodeKey: '0000000000000000000000000000000000000000000000000000000000000002',
         workFolder: '/tmp',
     },
     james: {
@@ -42,6 +44,7 @@ module.exports.validatorNode = {
         wsPort: '9946',
         seed: 'James',
         address: '5GcKi8sUm91QpzaVn3zpD8HkUNT7vEF1HgyAW1t9X1ke7afj',
+        nodeKey: '0000000000000000000000000000000000000000000000000000000000000003',
         workFolder: '/tmp',
     },
     eve: {
@@ -50,6 +53,7 @@ module.exports.validatorNode = {
         wsPort: '9947',
         seed: 'Eve',
         address: '5CNLHq4doqBbrrxLCxAakEgaEvef5tjSrN7QqJwcWzNd7W7k',
+        nodeKey: '0000000000000000000000000000000000000000000000000000000000000004',
         workFolder: '/tmp',
     }
 }

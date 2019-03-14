@@ -3,8 +3,7 @@
 
 const assert = require('assert')
 const { bootNodeApi } = require('../../api/websocket')
-const { getAccount, getNonce } = require('../../api/node')
-const { bnToHex } = require('@polkadot/util');
+const { getAccount } = require('../../api/node')
 const { setClaim, getClaim, removeClaim } = require('../../api/attestation')
 
 
@@ -20,7 +19,7 @@ var holder = null
 // issuer
 var issuer = null
 
-describe('Attestation test suite:', function () {
+describe('Attestation test suite', function () {
 
     before(async function () {
         await bootNodeApi.init()

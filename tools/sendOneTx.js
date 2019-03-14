@@ -28,6 +28,9 @@ async function send(fromSeed, toAddr, amount, asset = assetId) {
     bal = await node.queryFreeBalance(toAddress);
     console.log('bal after = ', bal.toString())
 
+    let fee = await require('../api/fee').queryTxFee2(result.txHash)
+    console.log('fee = ', fee.toString())
+
     process.exit()
 }
 
@@ -44,7 +47,9 @@ var assetId = 0
 
 run()
 
+// module.exports.send = send
+
 /*
 // run code:
-       node tools/sendOneTx -f Bob -t 5E351ovfS6wiWwuXx7W17AApcZkVcAh2GGKs5uPvazDU6ycb -a 1000 --ws ws://127.0.0.1:9944
+       node tools/sendOneTx -f Bob -t Rocket -a 1000 --ws ws://127.0.0.1:9944
 */

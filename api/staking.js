@@ -1,13 +1,37 @@
 
 const node = require('./node')
 const { bootNodeApi } = require('./websocket');
+const { hexToBn } = require('@cennznet/util');
+
+module.exports.bond = async function(stashAccSeed, controllerSeed, bondAmount, nodeApi = bootNodeApi){ 
+    // get api
+    const api = await nodeApi.getApi()
+
+    const controllerAddress = node.getAddressFromSeed(controllerSeed)
+
+    const amountBN = hexToBn(bondAmount.toString(16))
+
+    // make the tx to bond
+    //  Staked, 0x00: Pay into the stash account, increasing the amount at stake accordingly.
+    //  Stash, 0x01 :Pay into the stash account, not increasing the amount at stake.
+    //  Controller, 0x02: Pay into the controller account. ( Controller is the only one for 'validate' method)
+    const trans = api.tx.staking.bond(controllerAddress, amountBN, 0x02)
+
+    // stake the validator
+    const txResult = await node.signAndSendTx(trans, stashAccSeed)
+
+    return txResult
+}
 
 module.exports.stake = async function(stakerSeed, nodeApi = bootNodeApi){ 
     // get api
     const api = await nodeApi.getApi()
     
-    // make the tx
-    const trans = api.tx.staking.stake()
+    // make tx to stake
+    //  Staked, 0x00: Pay into the stash account, increasing the amount at stake accordingly.
+    //  Stash, 0x01 :Pay into the stash account, not increasing the amount at stake.
+    //  Controller, 0x02: Pay into the controller account. ( Controller is the only one for 'validate' method)
+    const trans = api.tx.staking.validate('0x02')
 
     // stake the validator
     const txResult = await node.signAndSendTx(trans, stakerSeed)
@@ -19,11 +43,8 @@ module.exports.unstake = async function(stakerSeed, nodeApi = bootNodeApi){
     // get api
     const api = await nodeApi.getApi()
 
-    // get Intention Index
-    const intentionIndex = await this.queryIntentionIndex(stakerSeed, nodeApi)
-    
-    // make the tx
-    const trans = api.tx.staking.unstake(intentionIndex)
+    // make the tx to unstake
+    const trans = api.tx.staking.chill()
 
     // unstake the validator
     const txResult = await node.signAndSendTx(trans, stakerSeed)
