@@ -107,7 +107,7 @@ module.exports.startNewValidator = function(validator) {
                 --ws-external \
                 --ws-port ${wsPort}`
 
-    console.log(cmd)
+    // console.log(cmd)
 
     shell.exec( cmd,
                 { silent: true }, 

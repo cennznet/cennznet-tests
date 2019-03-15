@@ -8,7 +8,7 @@
         "jest": "jest --forceExit",
         "test:all": "jest --forceExit integration_test/testcase",
         "debug": "node --inspect-brk node_modules/.bin/mocha --exit",
-        "test": "mocha --exit"
+        "mocha": "mocha --exit"
     },
     "dependencies": {
         "@cennznet/api": "^0.8.3",

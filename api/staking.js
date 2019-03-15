@@ -27,11 +27,14 @@ module.exports.stake = async function(stakerSeed, nodeApi = bootNodeApi){
     // get api
     const api = await nodeApi.getApi()
     
+    // make prefs: 
+    // e.g. 0x0400 = {unstake_threshold: 1, validator_payment: 0}
+    // - unstake_threshold (U8a, first 2 digitals): 04 = 1
+    // - validator_payment (U8a, last 2 digitals): 00 = 0 
+    const validatorPrefs = '0x0400'
+
     // make tx to stake
-    //  Staked, 0x00: Pay into the stash account, increasing the amount at stake accordingly.
-    //  Stash, 0x01 :Pay into the stash account, not increasing the amount at stake.
-    //  Controller, 0x02: Pay into the controller account. ( Controller is the only one for 'validate' method)
-    const trans = api.tx.staking.validate('0x02')
+    const trans = api.tx.staking.validate(validatorPrefs)
 
     // stake the validator
     const txResult = await node.signAndSendTx(trans, stakerSeed)

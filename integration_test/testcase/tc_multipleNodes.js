@@ -20,15 +20,7 @@ describe('Multiple Nodes test suite', () => {
 
     it("New controller (for validator Charlie) node Bob joins in", async function() {
 
-        let txResult = null
-        // startup a new validator node 
-        try{
-            txResult = await joinNewValidator( validatorNode.bob )
-        }
-        catch(e){
-            console.log('Error =', e)
-        }
-        
+        const txResult = await startNewValidatorNode( validatorNode.bob )    
         // judge the peer count
         assert( txResult == true, `New validator [${validatorNode.bob.seed}] failed to join the boot node.`)
     });
@@ -42,7 +34,7 @@ describe('Multiple Nodes test suite', () => {
         await startStaking(stashAccSeed, controllerSeed, bondAmount)
     });
 
-    it('Startup controller James (new account for validator Dave) and make it stake', async function() {
+    it('Startup controller James (new account) and make it stake', async function() {
         this.timeout(120000)
 
         const stashAccSeed = 'Dave'
@@ -56,7 +48,7 @@ describe('Multiple Nodes test suite', () => {
         await node.transfer('Alice', validatorNode.james.address, trans_amount, 10)    // spending token
         
         // startup a new validator node 
-        const txResult = await joinNewValidator( validatorNode.james )
+        const txResult = await startNewValidatorNode( validatorNode.james )
         // judge the result
         assert( txResult == true, `New validator [${validatorNode.james.seed}] failed to join the boot node.`)
         
@@ -80,7 +72,7 @@ describe('Multiple Nodes test suite', () => {
         const bondAmount = largeBondAmount
     
         // start up the new node
-        await joinNewValidator(validatorNode.eve)
+        await startNewValidatorNode(validatorNode.eve)
 
         // make controller to stake
         await startStaking(stashAccSeed, controllerSeed, bondAmount)
@@ -147,7 +139,7 @@ describe('Multiple Nodes test suite', () => {
 
         // sleep 5s and restart validator bob
         await sleep(5000)
-        joinNewValidator(validator)
+        startNewValidatorNode(validator)
         
         // await at least 2 blocks
         const currBlockId = await block.waitBlockCnt(2)
@@ -165,7 +157,7 @@ describe('Multiple Nodes test suite', () => {
 });
 
 // make a new validator join newwork
-async function joinNewValidator( validator ) {
+async function startNewValidatorNode( validator ) {
 
     // check peer count before new node joins in
     const bootApi = await bootNodeApi.getApi()
