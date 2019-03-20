@@ -8,8 +8,6 @@ const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
 describe('Transfer Token test suite:', function () {
     
     it('Transfer staking token', async function() {
-        //this.timeout(60000)
-        this.timeout(60000)
 
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
@@ -35,8 +33,6 @@ describe('Transfer Token test suite:', function () {
     });
 
     it('Transfer spending token', async function() {
-        //this.timeout(60000)
-        this.timeout(60000)
 
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'

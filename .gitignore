@@ -1,7 +1,8 @@
-.vscode
 .DS_Store
 node_modules
 _*
 package-lock.json
 node_data
 jest
+coverage
+.nyc_*

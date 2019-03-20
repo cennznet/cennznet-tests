@@ -1,0 +1,3 @@
+--timeout 60000
+--exit
+--opts "mocha.opts"

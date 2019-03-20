@@ -35,7 +35,7 @@
         "validators": [
           "0xd172a74cda4c865912c32ba0a80a57ae69abae410e5ccb59dee84e2f4432db4f"
         ],
-        "sessionLength": 3,
+        "sessionLength": 2,
         "keys": [
           [
             "0xd172a74cda4c865912c32ba0a80a57ae69abae410e5ccb59dee84e2f4432db4f",

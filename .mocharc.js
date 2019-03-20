@@ -7,10 +7,11 @@
 module.exports = {
   diff: true,
   extension: ['js'],
-//   opts: './test/mocha.opts',
+//   opts: './mocha.opts',
   package: './package.json',
   reporter: 'spec',
   slow: 75,
   timeout: 60000,
+  recursive: "./integration_test/testcase/*.js",
   ui: 'bdd'
 };

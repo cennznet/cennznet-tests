@@ -5,7 +5,7 @@ const assert = require('assert')
 const block = require('../../api/block')
 
 
-describe.skip('Boot Node test cases', function () {
+describe('Boot Node test cases', function () {
 
     it('The Boot Node is able to produce new blocks', async function() {
         this.timeout(60000)

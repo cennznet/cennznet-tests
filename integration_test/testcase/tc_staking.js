@@ -5,22 +5,27 @@ const assert = require('assert')
 const node = require('../../api/node')
 const docker = require('../../api/docker')
 const block = require('../../api/block')
-const {sleep} = require('../../api/util')
-const {bootNodeApi, WsApi} = require('../../api/websocket')
+const { sleep } = require('../../api/util')
 const staking = require('../../api/staking')
 const BigNumber = require('big-number');
-const {validatorNode} = require('../../api/definition')
+const { validatorNode } = require('../../api/definition')
 
 
 
 describe('Multiple Nodes test suite', () => {
 
-    const smallBondAmount = 10000000000000000
-    const largeBondAmount = 20000000000000000
+    const smallBondAmount   = 10000000000000000
+    const mediumBondAmount  = 15000000000000000
+    const largeBondAmount   = 20000000000000000
 
-    it("New controller (for validator Charlie) node Bob joins in", async function() {
+    before(async function(){
+        // due to 0 fund bonded on Alice, need to bond extra fund for following test cases
+        await staking.bondExtra(validatorNode.alice.seed, mediumBondAmount)
+    })
 
-        const txResult = await startNewValidatorNode( validatorNode.bob )    
+    it("New controller Bob(for validator Charlie) joins in", async function() {
+
+        const txResult = await staking.startNewValidatorNode( validatorNode.bob )    
         // judge the peer count
         assert( txResult == true, `New validator [${validatorNode.bob.seed}] failed to join the boot node.`)
     });
@@ -31,7 +36,7 @@ describe('Multiple Nodes test suite', () => {
         const controllerSeed = validatorNode.bob.seed
         const bondAmount = largeBondAmount
 
-        await startStaking(stashAccSeed, controllerSeed, bondAmount)
+        await staking.stakeValidator(stashAccSeed, controllerSeed, bondAmount)
     });
 
     it('Startup controller James (new account) and make it stake', async function() {
@@ -48,7 +53,7 @@ describe('Multiple Nodes test suite', () => {
         await node.transfer('Alice', validatorNode.james.address, trans_amount, 10)    // spending token
         
         // startup a new validator node 
-        const txResult = await startNewValidatorNode( validatorNode.james )
+        const txResult = await staking.startNewValidatorNode( validatorNode.james )
         // judge the result
         assert( txResult == true, `New validator [${validatorNode.james.seed}] failed to join the boot node.`)
         
@@ -56,15 +61,15 @@ describe('Multiple Nodes test suite', () => {
         // await staking.bond(validatorNode.james.seed, bond_amount)
         
         // stake
-        await startStaking(stashAccSeed, controllerSeed, bondAmount)
+        await staking.stakeValidator(stashAccSeed, controllerSeed, bondAmount)
     });
 
-    it.skip('TODO: Staking validator <James> obtains reward', async function() {
+    it.skip('TODO: Staker James obtains reward', async function() {
         // TODO: reward is not working for the new staking module
-        await checkReward(validatorNode.james)
+        await staking.checkReward(validatorNode.james)
     });
 
-    it('Let richer controller-Eve stake and validator-James will be replaced', async function() {
+    it('Let richer controller Eve join in and least-bond staker James will be replaced', async function() {
         this.timeout(120000)
 
         const stashAccSeed = 'Ferdie'
@@ -72,10 +77,10 @@ describe('Multiple Nodes test suite', () => {
         const bondAmount = largeBondAmount
     
         // start up the new node
-        await startNewValidatorNode(validatorNode.eve)
+        await staking.startNewValidatorNode(validatorNode.eve)
 
         // make controller to stake
-        await startStaking(stashAccSeed, controllerSeed, bondAmount)
+        await staking.stakeValidator(stashAccSeed, controllerSeed, bondAmount)
 
         // await staking.waitEraChange()
 
@@ -86,8 +91,8 @@ describe('Multiple Nodes test suite', () => {
         assert( stakeId_james < 0, `Failed to kick validator [${validatorNode.james.seed}] out from staking list.`)
     });
 
-    it('Unstake validator <eve> and validator James came back', async function() {    
-        await unstartStaking(validatorNode.eve.seed)
+    it('Unstake Eve and waiting controller James comes back', async function() {    
+        await staking.unstakeValidator(validatorNode.eve.seed)
 
         const stakeId_eve = await staking.queryStakingIndex(validatorNode.eve.seed)
         const stakeId_james = await staking.queryStakingIndex(validatorNode.james.seed)
@@ -96,7 +101,7 @@ describe('Multiple Nodes test suite', () => {
         assert( stakeId_james >= 0, `Failed to put validator [${validatorNode.james.seed}] back to staking list.`)
     });
 
-    it('Shutdown one of three validators (Bob), chain is still working', async function() {
+    it('Shutdown Bob (one of three stakers), chain is still working', async function() {
         // get block number before drop node
         const preBlockNum = await block.getCurrentBlockNumber()
 
@@ -109,7 +114,7 @@ describe('Multiple Nodes test suite', () => {
         assert(currBlockNum - preBlockNum >= 2, `Chain did not work well. (Current block id [${currBlockNum}], previous id [${preBlockNum}])`)
     });
 
-    it.skip('Offline validator <Bob> obtains punishment. TODO: When will get the punishment', async function() {
+    it.skip('Offline staker <Bob> obtains punishment. TODO: Punishment did not work.', async function() {
 
         const validator = validatorNode.bob
         
@@ -127,9 +132,8 @@ describe('Multiple Nodes test suite', () => {
                 `Validator [${validator.seed}] did not get punishment.(Bal before tx = ${bal_preSession}, Bal after tx = ${bal_afterSession})`)
     });
 
-    it('Two validators left <Alice and James>, shutdown James, chain stop working, and recovery after James is back', async function() {
+    it('Two stakers left (Alice and James), shutdown James, then chain stop working, and will recovery after staker James is back', async function() {
         const validator = validatorNode.james
-
 
         // get last block id
         const preBlockId = await block.waitBlockCnt(0)
@@ -139,23 +143,24 @@ describe('Multiple Nodes test suite', () => {
 
         // sleep 5s and restart validator bob
         await sleep(5000)
-        startNewValidatorNode(validator)
+        staking.startNewValidatorNode(validator)
         
         // await at least 2 blocks
         const currBlockId = await block.waitBlockCnt(2)
         assert(currBlockId > preBlockId, `Chain did not work well. (Current block id [${currBlockId}], previouse is []${preBlockId})`)
 
         // check if Bob is in the staking list
-        const index = await staking.queryStakingIndex(validatorseed)
+        const index = await staking.queryStakingIndex(validator.seed)
         assert(index >= 0, `Validator [${validator.seed}] is not in the staking list.`)
     });
 
-    it('Make validator James unstake', async function() {
-        await unstartStaking(validatorNode.james.seed)
+    it('Unstake controller James', async function() {
+        await staking.unstakeValidator(validatorNode.james.seed)
     });
 
 });
 
+/*
 // make a new validator join newwork
 async function startNewValidatorNode( validator ) {
 
@@ -195,7 +200,7 @@ async function startNewValidatorNode( validator ) {
     return txResult
 }
 
-async function startStaking(stashAccSeed, controllerSeed, bondAmount){
+async function stakeValidator(stashAccSeed, controllerSeed, bondAmount){
     // bond amount first
     await staking.bond(stashAccSeed, controllerSeed, bondAmount)
 
@@ -215,7 +220,7 @@ async function startStaking(stashAccSeed, controllerSeed, bondAmount){
     await block.waitBlockCnt(1)
 }
 
-async function unstartStaking(validatorSeed){
+async function unstakeValidator(validatorSeed){
     // get staker id before tx
     const stakerId_beforeTx = await staking.queryStakingIndex(validatorSeed)
     assert( stakerId_beforeTx >= 0, `Validator [${validatorSeed}] is not in staking list.`)
@@ -242,6 +247,7 @@ async function checkReward2(validator){
     const stakerId = await staking.queryStakingIndex(validator.seed)
     assert(stakerId >= 0, `Validator (${validator.seed}) is not in staking list.`)
 
+    // check if the staker node is runing
     const containerId = docker.queryNodeContainer(validator.containerName)
     assert(containerId.length > 0, `Container node (${validator.containerName}) is not existing.`)
 
@@ -268,7 +274,7 @@ async function checkReward(validator){
     console.log('total =', staker.total.toString())
     console.log('own =', staker.own.toString())
 
-    // check if the validator is in stake
+    // check if the validator is in staking
     const stakerId = await staking.queryStakingIndex(validator.seed)
     assert(stakerId >= 0, `Validator (${validator.seed}) is not in staking list.`)
 
@@ -287,3 +293,4 @@ async function checkReward(validator){
     bRet = true
     return bRet
 }
+*/
