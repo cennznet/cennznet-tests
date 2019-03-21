@@ -6,7 +6,7 @@ const { TxResult, CURRENCY } = require('./definition');
 const { stringToU8a, hexToBn, Keyring } = require('@cennznet/util');
 const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
 const { GenericAsset}  = require('@cennznet/generic-asset')
-const { queryTxFee } = require('./fee')
+const { queryTxFee, queryCurrentTxFee } = require('./fee')
 
 
 async function transfer(fromSeed, toAddress, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi) {
@@ -49,7 +49,7 @@ async function signAndSendTx(transaction, seedOrAccount){
         txResult.txHash = signedTx.hash.toString()
         txResult.byteLength = signedTx.encodedLength
         // send tx
-        await transaction.send( r => {
+        await transaction.send( async (r) => {
             if ( r.type == 'Finalised' ){
                 // get block hash
                 txResult.blockHash = r.status.asFinalised.toHex()
@@ -59,6 +59,8 @@ async function signAndSendTx(transaction, seedOrAccount){
                 txResult.bSucc = true
                 // get all events
                 txResult.events = r.events
+                // get tx fee
+                txResult.txFee = await queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
 
                 // check if the extrinsic succeeded
                 r.events.forEach(({ phase, event: { data, method, section } }) => {
@@ -138,6 +140,7 @@ async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alic
 
     return api
 }
+
 
 module.exports.setApiSigner = setApiSigner
 module.exports.CURRENCY = CURRENCY

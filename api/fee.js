@@ -64,19 +64,9 @@ module.exports.calulateTxFee = async function(txByteLength){
     return systemFee.calulateTransferFee(txByteLength)
 }
 
-module.exports.queryTxFee = async function (blockHash, txHash, nodeApi = bootNodeApi){
+module.exports.queryTxFee = async function (blockHash, extrinsicIndex, nodeApi = bootNodeApi){
     const api = await nodeApi.getApi()
-    let extrinsic_index = -1
     let txFee = 0
-
-    const blockInfo = await api.rpc.chain.getBlock(blockHash)
-
-    // get extrinsic_index for tx
-    blockInfo.block.extrinsics.forEach( (extrinsic, index) => {
-        if ( extrinsic.hash.toString() == txHash ){
-            extrinsic_index = index
-        }
-    })
 
     // check all events in the block to find out fee charged
     const events = await api.query.system.events.at(blockHash)
@@ -85,12 +75,13 @@ module.exports.queryTxFee = async function (blockHash, txHash, nodeApi = bootNod
         const { event, phase } = record;
         const types = event.typeDef;
 
+        // console.log('record =', record)
         if (event.section.toLowerCase() == 'fees' && event.method.toLowerCase() == 'charged'){
 
             const index = parseInt(event.data[0].toString())
             const feeAmount = event.data[1].toString()
             // locate the same tx with index
-            if ( index == extrinsic_index ){
+            if ( index == extrinsicIndex ){
                 txFee = feeAmount.toString()
             }
         }
@@ -99,11 +90,8 @@ module.exports.queryTxFee = async function (blockHash, txHash, nodeApi = bootNod
     return parseInt(txFee)
 }
 
-module.exports.queryTxFee2 = async function (txHash, nodeApi = bootNodeApi){
+module.exports.queryCurrentTxFee = async function (extrinsicIndex, nodeApi = bootNodeApi){
     const api = await nodeApi.getApi()
-    let txFee = await api.query.fees.currentTransactionFee(txHash)
-
-
-
+    let txFee = await api.query.fees.currentTransactionFee(extrinsicIndex)
     return parseInt(txFee)
 }
