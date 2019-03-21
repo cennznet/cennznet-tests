@@ -29,12 +29,13 @@ async function checkTxEvent(txResult, eventMethod){
 /**
  * Deposit core asset and trade asset at current ratio to mint exchange tokens (returns amount of exchange tokens minted)
  * @ minLiquidity: the minimum liquidity value wanted
- * @ maxAssetAmount: the max amount to add in pool. If the calulated amount is greater then it, tx will get failure.
+ * @ maxAssetAmount: the max amount to add in pool, should be smaller than trader's asset balance. 
+ *                   If the calulated amount is greater then it, tx will get failure.
  *                  Note:
  *                      - In terms of the caculation and digital round fact, maxAssetAmount must be 1 larger than theoretical max value.
  *                        e.g. If 5000 is the max value, the maxAssetAmount should be at least 5001.
  *                      - For the first call, maxAssetAmount will be the initial liquidity.
- *                      - For later calls, asset amount should meet the formula: new_token_amt / token_pool_amt = new_core_amt / core_pool_amt.
+ *                      - For later calls, actual asset amount input should meet the formula: new_token_amt / token_pool_amt = new_core_amt / core_pool_amt.
  *                              This is for keep the proportion of the token and core.
  * @ coreAmount: the exact core asset amount to add into pool. This value is the initial liquidity.
  */
@@ -109,7 +110,8 @@ module.exports.getLiquidityBalance = async function (assetId, traderSeed, nodeAp
 
 module.exports.getExchangeAddress = async function ( assetId, traderSeed, nodeApi = bootNodeApi){
     const spotX = await initSpotX(traderSeed, nodeApi)
-    return await spotX.getExchangeAddress(assetId);
+    const address = await spotX.getExchangeAddress(assetId)
+    return address.toString()
 }
 
 module.exports.getCoreAssetId = async function ( traderSeed = 'Alice', nodeApi = bootNodeApi){
