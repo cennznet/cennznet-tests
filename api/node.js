@@ -121,7 +121,7 @@ async function queryFreeBalance( address, assetId = CURRENCY.STAKE, nodeApi = bo
 
     // get balance via GenericAsset
     const api = await nodeApi.getApi()
-    const ga = new GenericAsset(api);
+    const ga = await GenericAsset.create(api);
     const balance = await ga.getFreeBalance(assetId, getAddressFromSeed(address))
 
     return balance.toString();
