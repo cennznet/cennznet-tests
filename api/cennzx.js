@@ -8,9 +8,10 @@ const fee = require('./fee');
 
 
  async function initSpotX(traderSeed, nodeApi = bootNodeApi){
-    const api = await nodeApi.getApi()
+    let api = await nodeApi.getApi()
     await node.setApiSigner(api, traderSeed)
-    return await SpotX.create(api);
+    const spotX = await SpotX.create(api)
+    return spotX;
 }
 
 // check if the eventMethod is in the tx events
@@ -102,7 +103,7 @@ module.exports.coreToAssetSwapOutput = async function (traderSeed, assetId, asse
     return txResult
 }
 
-// swap token to core and transfer out
+// swap token to core and transfer out. Then token bought is a fixed value, should 1st get the needed core asset and then calculate its exchange fee.
 module.exports.coreToAssetTransferOutput = async function (traderSeed, recipient, assetId, tokenAmountBought, maxCoreSold, nodeApi = bootNodeApi){
     const spotX = await initSpotX(traderSeed, nodeApi)
 
@@ -138,7 +139,10 @@ module.exports.getCoreAssetId = async function ( traderSeed = 'Alice', nodeApi =
 
 module.exports.getFeeRate = async function ( traderSeed = 'Alice', nodeApi = bootNodeApi){
     const spotX = await initSpotX(traderSeed, nodeApi)
-    return await spotX.getFeeRate();
+    return spotX.getFeeRate()
+    // const x = spotX.getCoreAssetId()
+    // console.log('x =', x.toString())
+    // return 3000
 }
 
 module.exports.getTotalLiquidity = async function (assetId, traderSeed, nodeApi = bootNodeApi){

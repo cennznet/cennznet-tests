@@ -1,6 +1,6 @@
 **Run the test via script**
 
-Please make sure that you have 'cennznet-node' docker image in hand, then run the following command
+Please make sure that you have 'cennznet-node' docker image in hand and the name of image must be 'cennznet-node', then run the following command
 ```bash
 npm test integration/run.js
 ```

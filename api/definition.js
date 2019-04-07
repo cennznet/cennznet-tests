@@ -1,8 +1,8 @@
 
 
 module.exports.CURRENCY = {
-    STAKE:  0,
-    SPEND:  10,
+    STAKE:  16000,
+    SPEND:  16001,
 }
 
 module.exports.TxResult = class {

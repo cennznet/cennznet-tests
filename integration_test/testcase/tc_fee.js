@@ -1,12 +1,14 @@
 "use strict";
 
 const assert = require('assert')
-const {transfer, queryFreeBalance, CURRENCY} = require('../../api/node')
+const {transfer, queryFreeBalance} = require('../../api/node')
 const {calulateTxFee, queryTxFee} = require('../../api/fee')
 const BigNumber = require('big-number');
+const { CURRENCY } = require('../../api/definition')
 
 
 describe('Fee test suite', function () {
+
 
     it.skip("TODO: Transfer Fee formula check", async function() {
         // formula: transferFee + baseFee + byteFee * byteLength
@@ -48,6 +50,7 @@ describe('Fee test suite', function () {
         const afterTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
         const currFee = BigNumber(beforeTx_spend).minus(afterTx_spend).toString()
 
+        assert.notEqual(expectFee, 0, `Transaction fee is 0.`)
         assert( BigNumber(beforeTx_cennz).minus(afterTx_cennz) == transAmt, 
                 `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_cennz}] to [${afterTx_cennz}]`)
         assert( currFee == expectFee, `Current fee [${currFee}] did not equal to expected fee [${expectFee}].`)

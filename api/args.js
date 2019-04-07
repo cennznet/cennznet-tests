@@ -1,18 +1,16 @@
 
 
-// const {getBootNodeIp} = require('./node')
+// get command line parameter
+var argv = require('minimist')(process.argv.slice(2));
 
-var nodeServerWsIp = ''//getBootNodeIp()
-// var ciImageName = ''
+var nodeServerWsIp = ''
 
-// function _getArgs()
-// {
-//     // get env parameters defined with 'env KEY=YOUR_KEY'
-//     // nodeServerWsIp = process.env.ws
-//     // nodeServerWsIp = getBootNodeIp()
-//     process.env.ci ? ciImageName = process.env.ci : ciImageName = 'integration_test'
-// }
+function _getArgs()
+{
+    // get ws ip, default is local ip
+    argv.ws ? nodeServerWsIp = argv.ws : nodeServerWsIp = 'ws://127.0.0.1:9944'
+}
 
-// _getArgs()
+_getArgs()
 
 module.exports.nodeServerWsIp = nodeServerWsIp

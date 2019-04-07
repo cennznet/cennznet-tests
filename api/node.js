@@ -129,10 +129,11 @@ async function queryFreeBalance( address, assetId = CURRENCY.STAKE, nodeApi = bo
 
 async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alice'
     // create wallet
-    const wallet = new Wallet();
-    await wallet.createNewVault('a passphrase');
-    const keyring = new SimpleKeyring();
-    await keyring.addFromSeed(stringToU8a(signerSeed.padEnd(32, ' ')));
+    const wallet = new Wallet(); 
+    await wallet.createNewVault('a passphrase'); 
+    // await wallet.createNewVault(''); 
+    const keyring = new SimpleKeyring(); 
+    await keyring.addFromSeed(stringToU8a(signerSeed.padEnd(32, ' '))); 
     await wallet.addKeyring(keyring);
 
     // set wallet as signer of api
@@ -143,7 +144,7 @@ async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alic
 
 
 module.exports.setApiSigner = setApiSigner
-module.exports.CURRENCY = CURRENCY
+// module.exports.CURRENCY = CURRENCY
 module.exports.transfer = transfer
 module.exports.signAndSendTx = signAndSendTx
 module.exports.queryFreeBalance = queryFreeBalance

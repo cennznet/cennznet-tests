@@ -51,5 +51,5 @@ run()
 
 /*
 // run code:
-       node tools/sendOneTx -f Bob -t Rocket -a 1000 -i 0 --ws ws://127.0.0.1:9944
+       node tools/sendOneTx -f Bob -t Rocket -a 1000 -i 16000 --ws ws://127.0.0.1:9944
 */

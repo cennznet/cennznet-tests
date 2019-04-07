@@ -19,7 +19,7 @@ describe('Smart Contract test suite:', function () {
 
         // put the contract code onto chain
         const result = await putCode(issuerSeed, gasLimit, contractFilePath)
-        assert( result.bSucc == true, `putCode() for smart contract failed.[MSG : ${result.message}]`)
+        assert.equal( result.bSucc, true, `putCode() for smart contract failed.[MSG : ${result.message}]`)
 
         // get the contract hash
         result.events.forEach(({ phase, event: { data, method, section } }) => {
@@ -27,7 +27,7 @@ describe('Smart Contract test suite:', function () {
                 _contractHash = data[0].toString()   // data is an array
             }
         });
-        assert( _contractHash == contractHash, `Contract hash is not correct.[Expected: ${contractHash}, Actual: ${_contractHash}]`)
+        assert.equal( _contractHash, contractHash, `Contract hash is not correct.[Expected: ${contractHash}, Actual: ${_contractHash}]`)
 
     });
 
@@ -37,7 +37,7 @@ describe('Smart Contract test suite:', function () {
         // result.events.forEach(({ phase, event: { data, method, section } }) => {
         //     console.log('\t', phase.toString(), `: ${section}.${method}`, data.toString());
         // });
-        assert( result.bSucc == true, `Create() the smart contract failed.[MSG : ${result.message}]`)
+        assert.equal( result.bSucc, true, `Create() the smart contract failed.[MSG : ${result.message}]`)
     });
 
     it.skip('TODO: Call() a smart contract', async function() {
