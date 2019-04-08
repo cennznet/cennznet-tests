@@ -100,7 +100,7 @@ module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeA
     return txResult
 }
 
-module.exports.queryTokenBalance = async function (assetId, assetOwnerSeed, nodeApi = bootNodeApi){
+module.exports.remove_queryTokenBalance = async function (assetId, assetOwnerSeed, nodeApi = bootNodeApi){
 
     const assetOwner = node.getAccount(assetOwnerSeed)
 

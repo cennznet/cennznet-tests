@@ -16,7 +16,7 @@ const assert = require('assert')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
 const BigNumber = require('big-number')
-const { transfer, queryFreeBalance } = require('../../api/node')
+// const { transfer, queryFreeBalance } = require('../../api/node')
 const { CURRENCY } = require('../../api/definition')
 
 
@@ -42,21 +42,33 @@ describe('Generic Asset test suite:', function () {
     it('Create a new token', async function() {
         const permissionAddress = ga.getPermissionAddress(permission)
 
-        console.log('before bal = ', (await queryFreeBalance(assetOwner, CURRENCY.SPEND)).toString() )
+        // get spending bal before tx
+        const spendBal_beforeTx = await node.queryFreeBalance(assetOwner, CURRENCY.SPEND)
 
         // create the asset and get id
         const txResult = await ga.createNewToken(assetOwner, assetAmount, permissionAddress)
-        assetId = txResult.assetId.toString()
-        const tokenBalance_ga = await ga.queryTokenBalance(assetId, assetOwner)
-        const tokenBalance_owner = await node.queryFreeBalance(assetOwner, assetId)
+        // assert.equal( txResult.bSucc, true, `Function createNewToken() failed.`)
 
-        console.log('after bal = ', (await queryFreeBalance(assetOwner, CURRENCY.SPEND)).toString() )
+        assetId = txResult.assetId.toString()
+        const assetBalance = await node.queryFreeBalance(assetOwner, assetId)
+
+        // get spending bal after tx
+        const spendBal_afterTx = await node.queryFreeBalance(assetOwner, CURRENCY.SPEND)
 
         assert(assetId >= newTokenStartId, `Token ID (current id = ${assetId}) should larger than ${newTokenStartId}.`)
-        assert(BigNumber(tokenBalance_ga).minus(assetAmount) == 0, 
-                `ga.getFreeBalance() did not get correct balance for new token. (expected Value = ${assetAmount}, actual value = ${tokenBalance_ga} )`)
-        assert(BigNumber(tokenBalance_owner).minus(assetAmount) == 0,
-                `Token owner's balance is incorrect. (expected Value = ${assetAmount}, actual value = ${tokenBalance_ga} )`)       
+
+        // check asset balance
+        assert.equal(
+            assetBalance,
+            assetAmount,
+            `Token owner's asset balance is wrong.`)    
+        
+        // check tx fee
+        assert.equal(
+            BigNumber(spendBal_afterTx).toString(),
+            BigNumber(spendBal_beforeTx).minus(txResult.txFee).toString(),
+            `Spending token balance is wrong.`
+        )
 
     });
 
@@ -67,14 +79,14 @@ describe('Generic Asset test suite:', function () {
         const permissionAddress = ga.getPermissionAddress(permission)
 
         // get balance before tx
-        const spendBal_beforeTx = await ga.queryTokenBalance(CURRENCY.SPEND, updaterSeed)
+        const spendBal_beforeTx = await node.queryFreeBalance(updaterSeed, CURRENCY.SPEND)
 
         // update permission
         const txResult = await ga.updatePermission(updaterSeed, assetId, permissionAddress)
         assert.equal(txResult.bSucc, true, `Update permission failed`)
 
         // get balance after tx
-        let spendBal_afterTx = await ga.queryTokenBalance(CURRENCY.SPEND, updaterSeed)
+        const spendBal_afterTx = await node.queryFreeBalance(updaterSeed, CURRENCY.SPEND)
 
         // check the spending token balance
         assert.equal(
@@ -90,16 +102,16 @@ describe('Generic Asset test suite:', function () {
         const burn_amount = 500
 
         // get balance before tx
-        const ownerAssetBal_beforeTx = await ga.queryTokenBalance(assetId, ownerSeed)
-        const burnerSpendBal_beforeTx = await ga.queryTokenBalance(CURRENCY.SPEND, burnerSeed)
+        const ownerAssetBal_beforeTx = await node.queryFreeBalance(ownerSeed, assetId)
+        const burnerSpendBal_beforeTx = await node.queryFreeBalance(burnerSeed, CURRENCY.SPEND)
 
         // burn the asset
         const txResult = await ga.burn(burnerSeed, assetId, ownerSeed, burn_amount)
         assert.equal(txResult.bSucc, true, `Burn asset failed`)
 
         // get balance after tx
-        const ownerAssetBal_afterTx = await ga.queryTokenBalance(assetId, ownerSeed)
-        const burnerSpendBal_afterTx = await ga.queryTokenBalance(CURRENCY.SPEND, burnerSeed)
+        const ownerAssetBal_afterTx = await node.queryFreeBalance(ownerSeed, assetId)
+        const burnerSpendBal_afterTx = await node.queryFreeBalance(burnerSeed, CURRENCY.SPEND)
 
         // check asset balance
         assert.equal(
@@ -122,16 +134,16 @@ describe('Generic Asset test suite:', function () {
         const mint_amount = 5000
 
         // get balance before tx
-        const ownerAssetBal_beforeTx = await ga.queryTokenBalance(assetId, ownerSeed)
-        const minterSpendBal_beforeTx = await ga.queryTokenBalance(CURRENCY.SPEND, minterSeed)
+        const ownerAssetBal_beforeTx = await node.queryFreeBalance(ownerSeed, assetId)
+        const minterSpendBal_beforeTx = await node.queryFreeBalance(minterSeed, CURRENCY.SPEND)
 
         // burn the asset
         const txResult = await ga.mint(minterSeed, assetId, ownerSeed, mint_amount)
         assert.equal(txResult.bSucc, true, `Mint asset failed`)
 
         // get balance after tx
-        const ownerAssetBal_afterTx = await ga.queryTokenBalance(assetId, ownerSeed)
-        const minterSpendBal_afterTx = await ga.queryTokenBalance(CURRENCY.SPEND, minterSeed)
+        const ownerAssetBal_afterTx = await node.queryFreeBalance(ownerSeed, assetId)
+        const minterSpendBal_afterTx = await node.queryFreeBalance(minterSeed, CURRENCY.SPEND)
 
         // check asset balance
         assert.equal(
@@ -155,23 +167,27 @@ describe('Generic Asset test suite:', function () {
         const transAmt = 1000
 
         // get bal before tx
-        let beforeTx_stake = await queryFreeBalance(toAddress, assetId)
-        let beforeTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
+        const beforeTx_asset = await node.queryFreeBalance(toAddress, assetId)
+        const beforeTx_spend = await node.queryFreeBalance(toAddress, CURRENCY.SPEND)
 
-        console.log('before bal = ', (await queryFreeBalance(fromSeed, CURRENCY.SPEND)).toString() )
         // transfer
-        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
-
-        console.log('after bal = ', (await queryFreeBalance(fromSeed, CURRENCY.SPEND)).toString() )
-        console.log('txResult.txFee =', txResult.txFee.toString())
+        const txResult = await node.transfer(fromSeed, toAddress, transAmt, assetId)
 
         // get bal after tx
-        let afterTx_stake = await queryFreeBalance(toAddress, assetId)
-        let afterTx_spend = await queryFreeBalance(toAddress, CURRENCY.SPEND)
+        const afterTx_asset = await node.queryFreeBalance(toAddress, assetId)
+        const afterTx_spend = await node.queryFreeBalance(toAddress, CURRENCY.SPEND)
 
-        assert( (afterTx_stake - beforeTx_stake) == transAmt, 
-                `Transfer tx (${fromSeed} -> transfer amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_stake}] to [${afterTx_stake}]`)
-        assert( beforeTx_spend == afterTx_spend, 
-                `Spending token changed from ${beforeTx_spend} to ${afterTx_spend}`)
+        assert.notEqual(txResult.txFee, 0, `Transaction fee is 0`)
+        
+        // check asset balance
+        assert.equal( 
+            BigNumber(afterTx_asset).toString(), 
+            BigNumber(beforeTx_asset).add(transAmt).toString(),
+            `Asset balance is wrong.`)
+        // check spending token balance
+        assert.equal( 
+            BigNumber(afterTx_spend).toString(), 
+            BigNumber(beforeTx_spend).minus(txResult.txFee).toString(),
+            `Spending token balance is wrong.`)
     });
 });
