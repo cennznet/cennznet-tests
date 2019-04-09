@@ -3,6 +3,8 @@
 
 const assert = require('assert')
 const { putCode, createContract } = require('../../api/contract')
+const node = require('../../api/node')
+
 
 const contractFilePath = __dirname + '/../../dependency/spin2win.wasm'
 // const contractHash = '0xef55f2f51f83c5dea3dd0ba33f654d00ca3f62e93929e4c0225e396c310fd1b3'
@@ -13,6 +15,10 @@ const endowment = 1001
 
 describe('Smart Contract test suite:', function () {
     
+    before(async function(){
+        await node.topupTestAccount()    // only for remote test
+    })
+
     it('Put a smart contract code (Spin2Win) onto chain', async function() {
 
         let _contractHash= ''

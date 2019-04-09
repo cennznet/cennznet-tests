@@ -28,7 +28,7 @@ describe('Generic Asset test suite:', function () {
     const newTokenStartId = 17000
 
     // input data
-    const assetOwner = 'Alice'
+    const assetOwner = 'Alice'//'Alice'
 
     // designate who can act as follows
     var permission = {    
@@ -37,35 +37,36 @@ describe('Generic Asset test suite:', function () {
         burn:   'Dave',     // dave
     } 
 
-    const assetAmount = 10000 // 1000000000000000000000000
+    const assetAmount = 1000000 // 1000000000000000000000000
 
-    it('Create a new token', async function() {
+    before(async function(){
+        await node.topupTestAccount()    // only for remote test
+    })
+
+    it.only('Create a new token', async function() {
         const permissionAddress = ga.getPermissionAddress(permission)
 
         // get spending bal before tx
         const spendBal_beforeTx = await node.queryFreeBalance(assetOwner, CURRENCY.SPEND)
 
         // create the asset and get id
-        const txResult = await ga.createNewToken(assetOwner, assetAmount, permissionAddress)
-        // assert.equal( txResult.bSucc, true, `Function createNewToken() failed.`)
+        assetId = await ga.createNewToken(assetOwner, BigNumber(assetAmount), permissionAddress)
+        assert(assetId >= newTokenStartId, `Token ID (current id = ${assetId}) should larger than ${newTokenStartId}.`)
 
-        assetId = txResult.assetId.toString()
         const assetBalance = await node.queryFreeBalance(assetOwner, assetId)
 
         // get spending bal after tx
         const spendBal_afterTx = await node.queryFreeBalance(assetOwner, CURRENCY.SPEND)
 
-        assert(assetId >= newTokenStartId, `Token ID (current id = ${assetId}) should larger than ${newTokenStartId}.`)
-
         // check asset balance
         assert.equal(
-            assetBalance,
-            assetAmount,
+            assetBalance.toString(),
+            assetAmount.toString(),
             `Token owner's asset balance is wrong.`)    
         
         // check tx fee
         assert.equal(
-            BigNumber(spendBal_afterTx).toString(),
+            spendBal_afterTx.toString(),
             BigNumber(spendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`
         )
@@ -178,7 +179,7 @@ describe('Generic Asset test suite:', function () {
         const afterTx_spend = await node.queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         assert.notEqual(txResult.txFee, 0, `Transaction fee is 0`)
-        
+
         // check asset balance
         assert.equal( 
             BigNumber(afterTx_asset).toString(), 

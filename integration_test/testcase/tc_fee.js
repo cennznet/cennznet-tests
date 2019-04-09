@@ -1,14 +1,17 @@
 "use strict";
 
 const assert = require('assert')
-const {transfer, queryFreeBalance} = require('../../api/node')
-const {calulateTxFee, queryTxFee} = require('../../api/fee')
+const { transfer, queryFreeBalance, topupTestAccount } = require('../../api/node')
+const { calulateTxFee, queryTxFee } = require('../../api/fee')
 const BigNumber = require('big-number');
 const { CURRENCY } = require('../../api/definition')
 
 
 describe('Fee test suite', function () {
 
+    before(async function(){
+        await topupTestAccount()    // only for remote test
+    })
 
     it.skip("TODO: Transfer Fee formula check", async function() {
         // formula: transferFee + baseFee + byteFee * byteLength
@@ -29,8 +32,6 @@ describe('Fee test suite', function () {
 
 
     it('Fee of transferring staking token', async function() {
-        //this.timeout(60000)
-        this.timeout(60000)
         
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
@@ -51,14 +52,18 @@ describe('Fee test suite', function () {
         const currFee = BigNumber(beforeTx_spend).minus(afterTx_spend).toString()
 
         assert.notEqual(expectFee, 0, `Transaction fee is 0.`)
-        assert( BigNumber(beforeTx_cennz).minus(afterTx_cennz) == transAmt, 
-                `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toAddress}) failed. Payee's balance changed from [${beforeTx_cennz}] to [${afterTx_cennz}]`)
-        assert( currFee == expectFee, `Current fee [${currFee}] did not equal to expected fee [${expectFee}].`)
+        assert.equal( 
+            BigNumber(afterTx_cennz).toString(),
+            BigNumber(beforeTx_cennz).minus(transAmt).toString(), 
+            `Sender's staking token balance is worng.`)
+        // check spending token balance
+        assert.equal( 
+            BigNumber(afterTx_spend).toString(), 
+            BigNumber(beforeTx_spend).minus(expectFee).toString()
+            `Sender's spending token balance is wrong.`)
     });
 
     it('Fee of transferring spending token', async function() {
-        //this.timeout(60000)
-        this.timeout(60000)
 
         const fromSeed = 'Bob'
         const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
@@ -77,9 +82,14 @@ describe('Fee test suite', function () {
         const afterTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
         const afterTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
-        const difference = BigNumber(beforeTx_spend).minus(afterTx_spend)
-        assert( beforeTx_cennz == afterTx_cennz, `Staking token changed from ${beforeTx_cennz} to ${afterTx_cennz}. Should be the same.` )
-        assert( difference == expectFee + transAmt, `Spending balance is wrong. Changed [${difference}], but expected value is [${expectFee + transAmt}].`)
+        // check staking token  balance
+        assert.equal( afterTx_cennz, beforeTx_cennz , `Staking token balance is wrong.` )
+
+        // check spending token balance
+        assert.equal( 
+            BigNumber(afterTx_spend).toString(),
+            BigNumber(beforeTx_spend).minus(transAmt).minus(expectFee).toString(),
+            `Spending token balance is wrong.`)
     });
 
     it.skip('TODO: Fee for setting a new claim', async function() {
@@ -93,6 +103,4 @@ describe('Fee test suite', function () {
     it.skip('TODO: Fee for creating new token', async function() {
         this.timeout(60000)
     });
-
-    
 });

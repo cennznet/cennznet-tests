@@ -18,50 +18,27 @@ async function initGA(seed, nodeApi = bootNodeApi){
 
 module.exports.createNewToken = async function (ownerSeed, totalAmount, permission, nodeApi = bootNodeApi){
 
-    const assetOwner = node.getAccount(ownerSeed)
-
-    const api = await nodeApi.getApi()
-    
-    await node.setApiSigner(api, ownerSeed)
-
-    const nonce = await node.getNonce(assetOwner.address())
+    let assetId = -1
 
     // Create GA
-    const ga = await GenericAsset.create(api)
+    const ga = await initGA(ownerSeed, nodeApi)
 
-    const txResult = await new Promise(async (resolve,reject) => {
-        const trans = ga.create({initialIssuance: totalAmount, permissions: permission})
-        const txLen  = trans.sign(assetOwner, nonce).encodedLength;
+    // create transaction
+    const tx = ga.create({initialIssuance: totalAmount, permissions: permission})
 
-        await trans.send( async (status) => {
-            // wait for tx finalised
-            if (status.type === 'Finalised' && status.events !== undefined) {
-                let isCreated = false
-                // wait for 'Created' event
-                for(let i = 0; i < status.events.length; i++) {
-                    const event = status.events[i];
-                    // console.log('event = ', event.event.method.toString())
-                    if (event.event.method === 'Created') {
-                        isCreated = true;
-                        const _assetId = new AssetId(event.event.data[0]);
-                        const result = {assetId: _assetId, txLength: txLen}
-                        // console.log('assetId =', assetId.toString())
-                        resolve( result )
-                        /* query balance
-                        const balance = await ga.getFreeBalance(assetId, assetOwner.address());
-                        console.log('balance =',balance.toString())*/
-                    }
-                }
-                if (isCreated != true){
-                    reject('Created token failed.');
-                }
-            }
-        }).catch((error) => {
-            reject(error);
-        });
-    })
+    // send tx
+    const txResult = await node.signAndSendTx(tx, ownerSeed)
 
-    return txResult
+    // get the asset id
+    for (let i = 0; i < txResult.events.length; i++) {
+        const event = txResult.events[i];
+        if (event.event.method === 'Created') {
+            assetId = new AssetId(event.event.data[0]);
+            break;
+        }
+    }
+
+    return assetId
 }
 
 module.exports.updatePermission = async function (traderSeed, assetId, newPermission, nodeApi = bootNodeApi){

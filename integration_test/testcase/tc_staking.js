@@ -14,9 +14,9 @@ const { validatorNode } = require('../../api/definition')
 
 describe('Multiple Nodes test suite', () => {
 
-    const smallBondAmount   = 10000000000000000
-    const mediumBondAmount  = 15000000000000000
-    const largeBondAmount   = 20000000000000000
+    const smallBondAmount   = 100000000
+    const mediumBondAmount  = 150000000
+    const largeBondAmount   = 200000000
 
     before(async function(){
         // due to 0 fund bonded on Alice, need to bond extra fund for following test cases
@@ -45,7 +45,7 @@ describe('Multiple Nodes test suite', () => {
         const stashAccSeed = 'Dave'
         const controllerSeed = validatorNode.james.seed
         const bondAmount = smallBondAmount
-        const trans_amount  = 10000000000000000
+        const trans_amount  = 100000 //10000000000000000
         
 
         // topup to pay tx fee

@@ -5,6 +5,7 @@ const { Api } = require('@cennznet/api')
 const { WsProvider } = require('@cennznet/api/polkadot')
 const { nodeServerWsIp } = require('./args')
 
+
 class WsApi{
     constructor(ip = 'ws://127.0.0.1:9944'){
         this._wsIp = ip
@@ -66,6 +67,8 @@ class WsApi{
 module.exports.bootNodeApi = new WsApi(nodeServerWsIp)
 module.exports.WsApi = WsApi
 
-// global.testApi = new WsApi()
+
+
+
 
 

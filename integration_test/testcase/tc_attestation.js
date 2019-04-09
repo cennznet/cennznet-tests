@@ -2,8 +2,8 @@
 "use strict";
 
 const assert = require('assert')
-const { bootNodeApi } = require('../../api/websocket')
-const { getAccount } = require('../../api/node')
+// const { bootNodeApi } = require('../../api/websocket')
+const { getAccount, topupTestAccount } = require('../../api/node')
 const { setClaim, getClaim, removeClaim } = require('../../api/attestation')
 
 
@@ -22,13 +22,17 @@ var issuer = null
 describe('Attestation test suite', function () {
 
     before(async function () {
-        await bootNodeApi.init()
+        await topupTestAccount()    // only for remote test
 
         // set Alice as the holder
         holder = getAccount('Alice')
         
         // set Bob as the issuer
         issuer = getAccount('Bob')
+    })
+
+    before(async function(){
+        
     })
 
     it('Set a new claim and retrieve it', async function () {
