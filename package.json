@@ -20,6 +20,7 @@
         "big-number": "2.0.0",
         "chai": "^4.2.0",
         "minimist": "^1.2.0",
+        "mocha-logger": "^1.0.6",
         "rimraf": "2.6.3",
         "shelljs": "0.8.3",
         "yargs": "^13.2.2"

@@ -18,12 +18,12 @@ describe('Fee test suite', function () {
         this.timeout(60000)
         
         const fromSeed = 'Bob'
-        const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
+        const toSeed = 'James'
         const transAmt = 1000
         const assetId = CURRENCY.STAKE
 
         // transfer and get fee
-        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
+        const txResult = await transfer(fromSeed, toSeed, transAmt, assetId)
         const fee_cal = await calulateTxFee(txResult.byteLength)                    // calculated fee
         const fee_query = await queryTxFee(txResult.blockHash, txResult.txHash)     // queried fee
 
@@ -34,7 +34,7 @@ describe('Fee test suite', function () {
     it('Fee of transferring staking token', async function() {
         
         const fromSeed = 'Bob'
-        const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
+        const toSeed = 'James'
         const transAmt = 1000
         const assetId = CURRENCY.STAKE
         
@@ -43,7 +43,7 @@ describe('Fee test suite', function () {
         const beforeTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         // transfer
-        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
+        const txResult = await transfer(fromSeed, toSeed, transAmt, assetId)
         const expectFee = await queryTxFee(txResult.blockHash, txResult.txHash)
 
         // get bal after tx
@@ -66,7 +66,7 @@ describe('Fee test suite', function () {
     it('Fee of transferring spending token', async function() {
 
         const fromSeed = 'Bob'
-        const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
+        const toSeed = 'James'
         const transAmt = 1000
         const assetId = CURRENCY.SPEND
 
@@ -75,7 +75,7 @@ describe('Fee test suite', function () {
         const beforeTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         // transfer
-        const txResult = await transfer(fromSeed, toAddress, transAmt, assetId)
+        const txResult = await transfer(fromSeed, toSeed, transAmt, assetId)
         const expectFee = await queryTxFee(txResult.blockHash, txResult.txHash)
 
         // get bal after tx

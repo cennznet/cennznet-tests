@@ -1,10 +1,7 @@
 
-const rimraf = require("rimraf")
-const fs = require('fs')
-const docker = require('../api/docker')
-const {chainDataFolder} = require('../api/definition')
+
 const {loadTestCase} = require('../api/util')
-const {removeNodeContainers} = require('../api/docker')
+const args = require('../api/args')
 
 
 
@@ -14,6 +11,9 @@ describe('Remote Test (for Rimu or Kauri)', function () {
     const fileNotRun = [
         'tc_staking.js',
     ]
+
+    // set Rimu ws ip as the default ip
+    args.nodeServerWsIp = 'wss://cennznet-node-0.centrality.cloud:9944'
 
     require('./testcase/bootNode')
 

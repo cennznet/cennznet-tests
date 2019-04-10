@@ -12,6 +12,7 @@ For V2, following need to be included:
 
 "use strict";
 
+
 const assert = require('assert')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
@@ -40,6 +41,7 @@ describe('Generic Asset test suite:', function () {
     const assetAmount = 10000 // 1000000000000000000000000
 
     before(async function(){
+        mlog.log('This is .log()')
         await node.topupTestAccount()    // only for remote test
     })
 
