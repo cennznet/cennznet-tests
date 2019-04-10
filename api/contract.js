@@ -32,7 +32,7 @@ module.exports.createContract = async function (issuerSeed, endowment, gasLimit,
     // sign and send tx
     const txResult = await node.signAndSendTx(trans, issuerSeed)
 
-    console.log('events =', txResult.events)
+    // console.log('events =', txResult.events)
 
     // txResult.events.forEach(({ phase, event: { data, method, section } }) => {
     //     console.log('phase =', phase)

@@ -16,7 +16,7 @@ var exchangeFeeRate = 0
 describe('TODO:(await new version release) CennzX test suite', function () {
     
     before( async function(){
-        await topupTestAccount()    // only for remote test
+        await node.topupTestAccount()    // only for remote test
 
         // create new token
         tokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()

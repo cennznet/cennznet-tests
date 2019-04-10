@@ -37,20 +37,22 @@ describe('Generic Asset test suite:', function () {
         burn:   'Dave',     // dave
     } 
 
-    const assetAmount = 1000000 // 1000000000000000000000000
+    const assetAmount = 10000 // 1000000000000000000000000
 
     before(async function(){
         await node.topupTestAccount()    // only for remote test
     })
 
-    it.only('Create a new token', async function() {
+    it('Create a new token', async function() {
         const permissionAddress = ga.getPermissionAddress(permission)
 
         // get spending bal before tx
         const spendBal_beforeTx = await node.queryFreeBalance(assetOwner, CURRENCY.SPEND)
 
         // create the asset and get id
-        assetId = await ga.createNewToken(assetOwner, BigNumber(assetAmount), permissionAddress)
+        const txResult = await ga.createNewToken(assetOwner, assetAmount, permissionAddress)
+        assetId = txResult.assetId
+        // console.log('assetId =', assetId)
         assert(assetId >= newTokenStartId, `Token ID (current id = ${assetId}) should larger than ${newTokenStartId}.`)
 
         const assetBalance = await node.queryFreeBalance(assetOwner, assetId)
@@ -176,6 +178,7 @@ describe('Generic Asset test suite:', function () {
 
         // get bal after tx
         const afterTx_asset = await node.queryFreeBalance(toAddress, assetId)
+
         const afterTx_spend = await node.queryFreeBalance(toAddress, CURRENCY.SPEND)
 
         assert.notEqual(txResult.txFee, 0, `Transaction fee is 0`)

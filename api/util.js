@@ -8,8 +8,12 @@ module.exports.sleep = function (ms)
 
 
 // load and run all testcases from 'integraton_test/testcase/' folder
-module.exports.loadTestCase = function ( testcaseFolderPath ){
+module.exports.loadTestCase = function ( testcaseFolderPath, fileNotRun = null ){
     require("fs").readdirSync(testcaseFolderPath).forEach(function(fileName) {
+        // check if file need to run
+        if ( fileNotRun != null && fileNotRun.indexOf(fileName) >= 0){
+            return
+        }
         if ( fileName.substr(0,3) == 'tc_' ){
             require(testcaseFolderPath + '/' + fileName);
         }

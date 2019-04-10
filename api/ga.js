@@ -6,7 +6,7 @@ const { AssetId } = require('@cennznet/types');
 
 
 
-async function initGA(seed, nodeApi = bootNodeApi){
+async function initGA(seed, nodeApi = bootNodeApi) {
 
     const api = await nodeApi.getApi()
     await node.setApiSigner(api, seed)
@@ -16,7 +16,7 @@ async function initGA(seed, nodeApi = bootNodeApi){
     return ga
 }
 
-module.exports.createNewToken = async function (ownerSeed, totalAmount, permission, nodeApi = bootNodeApi){
+module.exports.createNewToken = async function (ownerSeed, totalAmount, permission, nodeApi = bootNodeApi) {
 
     let assetId = -1
 
@@ -24,7 +24,7 @@ module.exports.createNewToken = async function (ownerSeed, totalAmount, permissi
     const ga = await initGA(ownerSeed, nodeApi)
 
     // create transaction
-    const tx = ga.create({initialIssuance: totalAmount, permissions: permission})
+    const tx = ga.create({ initialIssuance: totalAmount, permissions: permission })
 
     // send tx
     const txResult = await node.signAndSendTx(tx, ownerSeed)
@@ -33,15 +33,15 @@ module.exports.createNewToken = async function (ownerSeed, totalAmount, permissi
     for (let i = 0; i < txResult.events.length; i++) {
         const event = txResult.events[i];
         if (event.event.method === 'Created') {
-            assetId = new AssetId(event.event.data[0]);
+            assetId = (new AssetId(event.event.data[0])).toString();
             break;
         }
     }
 
-    return assetId
+    return {assetId: assetId, txFee: txResult.txFee}
 }
 
-module.exports.updatePermission = async function (traderSeed, assetId, newPermission, nodeApi = bootNodeApi){
+module.exports.updatePermission = async function (traderSeed, assetId, newPermission, nodeApi = bootNodeApi) {
 
     // Create GA
     const ga = await initGA(traderSeed, nodeApi)
@@ -53,7 +53,7 @@ module.exports.updatePermission = async function (traderSeed, assetId, newPermis
     return txResult
 }
 
-module.exports.burn = async function (traderSeed, assetId, toSeed, amount, nodeApi = bootNodeApi){
+module.exports.burn = async function (traderSeed, assetId, toSeed, amount, nodeApi = bootNodeApi) {
 
     // Create GA
     const ga = await initGA(traderSeed, nodeApi)
@@ -65,7 +65,7 @@ module.exports.burn = async function (traderSeed, assetId, toSeed, amount, nodeA
     return txResult
 }
 
-module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeApi = bootNodeApi){
+module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeApi = bootNodeApi) {
 
     // Create GA
     const ga = await initGA(traderSeed, nodeApi)
@@ -77,12 +77,12 @@ module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeA
     return txResult
 }
 
-module.exports.remove_queryTokenBalance = async function (assetId, assetOwnerSeed, nodeApi = bootNodeApi){
+module.exports.remove_queryTokenBalance = async function (assetId, assetOwnerSeed, nodeApi = bootNodeApi) {
 
     const assetOwner = node.getAccount(assetOwnerSeed)
 
     const api = await nodeApi.getApi()
-    
+
     await node.setApiSigner(api, assetOwnerSeed)
 
     const ga = await GenericAsset.create(api)
@@ -92,10 +92,10 @@ module.exports.remove_queryTokenBalance = async function (assetId, assetOwnerSee
     return balance.toString()
 }
 
-module.exports.getPermissionAddress = function (permissionSeed){
+module.exports.getPermissionAddress = function (permissionSeed) {
 
     // copy the object
-    let permissionAddress = Object.assign({}, permissionSeed) 
+    let permissionAddress = Object.assign({}, permissionSeed)
 
     permissionAddress.update = node.getAddressFromSeed(permissionSeed.update)
     permissionAddress.mint = node.getAddressFromSeed(permissionSeed.mint)

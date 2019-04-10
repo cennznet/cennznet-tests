@@ -11,9 +11,6 @@ const {removeNodeContainers} = require('../api/docker')
 describe('Cennznet-Node Integration Test', function () {
     
     before(async function(){
-        this.timeout(60000)
-        console.error = function(){}    // disable error message, some unexpected error message coming from polkdot
-        // console.log = function(){}    // disable log message
         
         console.log('Start a boot node...')
         // remove older containers
@@ -27,7 +24,6 @@ describe('Cennznet-Node Integration Test', function () {
     })
 
     after(function(){
-        this.timeout(60000)
 
         // remove all containers
         console.log('Stop nodes and remove all containers...')
