@@ -65,6 +65,7 @@ Command:
 docker run --rm \
   --name ci_test \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
   -it integration_test \
   yarn test integration_test/run.js
   
@@ -72,16 +73,16 @@ docker run --rm \
 docker run --rm \
   --name ci_test \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
   -it integration_test \
   yarn test integration_test/run.js --ws REMOTE_WS_IP
 ```
-
 
 __Run specified test suite__
 
 Command:
 ```bash
-# Local test
+# Local test: node should be launched manually in the first place.
 docker run --rm \
   --name ci_test \
   -v /var/run/docker.sock:/var/run/docker.sock \

@@ -168,20 +168,20 @@ describe('Generic Asset test suite:', function () {
     it('Transfer new token', async function() {
 
         const fromSeed = assetOwner
-        const toAddress = '5CxGSuTtvzEctvocjAGntoaS6n6jPQjQHp7hDG1gAuxGvbYJ'
+        const toSeed = 'James'
         const transAmt = 1000
 
         // get bal before tx
-        const beforeTx_asset = await node.queryFreeBalance(toAddress, assetId)
-        const beforeTx_spend = await node.queryFreeBalance(toAddress, CURRENCY.SPEND)
+        const beforeTx_asset = await node.queryFreeBalance(toSeed, assetId)
+        const beforeTx_spend = await node.queryFreeBalance(toSeed, CURRENCY.SPEND)
 
         // transfer
-        const txResult = await node.transfer(fromSeed, toAddress, transAmt, assetId)
+        const txResult = await node.transfer(fromSeed, toSeed, transAmt, assetId)
 
         // get bal after tx
-        const afterTx_asset = await node.queryFreeBalance(toAddress, assetId)
+        const afterTx_asset = await node.queryFreeBalance(toSeed, assetId)
 
-        const afterTx_spend = await node.queryFreeBalance(toAddress, CURRENCY.SPEND)
+        const afterTx_spend = await node.queryFreeBalance(toSeed, CURRENCY.SPEND)
 
         assert.notEqual(txResult.txFee, 0, `Transaction fee is 0`)
 

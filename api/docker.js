@@ -1,6 +1,8 @@
 const shell = require('shelljs');
 const block = require('./block')
+const util = require('./util')
 const {validatorNode} = require('./definition')
+const node = require('./websocket')
 
 const ciImageName = 'integration_test'
 var bootNodeIp = ''
@@ -60,11 +62,11 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
         // find container running, reset the wsIp. Only used when test running in docker image.
         bootNodeIp = ''
         for ( let i = 0; i < 60; i++ ){
-            bootNodeIp = getBootNodeIp()
+            bootNodeIp = this.getBootNodeIp()
             if ( bootNodeIp != '' ){
                 break
             }
-            await sleep(1000)
+            await util.sleep(1000)
         }
 
         if (bootNodeIp == ''){
@@ -72,7 +74,7 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
         }
         
         // console.log('wsIp =',wsIp)
-        bootNodeApi.setWsIp(`ws://${bootNodeIp}:9944`)
+        node.bootNodeApi.setWsIp(`ws://${bootNodeIp}:9944`)
     }
 
     // TODO: set config to save log into file

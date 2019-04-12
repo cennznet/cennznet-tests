@@ -12,7 +12,7 @@ const { validatorNode } = require('../../api/definition')
 
 
 
-describe('Multiple Nodes test suite', () => {
+describe('Staking test suite', () => {
 
     const smallBondAmount   = 100000000
     const mediumBondAmount  = 150000000
