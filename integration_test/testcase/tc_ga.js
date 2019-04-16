@@ -21,7 +21,6 @@ const BigNumber = require('big-number')
 const { CURRENCY } = require('../../api/definition')
 
 
-
 describe('Generic Asset test suite:', function () {
     
     // asset id
@@ -74,7 +73,6 @@ describe('Generic Asset test suite:', function () {
             BigNumber(spendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`
         )
-
     });
 
     it('Update permission', async function() {

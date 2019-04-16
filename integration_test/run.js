@@ -1,5 +1,6 @@
 
 const rimraf = require("rimraf")
+const mlog = require('mocha-logger')
 const fs = require('fs')
 const docker = require('../api/docker')
 const {chainDataFolder} = require('../api/definition')
@@ -12,7 +13,7 @@ describe('Cennznet-Node Integration Test', function () {
     
     before(async function(){
         
-        console.log('Start a boot node...')
+        mlog.log('Start a boot node...')
         // remove older containers
         removeNodeContainers()
         // remove old chain data
@@ -26,7 +27,7 @@ describe('Cennznet-Node Integration Test', function () {
     after(function(){
 
         // remove all containers
-        console.log('Stop nodes and remove all containers...')
+        mlog.log('Stop nodes and remove all containers...')
         removeNodeContainers()
         // remove chain data
         rimraf.sync(chainDataFolder)

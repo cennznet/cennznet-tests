@@ -41,7 +41,7 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
                 --chain ${validator.workFolder}/nodeConfig.json \
                 --node-key ${validator.nodeKey} \
                 --port ${validator.htmlPort} \
-                --key ${validator.seed} \
+                --key //${validator.seed} \
                 --name ${validator.seed} \
                 --validator \
                 --ws-external \
@@ -103,7 +103,7 @@ module.exports.startNewValidator = function(validator) {
                 --node-key ${nodeKey} \
                 --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
                 --port ${htmlPort} \
-                --key ${keySeed} \
+                --key //${keySeed} \
                 --name ${keySeed} \
                 --validator \
                 --ws-external \
