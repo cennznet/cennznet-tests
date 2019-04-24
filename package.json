@@ -4,20 +4,20 @@
     "version": "0.1.0",
     "author": "Centrality Development Team",
     "devDependencies": {
-        "mocha": "^6.1.3"
+        "mocha": "^6.1.4"
     },
     "scripts": {
         "test": "mocha --exit",
         "debug": "node --inspect-brk node_modules/.bin/mocha --exit"
     },
     "dependencies": {
-        "@cennznet/api": "^0.10.2",
-        "@cennznet/crml-generic-asset": "^0.5.2",
+        "@cennznet/api": "^0.11.0",
+        "@cennznet/crml-generic-asset": "^0.6.0",
         "@cennznet/generic-asset": "^0.4.0",
-        "@cennznet/spotx": "^0.4.0",
-        "@cennznet/types": "^0.10.2",
-        "@cennznet/util": "^0.10.2",
-        "@cennznet/wallet": "^0.10.2",
+        "@cennznet/spotx": "^0.4.1",
+        "@cennznet/types": "^0.11.0",
+        "@cennznet/util": "^0.11.0",
+        "@cennznet/wallet": "^0.11.0",
         "big-number": "2.0.0",
         "chai": "^4.2.0",
         "minimist": "^1.2.0",

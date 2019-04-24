@@ -1,6 +1,6 @@
 const { bootNodeApi } = require('./websocket')
 const node = require('./node')
-// const { GenericAsset } = require('@cennznet/generic-asset');
+// const { GenericAsset } = require('@cennznet/crml-generic-asset');
 // const { AssetId } = require('@cennznet/types');
 const { bnToHex } = require('@polkadot/util');
 

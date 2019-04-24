@@ -7,6 +7,55 @@ const { bootNodeApi } = require('./websocket');
 const fee = require('./fee');
 
 
+module.exports.CennzXBalance = class{
+
+    constructor(traderSeed = null, tokenId = -1, coreId = -1){
+        this.traderSeed             = traderSeed
+        this.tokenId                = tokenId
+        this.coreId                 = coreId
+        this.totalLiquidity         = 0
+        this.traderLiquidity        = 0
+        this.poolCoreAsssetBal      = 0
+        this.poolTokenAsssetBal     = 0
+        this.traderTokenAssetBal    = 0
+        this.traderCoreAssetBal     = 0
+        this.poolAddress            = null
+    }
+
+    async getAll(){
+        
+        if (this.traderSeed.length <= 0){
+            throw new Error(`Trader seed is empty.`)
+        }
+
+        // get core asset id
+        if (this.coreId < 0 ){
+            this.coreId = await cennzx.getCoreAssetId()
+        }
+        
+        // get 
+        if (this.tokenId >= 0){
+            if ( this.poolAddress == null || this.poolAddress.length != 48 ){    // 48 is the address length
+                this.poolAddress = await cennzx.getExchangeAddress(this.tokenId, this.traderSeed)
+            }
+                
+            if ( this.poolAddress.length == 48 ){
+                this.poolCoreAsssetBal      = await node.queryFreeBalance(this.poolAddress, this.coreId)
+                this.poolTokenAsssetBal     = await node.queryFreeBalance(this.poolAddress, this.tokenId)
+                this.traderTokenAssetBal    = await node.queryFreeBalance(this.traderSeed, this.tokenId)
+            }
+        }
+
+        // get core balance
+        this.traderCoreAssetBal = await node.queryFreeBalance(this.traderSeed, this.coreId)
+        // get trader's liquidity share
+        this.traderLiquidity    = await cennzx.getLiquidityBalance(this.tokenId, this.traderSeed)
+        // get total liquidity
+        this.totalLiquidity     = await cennzx.getTotalLiquidity(this.tokenId, this.traderSeed)
+    }
+}
+
+
  async function initSpotX(traderSeed, nodeApi = bootNodeApi){
     let api = await nodeApi.getApi()
     await node.setApiSigner(api, traderSeed)
