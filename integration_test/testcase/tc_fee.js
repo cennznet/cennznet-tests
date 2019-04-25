@@ -15,7 +15,6 @@ describe('Fee test suite', function () {
 
     it.skip("TODO: Transfer Fee formula check", async function() {
         // formula: transferFee + baseFee + byteFee * byteLength
-        this.timeout(60000)
         
         const fromSeed = 'Bob'
         const toSeed = 'James'
@@ -44,7 +43,7 @@ describe('Fee test suite', function () {
 
         // transfer
         const txResult = await transfer(fromSeed, toSeed, transAmt, assetId)
-        const expectFee = await queryTxFee(txResult.blockHash, txResult.txHash)
+        const expectFee = txResult.txFee //await queryTxFee(txResult.blockHash, txResult.txHash)
 
         // get bal after tx
         const afterTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
@@ -59,7 +58,7 @@ describe('Fee test suite', function () {
         // check spending token balance
         assert.equal( 
             BigNumber(afterTx_spend).toString(), 
-            BigNumber(beforeTx_spend).minus(expectFee).toString()
+            BigNumber(beforeTx_spend).minus(expectFee).toString(),
             `Sender's spending token balance is wrong.`)
     });
 
@@ -76,7 +75,7 @@ describe('Fee test suite', function () {
 
         // transfer
         const txResult = await transfer(fromSeed, toSeed, transAmt, assetId)
-        const expectFee = await queryTxFee(txResult.blockHash, txResult.txHash)
+        const expectFee = txResult.txFee // await queryTxFee(txResult.blockHash, txResult.txHash)
 
         // get bal after tx
         const afterTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
@@ -93,14 +92,11 @@ describe('Fee test suite', function () {
     });
 
     it.skip('TODO: Fee for setting a new claim', async function() {
-        this.timeout(60000)
     });
 
     it.skip('TODO: Fee for removing a claim', async function() {
-        this.timeout(60000)
     });
 
     it.skip('TODO: Fee for creating new token', async function() {
-        this.timeout(60000)
     });
 });

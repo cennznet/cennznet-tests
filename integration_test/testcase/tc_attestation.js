@@ -5,6 +5,7 @@ const assert = require('assert')
 // const { bootNodeApi } = require('../../api/websocket')
 const { getAccount, topupTestAccount } = require('../../api/node')
 const { setClaim, getClaim, removeClaim } = require('../../api/attestation')
+const { cryptoWaitReady } = require('@cennznet/util');
 
 
 // value to be claimed
@@ -24,15 +25,13 @@ describe('Attestation test suite', function () {
     before(async function () {
         await topupTestAccount()    // only for remote test
 
+        await cryptoWaitReady();    // This has to call if api has not been created.
+
         // set Alice as the holder
         holder = getAccount('Alice')
         
         // set Bob as the issuer
         issuer = getAccount('Bob')
-    })
-
-    before(async function(){
-        
     })
 
     it('Set a new claim and retrieve it', async function () {

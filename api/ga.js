@@ -6,7 +6,7 @@ const { AssetId } = require('@cennznet/types');
 
 
 
-async function initGA(seed, nodeApi = bootNodeApi) {
+module.exports.initGA = async function (seed, nodeApi = bootNodeApi) {
 
     const api = await nodeApi.getApi()
     await node.setApiSigner(api, seed)
@@ -21,7 +21,7 @@ module.exports.createNewToken = async function (ownerSeed, totalAmount, permissi
     let assetId = -1
 
     // Create GA
-    const ga = await initGA(ownerSeed, nodeApi)
+    const ga = await this.initGA(ownerSeed, nodeApi)
 
     // create transaction
     const tx = ga.create({ initialIssuance: totalAmount, permissions: permission })
@@ -44,7 +44,7 @@ module.exports.createNewToken = async function (ownerSeed, totalAmount, permissi
 module.exports.updatePermission = async function (traderSeed, assetId, newPermission, nodeApi = bootNodeApi) {
 
     // Create GA
-    const ga = await initGA(traderSeed, nodeApi)
+    const ga = await this.initGA(traderSeed, nodeApi)
 
     const tx = ga.api.tx.genericAsset.updatePermission(assetId, newPermission)
 
@@ -56,7 +56,7 @@ module.exports.updatePermission = async function (traderSeed, assetId, newPermis
 module.exports.burn = async function (traderSeed, assetId, toSeed, amount, nodeApi = bootNodeApi) {
 
     // Create GA
-    const ga = await initGA(traderSeed, nodeApi)
+    const ga = await this.initGA(traderSeed, nodeApi)
 
     const tx = ga.api.tx.genericAsset.burn(assetId, node.getAddressFromSeed(toSeed), amount)
 
@@ -68,7 +68,7 @@ module.exports.burn = async function (traderSeed, assetId, toSeed, amount, nodeA
 module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeApi = bootNodeApi) {
 
     // Create GA
-    const ga = await initGA(traderSeed, nodeApi)
+    const ga = await this.initGA(traderSeed, nodeApi)
 
     const tx = ga.api.tx.genericAsset.mint(assetId, node.getAddressFromSeed(toSeed), amount)
 
@@ -77,22 +77,7 @@ module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeA
     return txResult
 }
 
-module.exports.remove_queryTokenBalance = async function (assetId, assetOwnerSeed, nodeApi = bootNodeApi) {
-
-    const assetOwner = node.getAccount(assetOwnerSeed)
-
-    const api = await nodeApi.getApi()
-
-    await node.setApiSigner(api, assetOwnerSeed)
-
-    const ga = await GenericAsset.create(api)
-
-    const balance = await ga.getFreeBalance(assetId, assetOwner.address());
-
-    return balance.toString()
-}
-
-module.exports.getPermissionAddress = function (permissionSeed) {
+module.exports.getPermissionAddress = async function (permissionSeed) {
 
     // copy the object
     let permissionAddress = Object.assign({}, permissionSeed)

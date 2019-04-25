@@ -1,5 +1,8 @@
 
 
+const {getAddressFromSeed} = require('./node')
+const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
+
 module.exports.CURRENCY = {
     STAKE:  16000,
     SPEND:  16001,
@@ -59,3 +62,15 @@ module.exports.validatorNode = {
 }
 
 module.exports.chainDataFolder = this.validatorNode.alice.workFolder + '/node_data'
+
+/**
+ * Set 'uri' as String's inner property. This would be easy for Seed to get the value.
+ */
+Object.defineProperties(String.prototype, {
+    // the seed's uri
+    'uri': {
+        get: function(){
+            return '//' + this
+        }
+    },
+})

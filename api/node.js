@@ -3,32 +3,29 @@
 
 const { bootNodeApi } = require('./websocket');
 const { TxResult, CURRENCY } = require('./definition');
-const { stringToU8a, hexToBn, Keyring } = require('@cennznet/util');
+const { cryptoWaitReady, hexToBn, Keyring } = require('@cennznet/util');
 const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
-const { GenericAsset}  = require('@cennznet/crml-generic-asset')
+const GA  = require('./ga')
 const { queryTxFee, queryCurrentTxFee } = require('./fee')
 const { nodeServerWsIp } = require('./args')
 const BigNumber = require('big-number')
 const block = require('./block')
 
-async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi) {
-    // console.log('api = ', nodeApi._api)
-    const api = await nodeApi.getApi()
 
-    await setApiSigner(api, fromSeed)
+
+
+
+async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi) {
+    const ga = await GA.initGA(fromSeed, nodeApi)
 
     const amountBN = hexToBn(amount.toString(16))
 
     // convert to address if input is a seed
-    const _toAddress = getAddressFromSeed(toAddressOrSeed)
+    const _toAddress = await getAddressFromSeed(toAddressOrSeed)
 
-    const trans = api.tx.genericAsset.transfer(assetId, _toAddress, amountBN)
+    const tx = ga.transfer(assetId, _toAddress, amountBN)
 
-    const txResult = await signAndSendTx(trans, fromSeed)
-
-    if (txResult.bSucc){
-        txResult.txFee = await queryTxFee(txResult.blockHash, txResult.txHash, nodeApi)
-    }
+    const txResult = await signAndSendTx(tx, fromSeed)
 
     return txResult
 }
@@ -43,7 +40,7 @@ async function transferWithNonce(fromSeed, toAddressOrSeed, amount, nonce = -1, 
     const amountBN = hexToBn(amount.toString(16))
 
     // convert to address if input is a seed
-    const _toAddress = getAddressFromSeed(toAddressOrSeed)
+    const _toAddress = await getAddressFromSeed(toAddressOrSeed)
 
     const trans = api.tx.genericAsset.transfer(assetId, _toAddress, amountBN)
 
@@ -83,9 +80,9 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                 resolve(true); 
             }
 
-            if ( r.type == 'Finalised' ){
+            if ( r.status.isFinalized == true && r.events !== undefined ){
                 // get block hash
-                txResult.blockHash = r.status.asFinalised.toHex()
+                txResult.blockHash = r.status.raw.toString()
                 // get extrinsic id
                 txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
                 // set tx result symbol
@@ -119,10 +116,10 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
     return txResult
 }
 
-function getAccount(seed){
-    const _seed = seed.padEnd(32, ' ');
-    const keyring = new Keyring();
-    const account = keyring.addFromSeed(stringToU8a(_seed));
+function getAccount(seed){  // Note: Should call 'await cryptoWaitReady()' first if api is not created.
+    const seedUri = '//' + seed
+    const simpleKeyring = new SimpleKeyring(); 
+    const account = simpleKeyring.addFromUri( seedUri );
     return account
 }
 
@@ -142,21 +139,18 @@ function getAddressFromSeed(seed){
         _address = seed
     }
     else{   // seed
-        const _seed = seed.padEnd(32, ' ');
-        const keyring = new Keyring();
-        const fromAccount = keyring.addFromSeed(stringToU8a(_seed));
-        _address = fromAccount.address();
+        const seedUri = '//' + seed
+        const simpleKeyring = new SimpleKeyring(); 
+        _address = simpleKeyring.addFromUri( seedUri ).address();
     }
 
     return _address
 }
 
-async function queryFreeBalance( address, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi ) {    // assetId: 0 - CENNZ, 10 - SPEND
+async function queryFreeBalance( seed, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi ) {    // assetId: 0 - CENNZ, 10 - SPEND
 
-    // get balance via GenericAsset
-    const api = await nodeApi.getApi()
-    const ga = await GenericAsset.create(api);
-    const balance = await ga.getFreeBalance(assetId, getAddressFromSeed(address))
+    const ga = await GA.initGA(seed, nodeApi)
+    const balance = await ga.getFreeBalance(assetId, await getAddressFromSeed(seed))
 
     return balance.toString();
 }
@@ -165,9 +159,9 @@ async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alic
     // create wallet
     const wallet = new Wallet(); 
     await wallet.createNewVault('a passphrase'); 
-    // await wallet.createNewVault(''); 
     const keyring = new SimpleKeyring(); 
-    await keyring.addFromSeed(stringToU8a(signerSeed.padEnd(32, ' '))); 
+    const seedUri = '//' + signerSeed
+    keyring.addFromUri(seedUri)
     await wallet.addKeyring(keyring);
 
     // set wallet as signer of api
@@ -222,6 +216,24 @@ async function topupTestAccount(){
         await block.waitBlockCnt(1)
     }
 }
+
+/*
+Object.defineProperties(String.prototype, {
+    // the seed's uri
+    'uri': {
+        get: function(){
+            return '//' + this
+        }
+    },
+    // the seed's address
+    'address': {    
+        get: function(){
+            return getAddressFromSeed(this)
+        }
+    }
+})
+*/
+
 
 module.exports.setApiSigner = setApiSigner
 module.exports.transfer = transfer

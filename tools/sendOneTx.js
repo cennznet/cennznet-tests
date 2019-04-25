@@ -22,6 +22,10 @@ async function send(fromSeed, toAddr, amount, asset = assetId) {
     let bal1 = await node.queryFreeBalance(toAddress, asset);
     console.log('bal1 before = ', bal1.toString())
 
+    console.log('fromSeed = ', fromSeed.toString())
+    console.log('toAddress = ', toAddress.toString())
+    console.log('amount = ', amount.toString())
+    console.log('asset = ', asset.toString())
     let result = await node.transfer(fromSeed, toAddress, amount, asset);
     // console.log('result = ', result)
 

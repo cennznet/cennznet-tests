@@ -44,7 +44,7 @@ describe('Generic Asset test suite:', function () {
     })
 
     it('Create a new token', async function() {
-        const permissionAddress = ga.getPermissionAddress(permission)
+        const permissionAddress = await ga.getPermissionAddress(permission)
 
         // get spending bal before tx
         const spendBal_beforeTx = await node.queryFreeBalance(assetOwner, CURRENCY.SPEND)
@@ -78,7 +78,7 @@ describe('Generic Asset test suite:', function () {
         const updaterSeed = permission.update
         // swap values of mint and burn
         permission.mint = [permission.burn, permission.burn = permission.mint][0]
-        const permissionAddress = ga.getPermissionAddress(permission)
+        const permissionAddress = await ga.getPermissionAddress(permission)
 
         // get balance before tx
         const spendBal_beforeTx = await node.queryFreeBalance(updaterSeed, CURRENCY.SPEND)
