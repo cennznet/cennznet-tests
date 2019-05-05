@@ -3,7 +3,7 @@
 
 const { bootNodeApi } = require('./websocket');
 const { TxResult, CURRENCY } = require('./definition');
-const { cryptoWaitReady, hexToBn, Keyring } = require('@cennznet/util');
+const { hexToBn } = require('@cennznet/util');
 const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
 const GA  = require('./ga')
 const { queryTxFee, queryCurrentTxFee } = require('./fee')
@@ -217,22 +217,6 @@ async function topupTestAccount(){
     }
 }
 
-/*
-Object.defineProperties(String.prototype, {
-    // the seed's uri
-    'uri': {
-        get: function(){
-            return '//' + this
-        }
-    },
-    // the seed's address
-    'address': {    
-        get: function(){
-            return getAddressFromSeed(this)
-        }
-    }
-})
-*/
 
 
 module.exports.setApiSigner = setApiSigner

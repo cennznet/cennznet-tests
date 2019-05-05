@@ -19,6 +19,9 @@ describe('Staking test suite', () => {
     const largeBondAmount   = 200000000
 
     before(async function(){
+
+        // get address for each validator
+        staking.initValidatorConfig()
         // due to 0 fund bonded on Alice, need to bond extra fund for following test cases
         await staking.bondExtra(validatorNode.alice.seed, mediumBondAmount)
     })
@@ -30,7 +33,7 @@ describe('Staking test suite', () => {
         assert( txResult == true, `New validator [${validatorNode.bob.seed}] failed to join the boot node.`)
     });
 
-    it('Make controller Bob begin to stake', async function() {
+    it.only('Make controller Bob begin to stake', async function() {
         // Bob is inheret account which has been stashed, so don't need to bond() again
         const stashAccSeed = 'Charlie'
         const controllerSeed = validatorNode.bob.seed

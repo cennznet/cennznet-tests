@@ -9,7 +9,7 @@ const BigNumber = require('big-number')
 
 
 var coreAsssetId = -1
-var tokenAsssetId = -1
+var tokenAsssetId = 17000//-1
 var tokenIssuerSeed = 'Bob'
 const tokenTotalAmount = 1000000
 var exchangeFeeRate = 0
@@ -20,7 +20,8 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         await node.topupTestAccount()    // only for remote test
 
         // create new token
-        tokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
+        // tokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
+
         // get core asset id
         coreAsssetId = (await cennzx.getCoreAssetId()).toString()
 

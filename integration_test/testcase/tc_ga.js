@@ -43,7 +43,7 @@ describe('Generic Asset test suite:', function () {
         await node.topupTestAccount()    // only for remote test
     })
 
-    it('Create a new token', async function() {
+    it.only('Create a new token', async function() {
         const permissionAddress = await ga.getPermissionAddress(permission)
 
         // get spending bal before tx
@@ -95,7 +95,6 @@ describe('Generic Asset test suite:', function () {
             BigNumber(spendBal_afterTx).toString(), 
             BigNumber(spendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`)
-
     });
 
     it('Burn amount of asset', async function() {
@@ -169,28 +168,27 @@ describe('Generic Asset test suite:', function () {
         const transAmt = 1000
 
         // get bal before tx
-        const beforeTx_asset = await node.queryFreeBalance(toSeed, assetId)
-        const beforeTx_spend = await node.queryFreeBalance(toSeed, CURRENCY.SPEND)
+        const beforeTx_payeeAssetBal = await node.queryFreeBalance(toSeed, assetId)
+        const beforeTx_payerSpendBal = await node.queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         // transfer
         const txResult = await node.transfer(fromSeed, toSeed, transAmt, assetId)
 
         // get bal after tx
-        const afterTx_asset = await node.queryFreeBalance(toSeed, assetId)
-
-        const afterTx_spend = await node.queryFreeBalance(toSeed, CURRENCY.SPEND)
+        const afterTx_payeeassetBal = await node.queryFreeBalance(toSeed, assetId)
+        const afterTx_payerSpendBal = await node.queryFreeBalance(fromSeed, CURRENCY.SPEND)
 
         assert.notEqual(txResult.txFee, 0, `Transaction fee is 0`)
 
-        // check asset balance
+        // check payee's asset balance
         assert.equal( 
-            BigNumber(afterTx_asset).toString(), 
-            BigNumber(beforeTx_asset).add(transAmt).toString(),
+            BigNumber(afterTx_payeeassetBal).toString(), 
+            BigNumber(beforeTx_payeeAssetBal).add(transAmt).toString(),
             `Asset balance is wrong.`)
-        // check spending token balance
+        // check payer's spending token balance
         assert.equal( 
-            BigNumber(afterTx_spend).toString(), 
-            BigNumber(beforeTx_spend).minus(txResult.txFee).toString(),
+            BigNumber(afterTx_payerSpendBal).toString(), 
+            BigNumber(beforeTx_payerSpendBal).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`)
     });
 });

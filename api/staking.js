@@ -5,6 +5,15 @@ const { hexToBn } = require('@cennznet/util');
 const docker  = require('./docker')
 const block = require('./block')
 const assert = require('assert')
+const {validatorNode} = require('./definition')
+
+// initialize the information for validatorNode
+module.exports.initValidatorConfig = function (){
+    // get address for each seed
+    for(let key in validatorNode){
+        validatorNode[key].address = node.getAddressFromSeed(validatorNode[key].seed)
+    }
+}
 
 // make a new validator join newwork
 module.exports.startNewValidatorNode = async function (validator) {
@@ -49,6 +58,8 @@ module.exports.stakeValidator = async function (stashAccSeed, controllerSeed, bo
     // bond amount first
     await bond(stashAccSeed, controllerSeed, bondAmount)
 
+    // TODO: set seesion key
+    
     // stake
     await stake(controllerSeed)
 

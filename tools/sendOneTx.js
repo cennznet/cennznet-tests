@@ -55,6 +55,6 @@ run()
 
 /*
 // run code:
-       node tools/sendOneTx -f Bob -t Rocket -a 1000 -i 16000 --ws ws://127.0.0.1:9944
+       node tools/sendOneTx -f Alice -t Monkey -a 1000000 -i 16000 --ws ws://127.0.0.1:9944
        node tools/sendOneTx -f Andrea -t James -a 100000 -i 16001 --ws wss://cennznet-node-0.centrality.cloud:9944
 */

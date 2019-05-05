@@ -46,6 +46,7 @@ module.exports.updatePermission = async function (traderSeed, assetId, newPermis
     // Create GA
     const ga = await this.initGA(traderSeed, nodeApi)
 
+    // TODO: change to ga method, not api method
     const tx = ga.api.tx.genericAsset.updatePermission(assetId, newPermission)
 
     const txResult = await node.signAndSendTx(tx, traderSeed)
@@ -58,6 +59,7 @@ module.exports.burn = async function (traderSeed, assetId, toSeed, amount, nodeA
     // Create GA
     const ga = await this.initGA(traderSeed, nodeApi)
 
+    // TODO: change to ga method, not api method
     const tx = ga.api.tx.genericAsset.burn(assetId, node.getAddressFromSeed(toSeed), amount)
 
     const txResult = await node.signAndSendTx(tx, traderSeed)
@@ -70,6 +72,7 @@ module.exports.mint = async function (traderSeed, assetId, toSeed, amount, nodeA
     // Create GA
     const ga = await this.initGA(traderSeed, nodeApi)
 
+    // TODO: change to ga method, not api method
     const tx = ga.api.tx.genericAsset.mint(assetId, node.getAddressFromSeed(toSeed), amount)
 
     const txResult = await node.signAndSendTx(tx, traderSeed)

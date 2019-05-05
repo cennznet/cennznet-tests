@@ -40,6 +40,7 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
                 cennznet-node --dev --base-path ${validator.workFolder}/node_data/${validator.seed} \
                 --chain ${validator.workFolder}/nodeConfig.json \
                 --node-key ${validator.nodeKey} \
+                --node-key-type secp256k1 \
                 --port ${validator.htmlPort} \
                 --key //${validator.seed} \
                 --name ${validator.seed} \
@@ -101,7 +102,8 @@ module.exports.startNewValidator = function(validator) {
                 cennznet-node --dev --base-path ${workFolder}/node_data/${keySeed} \
                 --chain ${workFolder}/nodeConfig.json \
                 --node-key ${nodeKey} \
-                --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \
+                --node-key-type secp256k1 \
+                --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \                                                
                 --port ${htmlPort} \
                 --key //${keySeed} \
                 --name ${keySeed} \
