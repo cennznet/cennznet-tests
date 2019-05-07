@@ -1,22 +1,23 @@
 
+const mlog = require('mocha-logger')
 const node = require('./node')
 const { bootNodeApi, WsApi } = require('./websocket');
 const { hexToBn } = require('@cennznet/util');
 const docker  = require('./docker')
 const block = require('./block')
 const assert = require('assert')
-const {validatorNode} = require('./definition')
+const {cennznetNode} = require('./definition')
 
-// initialize the information for validatorNode
+// initialize the information for cennznetNode
 module.exports.initValidatorConfig = function (){
     // get address for each seed
-    for(let key in validatorNode){
-        validatorNode[key].address = node.getAddressFromSeed(validatorNode[key].seed)
+    for(let key in cennznetNode){
+        cennznetNode[key].address = node.getAddressFromSeed(cennznetNode[key].seed)
     }
 }
 
 // make a new validator join newwork
-module.exports.startNewValidatorNode = async function (validator) {
+module.exports.startNewcennznetNode = async function (sessionKeyAccount) {
 
     // check peer count before new node joins in
     const bootApi = await bootNodeApi.getApi()
@@ -25,10 +26,10 @@ module.exports.startNewValidatorNode = async function (validator) {
     // console.log('peers =', peersCnt_Before)
 
     // start a new node
-    docker.startNewValidator(validator)
+    docker.startNewNode(sessionKeyAccount)
 
     // init the connection to the new node, using 'ws://127.0.0.1:XXXX'
-    const newNodeWsIp = bootNodeApi.getWsIp().replace('9944', validator.wsPort)
+    const newNodeWsIp = bootNodeApi.getWsIp().replace('9944', sessionKeyAccount.wsPort)
     // console.log('newNodeWsIp =', newNodeWsIp)
     const newNodeApi = new WsApi(newNodeWsIp)
     await newNodeApi.init()
@@ -54,12 +55,13 @@ module.exports.startNewValidatorNode = async function (validator) {
     return txResult
 }
 
-module.exports.stakeValidator = async function (stashAccSeed, controllerSeed, bondAmount){
+module.exports.startStaking = async function (stashAccSeed, controllerSeed, sessionKeySeed, bondAmount){
     // bond amount first
     await bond(stashAccSeed, controllerSeed, bondAmount)
 
-    // TODO: set seesion key
-    
+    // set seesion key
+    await setSessionKey(controllerSeed, sessionKeySeed)
+
     // stake
     await stake(controllerSeed)
 
@@ -67,57 +69,33 @@ module.exports.stakeValidator = async function (stashAccSeed, controllerSeed, bo
     await this.waitEraChange()
 
     // get staker sequence id
-    const stakerId = await this.queryStakingIndex(controllerSeed)
+    const stakerId = await this.queryStakingControllerIndex(controllerSeed)
 
     // check if the validator is in the staker list
-    assert( stakerId >= 0, `Failed to make validator [${controllerSeed}] stake.`)
+    // assert( stakerId >= 0, `Failed to make validator [${controllerSeed}] stake.`)
 
     // await 1 new block
-    await block.waitBlockCnt(1)
+    // await block.waitBlockCnt(1)
+
+    return stakerId
 }
 
-module.exports.unstakeValidator = async function (validatorSeed){
+module.exports.endStaking = async function (controllerSeed){
     // get staker id before tx
-    const stakerId_beforeTx = await this.queryStakingIndex(validatorSeed)
-    assert( stakerId_beforeTx >= 0, `Validator [${validatorSeed}] is not in staking list.`)
+    const stakerId_beforeTx = await this.queryStakingControllerIndex(controllerSeed)
+    assert( stakerId_beforeTx >= 0, `Controller [${controllerSeed}] is not in staking list.`)
 
     // unstake
-    await unstake(validatorSeed)
+    await unstake(controllerSeed)
 
     // validator will be removed in next era
     await this.waitEraChange()
 
     // // get staker id after tx
-    const stakerId_AfterTx = await this.queryStakingIndex(validatorSeed)
+    const stakerId_AfterTx = await this.queryStakingControllerIndex(controllerSeed)
     
     // check if the validator is removed from the staker list
-    assert( stakerId_AfterTx < 0, `Failed to make validator [${validatorSeed}] unstake.[Actual ID = ${stakerId_AfterTx}]`)
-}
-
-// check if any reward is saved into account
-async function checkReward2(validator){
-
-    let bRet = false
-
-    // check if the validator is in stake
-    const stakerId = await queryStakingIndex(validator.seed)
-    assert(stakerId >= 0, `Validator (${validator.seed}) is not in staking list.`)
-
-    // check if the staker node is runing
-    const containerId = docker.queryNodeContainer(validator.containerName)
-    assert(containerId.length > 0, `Container node (${validator.containerName}) is not existing.`)
-
-    const bal_preSession = await node.queryFreeBalance(validator.address, node.CURRENCY.STAKE)
-
-    await waitSessionChange()
-
-    const bal_afterSession = await node.queryFreeBalance(validator.address, node.CURRENCY.STAKE)
-
-    assert(BigNumber(bal_afterSession).minus(bal_preSession).gt(0),
-        `Validator [${validator.seed}] did not get reward.(Bal before tx = ${bal_preSession}, Bal after tx = ${bal_afterSession})`)
-
-    bRet = true
-    return bRet
+    assert( stakerId_AfterTx < 0, `Failed to make controller [${controllerSeed}] unstake.[Actual ID = ${stakerId_AfterTx}]`)
 }
 
 module.exports.checkReward = async function (validator){
@@ -131,7 +109,7 @@ module.exports.checkReward = async function (validator){
     console.log('own =', staker.own.toString())
 
     // check if the validator is in staking
-    const stakerId = await this.queryStakingIndex(validator.seed)
+    const stakerId = await this.queryStakingControllerIndex(validator.seed)
     assert(stakerId >= 0, `Validator (${validator.seed}) is not in staking list.`)
 
     const containerId = docker.queryNodeContainer(validator.containerName)
@@ -167,7 +145,7 @@ module.exports.queryIntentionIndex = async function(stakerSeed, nodeApi = bootNo
     return index
 }
 
-module.exports.queryStakingIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
+module.exports.queryStakingControllerIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
     let index = -1;
 
     // get api
@@ -268,7 +246,22 @@ async function bond(stashAccSeed, controllerSeed, bondAmount, nodeApi = bootNode
     return txResult
 }
 
-async function stake(stakerSeed, nodeApi = bootNodeApi){ 
+async function setSessionKey(controllerSeed, sessionKeySeed, nodeApi = bootNodeApi){ 
+    // get api
+    const api = await nodeApi.getApi()
+
+    const sessionKey = node.getAddressFromSeed(sessionKeySeed, 'ed25519') // ed25519 is only for session key setting.
+
+    // Set the session key for a validator. The session key is an address.
+    const tx = api.tx.session.setKey(sessionKey)
+
+    // send tx
+    const txResult = await node.signAndSendTx(tx, controllerSeed)
+
+    return txResult
+}
+
+async function stake(controllerSeed, nodeApi = bootNodeApi){ 
     // get api
     const api = await nodeApi.getApi()
     
@@ -282,12 +275,12 @@ async function stake(stakerSeed, nodeApi = bootNodeApi){
     const trans = api.tx.staking.validate(validatorPrefs)
 
     // send tx
-    const txResult = await node.signAndSendTx(trans, stakerSeed)
+    const txResult = await node.signAndSendTx(trans, controllerSeed)
 
     return txResult
 }
 
-async function unstake(stakerSeed, nodeApi = bootNodeApi){ 
+async function unstake(controllerSeed, nodeApi = bootNodeApi){ 
     // get api
     const api = await nodeApi.getApi()
 
@@ -295,7 +288,7 @@ async function unstake(stakerSeed, nodeApi = bootNodeApi){
     const trans = api.tx.staking.chill()
 
     // unstake the validator
-    const txResult = await node.signAndSendTx(trans, stakerSeed)
+    const txResult = await node.signAndSendTx(trans, controllerSeed)
 
     return txResult
 }

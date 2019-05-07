@@ -1,7 +1,7 @@
 const shell = require('shelljs');
 const block = require('./block')
 const util = require('./util')
-const {validatorNode} = require('./definition')
+const {cennznetNode} = require('./definition')
 const node = require('./websocket')
 
 const ciImageName = 'integration_test'
@@ -15,15 +15,15 @@ module.exports.getRunContainer = function(image){
 }
 
 module.exports.removeNodeContainers = function(){
-    for(let key in validatorNode){
-        let cmd = `docker rm -f $(docker ps -a -q --filter name=${validatorNode[key].containerName})`
+    for(let key in cennznetNode){
+        let cmd = `docker rm -f $(docker ps -a -q --filter name=${cennznetNode[key].containerName})`
         // console.log('cmd =', cmd)
         let result = shell.exec(cmd, { silent: true }, { async: false}) 
         // console.log('result =', result.code)
     }
 }
 
-module.exports.startBootNode = async function(validator = validatorNode.alice) {
+module.exports.startBootNode = async function(validator = cennznetNode.alice) {
     
     let linkStr = ''
 
@@ -34,19 +34,19 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
         linkStr = `--link ${ciContainerName}`
     }
 
-    const cmd = `docker run --net bridge --rm --name ${validator.containerName} ${linkStr} \
-                -v ${validator.workFolder}:${validator.workFolder} \
-                -p ${validator.wsPort}:${validator.wsPort} \
-                cennznet-node --dev --base-path ${validator.workFolder}/node_data/${validator.seed} \
-                --chain ${validator.workFolder}/nodeConfig.json \
-                --node-key ${validator.nodeKey} \
-                --node-key-type secp256k1 \
-                --port ${validator.htmlPort} \
-                --key //${validator.seed} \
-                --name ${validator.seed} \
-                --validator \
-                --ws-external \
-                --ws-port ${validator.wsPort}`
+    const cmd = `docker run --net bridge --rm --name ${validator.containerName} ${linkStr} ` +
+                `-v ${validator.workFolder}:${validator.workFolder} ` +
+                `-p ${validator.wsPort}:${validator.wsPort} ` +
+                `cennznet-node --dev --base-path ${validator.workFolder}/node_data/${validator.seed} ` +
+                `--chain ${validator.workFolder}/nodeConfig.json ` +
+                `--node-key ${validator.nodeKey} ` +
+                `--node-key-type secp256k1 ` +
+                `--port ${validator.htmlPort} ` +
+                `--key //${validator.seed} ` +
+                `--name ${validator.seed} ` +
+                `--validator ` +
+                `--ws-external ` +
+                `--ws-port ${validator.wsPort}`
 
     // console.log(cmd)
 
@@ -85,7 +85,7 @@ module.exports.startBootNode = async function(validator = validatorNode.alice) {
 
 }
 
-module.exports.startNewValidator = function(validator) {
+module.exports.startNewNode = function(validator) {
     const containerName = validator.containerName
     const keySeed = validator.seed
     const htmlPort = validator.htmlPort
@@ -96,20 +96,20 @@ module.exports.startNewValidator = function(validator) {
     // run a validator node in the same container.
     const _bootNodeIp = this.getBootNodeIp()
 
-    const cmd = `docker run --net bridge --rm --name ${containerName} \
-                -v ${workFolder}:${workFolder} \
-                -p ${wsPort}:${wsPort} \
-                cennznet-node --dev --base-path ${workFolder}/node_data/${keySeed} \
-                --chain ${workFolder}/nodeConfig.json \
-                --node-key ${nodeKey} \
-                --node-key-type secp256k1 \
-                --bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN \                                                
-                --port ${htmlPort} \
-                --key //${keySeed} \
-                --name ${keySeed} \
-                --validator \
-                --ws-external \
-                --ws-port ${wsPort}`
+    const cmd = `docker run --net bridge --rm --name ${containerName} ` + 
+                `-v ${workFolder}:${workFolder} ` + 
+                `-p ${wsPort}:${wsPort} ` + 
+                `cennznet-node --dev --base-path ${workFolder}/node_data/${keySeed} ` + 
+                `--chain ${workFolder}/nodeConfig.json ` + 
+                `--node-key ${nodeKey} ` + 
+                `--node-key-type secp256k1 ` + 
+                `--bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN ` + 
+                `--port ${htmlPort} ` + 
+                `--key //${keySeed} ` + 
+                `--name ${keySeed} ` + 
+                `--validator ` + 
+                `--ws-external ` + 
+                `--ws-port ${wsPort}`
 
     // console.log(cmd)
 
@@ -122,7 +122,7 @@ module.exports.startNewValidator = function(validator) {
                 });
 }
 
-module.exports.dropNode = function(containerName) {
+module.exports.dropNodeByContainerName = function(containerName) {
 
     const cmd = `docker stop ${containerName}`
 
@@ -137,7 +137,7 @@ module.exports.dropNode = function(containerName) {
 
 module.exports.getBootNodeIp = function(){
 
-    const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${validatorNode.alice.containerName}`,
+    const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${cennznetNode.alice.containerName}`,
                             { silent: true },
                             { async: false} )
     

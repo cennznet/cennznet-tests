@@ -79,7 +79,7 @@
         ]
       },
       "staking": {
-        "validatorCount": 4,
+        "validatorCount": 3,
         "minimumValidatorCount": 1,
         "sessionsPerEra": 2,
         "sessionReward": 1000000,

@@ -2,7 +2,7 @@
 "use strict";
 
 const { bootNodeApi } = require('./websocket');
-const { TxResult, CURRENCY } = require('./definition');
+const { TxResult, CURRENCY, keypairCryptoType } = require('./definition');
 const { hexToBn } = require('@cennznet/util');
 const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
 const GA  = require('./ga')
@@ -116,10 +116,10 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
     return txResult
 }
 
-function getAccount(seed){  // Note: Should call 'await cryptoWaitReady()' first if api is not created.
+function getAccount(seed, keyType = keypairCryptoType){  // Note: Should call 'await cryptoWaitReady()' first if api is not created.
     const seedUri = '//' + seed
     const simpleKeyring = new SimpleKeyring(); 
-    const account = simpleKeyring.addFromUri( seedUri );
+    const account = simpleKeyring.addFromUri( seedUri, {}, keyType ); 
     return account
 }
 
@@ -131,20 +131,18 @@ async function getNonce(addressOrSeed, nodeApi = bootNodeApi){
     return parseInt(nonce.toString())   // convert to int
 }
 
-function getAddressFromSeed(seed){
-    let _address = null;
+function getAddressFromSeed(seed, keyType = keypairCryptoType){
+    let address = null;
 
     // Operate different input: seed or address
     if ( seed.length == 48 ) {   // address
-        _address = seed
+        address = seed
     }
     else{   // seed
-        const seedUri = '//' + seed
-        const simpleKeyring = new SimpleKeyring(); 
-        _address = simpleKeyring.addFromUri( seedUri ).address();
+        address = getAccount(seed, keyType).address()
     }
 
-    return _address
+    return address
 }
 
 async function queryFreeBalance( seed, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi ) {    // assetId: 0 - CENNZ, 10 - SPEND

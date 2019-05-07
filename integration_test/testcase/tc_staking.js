@@ -8,108 +8,132 @@ const block = require('../../api/block')
 const { sleep } = require('../../api/util')
 const staking = require('../../api/staking')
 const BigNumber = require('big-number');
-const { validatorNode } = require('../../api/definition')
+const { cennznetNode, CURRENCY } = require('../../api/definition')
 
 
 
 describe('Staking test suite', () => {
 
-    const smallBondAmount   = 100000000
-    const mediumBondAmount  = 150000000
-    const largeBondAmount   = 200000000
+    // define validator information
+    const validator = {
+        charlie: {
+            stashSeed:      'Charlie',
+            bondAmount:     '1000000000000000000',
+            controllerSeed: 'Bob',
+            sessionKeySeed: 'Bunny',
+            sessionKeyNode: cennznetNode.bunny
+        },
+        ferdie: {
+            stashSeed:      'Ferdie',
+            bondAmount:     '10000000000000000',
+            controllerSeed: 'James',
+            sessionKeySeed: 'Pig',
+            sessionKeyNode: cennznetNode.pig,
+        },
+        eve: {
+            stashSeed:      'Eve',
+            bondAmount:     '15000000000000000',
+            controllerSeed: 'Dave',
+            sessionKeySeed: 'Monkey',
+            sessionKeyNode: cennznetNode.monkey,
+        }
+    }
 
     before(async function(){
-
         // get address for each validator
         staking.initValidatorConfig()
         // due to 0 fund bonded on Alice, need to bond extra fund for following test cases
-        await staking.bondExtra(validatorNode.alice.seed, mediumBondAmount)
+        // await staking.bondExtra(cennznetNode.alice.seed, mediumBondAmount)
+        
     })
 
-    it("New controller Bob(for validator Charlie) joins in", async function() {
+    it.only("Start a new node for validator <Charlie>", async function() {
 
-        const txResult = await staking.startNewValidatorNode( validatorNode.bob )    
+        const txResult = await staking.startNewcennznetNode( validator.charlie.sessionKeyNode )    
         // judge the peer count
-        assert( txResult == true, `New validator [${validatorNode.bob.seed}] failed to join the boot node.`)
+        assert.equal( txResult, true, `New node [${validator.charlie.sessionKeySeed}] failed to join the boot node.`)
     });
 
-    it.only('Make controller Bob begin to stake', async function() {
-        // Bob is inheret account which has been stashed, so don't need to bond() again
-        const stashAccSeed = 'Charlie'
-        const controllerSeed = validatorNode.bob.seed
-        const bondAmount = largeBondAmount
+    it.only('Make validator <Charlie> begin to stake', async function() {
+        const currvalidator = validator.charlie
+        const stakerId = await staking.startStaking(
+            currvalidator.stashSeed,
+            currvalidator.controllerSeed,
+            currvalidator.sessionKeySeed,
+            currvalidator.bondAmount)
 
-        await staking.stakeValidator(stashAccSeed, controllerSeed, bondAmount)
+        // check if the validator is in the staker list
+        assert( stakerId >= 0, `Failed to make controller [${currvalidator.controllerSeed}] stake.`)
     });
 
-    it('Startup controller James (new account) and make it stake', async function() {
-        this.timeout(120000)
+    it.only('Launch new node for validator <Ferdie> (controller uses new account) and make it stake', async function() {
+        this.timeout(180000)
 
-        const stashAccSeed = 'Dave'
-        const controllerSeed = validatorNode.james.seed
-        const bondAmount = smallBondAmount
-        const trans_amount  = 100000 //10000000000000000
+        const currValidator = validator.ferdie
+        const transAmount  = '10000000000000000'
         
-
         // topup to pay tx fee
-        // await node.transfer('Alice', validatorNode.james.address, trans_amount, 0)     // staking token
-        await node.transfer('Alice', validatorNode.james.address, trans_amount, 10)    // spending token
+        await node.transfer('Alice', currValidator.controllerSeed, transAmount, CURRENCY.SPEND)    // spending token topup
         
         // startup a new validator node 
-        const txResult = await staking.startNewValidatorNode( validatorNode.james )
+        const txResult = await staking.startNewcennznetNode( currValidator.sessionKeyNode )
         // judge the result
-        assert( txResult == true, `New validator [${validatorNode.james.seed}] failed to join the boot node.`)
-        
-        // bond
-        // await staking.bond(validatorNode.james.seed, bond_amount)
-        
+        assert.equal( txResult, true, `New node [${currValidator.sessionKeySeed}] failed to join the boot node.`)
+
         // stake
-        await staking.stakeValidator(stashAccSeed, controllerSeed, bondAmount)
+        const stakerId = await staking.startStaking(
+            currValidator.stashSeed,
+            currValidator.controllerSeed,
+            currValidator.sessionKeySeed,
+            currValidator.bondAmount)
+
+        // check if the validator is in the staker list
+        assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
     });
 
     it.skip('TODO: Staker James obtains reward', async function() {
         // TODO: reward is not working for the new staking module
-        await staking.checkReward(validatorNode.james)
+        await staking.checkReward(cennznetNode.pig)
     });
 
-    it('Let richer controller Eve join in and least-bond staker James will be replaced', async function() {
+    it('Let richer validator <Eve> join in and least-bond staker <Ferdie> will be replaced', async function() {
         this.timeout(120000)
-
-        const stashAccSeed = 'Ferdie'
-        const controllerSeed = validatorNode.eve.seed 
-        const bondAmount = largeBondAmount
     
         // start up the new node
-        await staking.startNewValidatorNode(validatorNode.eve)
+        const txResult = await staking.startNewcennznetNode(validator.eve.sessionKeyNode)
+        assert.equal( txResult, true, `New node [${validator.eve.sessionKeySeed}] failed to join the boot node.`)
 
         // make controller to stake
-        await staking.stakeValidator(stashAccSeed, controllerSeed, bondAmount)
+        const stakerId = await staking.startStaking(
+            validator.eve.stashSeed,
+            validator.eve.controllerSeed,
+            validator.eve.sessionKeySeed,
+            validator.eve.bondAmount)
+        assert( stakerId >= 0, `Failed to make controller [${validator.eve.controllerSeed}] stake.`)
 
-        // await staking.waitEraChange()
+        const stakeId_eve = await staking.queryStakingControllerIndex(validator.eve.controllerSeed)
+        const stakeId_ferdie = await staking.queryStakingControllerIndex(validator.ferdie.controllerSeed)
 
-        const stakeId_eve = await staking.queryStakingIndex(validatorNode.eve.seed)
-        const stakeId_james = await staking.queryStakingIndex(validatorNode.james.seed)
-
-        assert( stakeId_eve >= 0, `Failed to make richer validator [${validatorNode.eve.seed}] into staking list.`)
-        assert( stakeId_james < 0, `Failed to kick validator [${validatorNode.james.seed}] out from staking list.`)
+        assert( stakeId_eve >= 0, `Failed to make richer controller [${validator.eve.controllerSeed}] into staking list.`) // TODO: failed here
+        assert( stakeId_ferdie < 0, `Failed to kick controller [${validator.ferdie.controllerSeed}] out from staking list.`)
     });
 
-    it('Unstake Eve and waiting controller James comes back', async function() {    
-        await staking.unstakeValidator(validatorNode.eve.seed)
+    it('Unstake <Eve> and waiting validator <Ferdie> comes back', async function() {    
+        await staking.endStaking(validator.eve.controllerSeed)
 
-        const stakeId_eve = await staking.queryStakingIndex(validatorNode.eve.seed)
-        const stakeId_james = await staking.queryStakingIndex(validatorNode.james.seed)
+        const stakeId_eve = await staking.queryStakingControllerIndex(validator.eve.controllerSeed)
+        const stakeId_ferdie = await staking.queryStakingControllerIndex(validator.ferdie.controllerSeed)
 
-        assert( stakeId_eve < 0, `Failed to unstake validator [${validatorNode.eve.seed}].`)
-        assert( stakeId_james >= 0, `Failed to put validator [${validatorNode.james.seed}] back to staking list.`)
+        assert( stakeId_eve < 0, `Failed to unstake controller [${validator.eve.controllerSeed}].`)
+        assert( stakeId_ferdie >= 0, `Failed to put validator [${validator.ferdie.controllerSeed}] back to staking list.`)
     });
 
-    it('Shutdown Bob (one of three stakers), chain is still working', async function() {
+    it('Make richest staker <Charlie> offline, chain is still working', async function() {
         // get block number before drop node
-        const preBlockNum = await block.getCurrentBlockNumber()
+        const preBlockNum = await block.getCurrentBlockIndex()
 
-        // stop the docker container
-        docker.dropNode(validatorNode.bob.containerName)
+        // stop the session key node
+        docker.dropNodeByContainerName(validator.charlie.sessionKeyNode.containerName)
 
         // await at least 2 blocks
         const currBlockNum = await block.waitBlockCnt(2)
@@ -117,9 +141,9 @@ describe('Staking test suite', () => {
         assert(currBlockNum - preBlockNum >= 2, `Chain did not work well. (Current block id [${currBlockNum}], previous id [${preBlockNum}])`)
     });
 
-    it.skip('Offline staker <Bob> obtains punishment. TODO: Punishment did not work.', async function() {
+    it.skip('Offline staker <Charlie> obtains punishment. TODO: Punishment did not work.', async function() {
 
-        const validator = validatorNode.bob
+        const validator = cennznetNode.bob
         
         // await one era to ensure the valiator is leaving.
         // await staking.waitEraChange()
@@ -135,30 +159,30 @@ describe('Staking test suite', () => {
                 `Validator [${validator.seed}] did not get punishment.(Bal before tx = ${bal_preSession}, Bal after tx = ${bal_afterSession})`)
     });
 
-    it('Two stakers left (Alice and James), shutdown James, then chain stop working, and will recovery after staker James is back', async function() {
-        const validator = validatorNode.james
-
-        // get last block id
-        const preBlockId = await block.waitBlockCnt(0)
-
-        // shutdown node
-        docker.dropNode(validator.containerName)
-
-        // sleep 5s and restart validator bob
-        await sleep(5000)
-        staking.startNewValidatorNode(validator)
+    it('Make staker <Ferdie> offline and chain is still working, and make <Ferdie> recover, it can stake again', async function() {
+        const currValidator = validator.ferdie
         
+        // get last block id
+        const preBlockId = await block.getCurrentBlockIndex()
+
+        // shutdown node for validator
+        docker.dropNodeByContainerName(currValidator.sessionKeyNode.containerName)
+
         // await at least 2 blocks
-        const currBlockId = await block.waitBlockCnt(2)
+        const currBlockId = await block.waitBlockCnt(3)
         assert(currBlockId > preBlockId, `Chain did not work well. (Current block id [${currBlockId}], previouse is []${preBlockId})`)
 
-        // check if Bob is in the staking list
-        const index = await staking.queryStakingIndex(validator.seed)
-        assert(index >= 0, `Validator [${validator.seed}] is not in the staking list.`)
+        // restart validator bob
+        // await sleep(15000)
+        staking.startNewcennznetNode(currValidator.sessionKeyNode)
+        
+        // check if validator is still in the staking list
+        const index = await staking.queryStakingControllerIndex(currValidator.controllerSeed)
+        assert(index >= 0, `Validator [${currValidator.stashSeed}] is not in the staking list.`)
     });
 
-    it('Unstake controller James', async function() {
-        await staking.unstakeValidator(validatorNode.james.seed)
+    it('Unstake validator <Ferdie>, the chain would be still working', async function() {
+        await staking.endStaking(validator.ferdie.controllerSeed)
     });
 
 });

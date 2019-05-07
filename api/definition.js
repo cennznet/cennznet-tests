@@ -1,7 +1,6 @@
 
 
-const {getAddressFromSeed} = require('./node')
-const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
+module.exports.keypairCryptoType = 'sr25519' // Options: 'sr25519' and 'ed25519'(only for session key setting)
 
 module.exports.CURRENCY = {
     STAKE:  16000,
@@ -22,7 +21,7 @@ module.exports.TxResult = class {
 }
 
 // all nodes
-module.exports.validatorNode = {
+module.exports.cennznetNode = {
     alice: {
         containerName: 'integration_test_node',
         htmlPort: '30333',
@@ -32,36 +31,36 @@ module.exports.validatorNode = {
         nodeKey: '0000000000000000000000000000000000000000000000000000000000000001',
         workFolder: '/tmp',
     },
-    bob: {
+    bunny: {
         containerName: 'integration_test_node_1',
         htmlPort: '30334',
         wsPort: '9945',
-        seed: 'Bob',
+        seed: 'Bunny',
         address: '',
         nodeKey: '0000000000000000000000000000000000000000000000000000000000000002',
         workFolder: '/tmp',
     },
-    james: {
+    monkey: {
         containerName: 'integration_test_node_2',
         htmlPort: '30335',
         wsPort: '9946',
-        seed: 'James',
+        seed: 'Monkey',
         address: '',
         nodeKey: '0000000000000000000000000000000000000000000000000000000000000003',
         workFolder: '/tmp',
     },
-    eve: {
+    pig: {
         containerName: 'integration_test_node_3',
         htmlPort: '30336',
         wsPort: '9947',
-        seed: 'Eve',
+        seed: 'Pig',
         address: '',
         nodeKey: '0000000000000000000000000000000000000000000000000000000000000004',
         workFolder: '/tmp',
     }
 }
 
-module.exports.chainDataFolder = this.validatorNode.alice.workFolder + '/node_data'
+module.exports.chainDataFolder = this.cennznetNode.alice.workFolder + '/node_data'
 
 /**
  * Set 'uri' as String's inner property. This would be easy for Seed to get the value.

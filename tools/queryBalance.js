@@ -21,6 +21,7 @@ async function run() {
     await getArgs()
     let bal = await node.queryFreeBalance(address, assetId)
     console.log('bal =', bal)
+    console.log('address = ', node.getAddressFromSeed('Alice'))
     process.exit()
 }
 
