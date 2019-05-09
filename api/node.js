@@ -15,7 +15,7 @@ const block = require('./block')
 
 
 
-async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi) {
+async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi, waitFinalisedFlag = true) {
     const ga = await GA.initGA(fromSeed, nodeApi)
 
     const amountBN = hexToBn(amount.toString(16))
@@ -25,7 +25,7 @@ async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.ST
 
     const tx = ga.transfer(assetId, _toAddress, amountBN)
 
-    const txResult = await signAndSendTx(tx, fromSeed)
+    const txResult = await signAndSendTx(tx, fromSeed, -1, waitFinalisedFlag)
 
     return txResult
 }

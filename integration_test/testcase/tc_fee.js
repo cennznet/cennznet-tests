@@ -48,7 +48,6 @@ describe('Fee test suite', function () {
         // get bal after tx
         const afterTx_cennz = await queryFreeBalance(fromSeed, CURRENCY.STAKE)
         const afterTx_spend = await queryFreeBalance(fromSeed, CURRENCY.SPEND)
-        const currFee = BigNumber(beforeTx_spend).minus(afterTx_spend).toString()
 
         assert.notEqual(expectFee, 0, `Transaction fee is 0.`)
         assert.equal( 

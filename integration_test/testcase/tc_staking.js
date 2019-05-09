@@ -47,14 +47,14 @@ describe('Staking test suite', () => {
         
     })
 
-    it.only("Start a new node for validator <Charlie>", async function() {
+    it("Start a new node for validator <Charlie>", async function() {
 
         const txResult = await staking.startNewcennznetNode( validator.charlie.sessionKeyNode )    
         // judge the peer count
         assert.equal( txResult, true, `New node [${validator.charlie.sessionKeySeed}] failed to join the boot node.`)
     });
 
-    it.only('Make validator <Charlie> begin to stake', async function() {
+    it('Make validator <Charlie> begin to stake', async function() {
         const currvalidator = validator.charlie
         const stakerId = await staking.startStaking(
             currvalidator.stashSeed,
@@ -66,7 +66,7 @@ describe('Staking test suite', () => {
         assert( stakerId >= 0, `Failed to make controller [${currvalidator.controllerSeed}] stake.`)
     });
 
-    it.only('Launch new node for validator <Ferdie> (controller uses new account) and make it stake', async function() {
+    it('Launch new node for validator <Ferdie> (controller uses new account) and make it stake', async function() {
         this.timeout(180000)
 
         const currValidator = validator.ferdie
@@ -91,9 +91,9 @@ describe('Staking test suite', () => {
         assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
     });
 
-    it.skip('TODO: Staker James obtains reward', async function() {
-        // TODO: reward is not working for the new staking module
-        await staking.checkReward(cennznetNode.pig)
+    it('Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
+        // additional_reward belongs to Cennznet-node, should be tested here.
+        await staking.checkAdditionalReward(validator.charlie.controllerSeed)
     });
 
     it('Let richer validator <Eve> join in and least-bond staker <Ferdie> will be replaced', async function() {
@@ -175,6 +175,8 @@ describe('Staking test suite', () => {
         // restart validator bob
         // await sleep(15000)
         staking.startNewcennznetNode(currValidator.sessionKeyNode)
+        
+        await staking.waitEraChange()
         
         // check if validator is still in the staking list
         const index = await staking.queryStakingControllerIndex(currValidator.controllerSeed)

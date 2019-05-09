@@ -1,7 +1,7 @@
 "use strict";
 
 const { sleep } = require('./util')
-const { SpotX } = require('@cennznet/spotx')
+const { SpotX } = require('@cennznet/crml-cennzx-spot')
 const node = require('./node')
 const { bootNodeApi } = require('./websocket');
 const fee = require('./fee');
@@ -66,7 +66,7 @@ module.exports.CennzXBalance = class{
 // check if the eventMethod is in the tx events
 async function checkTxEvent(txResult, eventMethod){
     let bGet = false
-    for(let i = 0; i < txResult.events.length; i += 1) {
+    for(let i = 0; i < txResult.events.length; i ++) {
         const event = txResult.events[i];
         if (event.event.method === eventMethod) {
             bGet = true;

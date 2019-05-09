@@ -37,7 +37,7 @@ module.exports.startBootNode = async function(validator = cennznetNode.alice) {
     const cmd = `docker run --net bridge --rm --name ${validator.containerName} ${linkStr} ` +
                 `-v ${validator.workFolder}:${validator.workFolder} ` +
                 `-p ${validator.wsPort}:${validator.wsPort} ` +
-                `cennznet-node --dev --base-path ${validator.workFolder}/node_data/${validator.seed} ` +
+                `cennznet-node --base-path ${validator.workFolder}/node_data/${validator.seed} ` +
                 `--chain ${validator.workFolder}/nodeConfig.json ` +
                 `--node-key ${validator.nodeKey} ` +
                 `--node-key-type secp256k1 ` +
@@ -99,7 +99,7 @@ module.exports.startNewNode = function(validator) {
     const cmd = `docker run --net bridge --rm --name ${containerName} ` + 
                 `-v ${workFolder}:${workFolder} ` + 
                 `-p ${wsPort}:${wsPort} ` + 
-                `cennznet-node --dev --base-path ${workFolder}/node_data/${keySeed} ` + 
+                `cennznet-node --base-path ${workFolder}/node_data/${keySeed} ` + 
                 `--chain ${workFolder}/nodeConfig.json ` + 
                 `--node-key ${nodeKey} ` + 
                 `--node-key-type secp256k1 ` + 
