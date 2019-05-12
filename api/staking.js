@@ -109,123 +109,6 @@ module.exports.endStaking = async function (controllerSeed){
     assert( stakerId_AfterTx < 0, `Failed to make controller [${controllerSeed}] unstake.[Actual ID = ${stakerId_AfterTx}]`)
 }
 
-module.exports.checkAdditionalReward2 = async function (validator){
-
-    let bRet = false
-
-    const api = await bootNodeApi.getApi()
-
-    const staker = await api.query.staking.stakers(validator.address)
-    console.log('total =', staker.total.toString())
-    console.log('own =', staker.own.toString())
-
-    // check if the validator is in staking
-    const stakerId = await this.queryStakingControllerIndex(validator.seed)
-    assert(stakerId >= 0, `Validator (${validator.seed}) is not in staking list.`)
-
-    const containerId = docker.queryNodeContainer(validator.containerName)
-    assert(containerId.length > 0, `Container node (${validator.containerName}) is not existing.`)
-
-    const balBeforeEra = await node.queryFreeBalance(validator.address, CURRENCY.STAKE)
-
-    await waitSessionChange()
-
-    const balAfterEra = await node.queryFreeBalance(validator.address, CURRENCY.STAKE)
-
-    assert(BigNumber(balAfterEra).minus(balBeforeEra).gt(0),
-        `Validator [${validator.seed}] did not get reward.(Bal before tx = ${balBeforeEra}, Bal after tx = ${balAfterEra})`)
-
-    bRet = true
-    return bRet
-}
-
-module.exports.checkAdditionalReward3 = async function ( controllerSeed ){
-
-    /**
-     * 
-     * additional_reward = block_reward * block_per_session + session_tx_fee * fee_reward_multiplier
-     * 
-     * -- get following values:
-     * @ block_reward 
-     * @ block_per_session
-     * @ session_tx_fee
-     * @ fee_reward_multiplier
-     */
-    
-
-    let bRet = false
-    let expectedEraReward = 0
-    
-    const api = await bootNodeApi.getApi()
-
-    // check if the validator is in staking
-    const stakerId = await this.queryStakingControllerIndex(controllerSeed)
-    assert(stakerId >= 0, `Controller (${controllerSeed}) is not in staking list.`)
-
-    // get values for formula
-    const rewardMultiplier = await api.query.rewards.feeRewardMultiplier()
-    console.log('rewardMultiplier =', rewardMultiplier.toString())
-    const blockReward = await api.query.rewards.blockReward()
-    console.log('blockReward =', blockReward.toString())
-    const blockPerSession = await api.query.session.sessionLength()
-    console.log('blockPerSession =', blockPerSession.toString())
-
-    const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.STAKE)
-
-    // wait for a new era
-    await this.waitEraChange()
-
-    // listen to new session
-    const finalEraReward = await new Promise(async (resolve, reject) => { 
-        let totalEraReward = 0
-        let preEraId = (await api.query.staking.currentEra()).toString()
-        let preEraReward = (await api.query.staking.currentEraReward()).toString() 
-        // get current session
-        let preSessionId = (await api.query.session.currentIndex()).toString()
-        api.query.session.currentIndex( async (sessionId) => {
-            let currSessionId = sessionId.toString()
-            let fee = (await api.query.staking.currentEraReward()).toString()
-            console.log('fee =', fee)
-            if ( currSessionId > preSessionId ){
-                // session changed TODO: do sth
-                const sessionTxFee = (await api.query.rewards.sessionTransactionFee()).toString()
-                const sessionReward = BigNumber(blockReward).mult(blockPerSession).add(BigNumber(sessionTxFee).mult(rewardMultiplier))
-                console.log('sessionReward =', sessionReward.toString())
-                totalEraReward = BigNumber(totalEraReward).add(sessionReward.toString())
-                console.log('totalEraReward =', totalEraReward.toString())
-
-                const currEraId = (await api.query.staking.currentEra()).toString()
-                
-                // check if era changed
-                if (currEraId > preEraId){
-                    expectedEraReward = preEraReward
-                    console.log('expectedEraReward =', expectedEraReward.toString())
-                    resolve(totalEraReward)
-                }
-                else{
-                    preEraReward = (await api.query.staking.currentEraReward()).toString() 
-                }
-
-                preSessionId = currSessionId
-            }
-        }).catch((error) => {
-            reject(error)
-        });
-    })
-
-    // const eraReward = await this.getEraReward()
-
-    const balAfterEra = await node.queryFreeBalance(controllerSeed, CURRENCY.STAKE)
-
-    // check
-    // TODO: change assert
-    assert(BigNumber(balAfterEra).minus(balBeforeEra).gt(0),
-        `Validator [${controllerSeed}] did not get reward.(Bal before tx = ${balBeforeEra}, Bal after tx = ${balAfterEra})`)
-
-    bRet = true
-    return bRet
-}
-
 module.exports.checkAdditionalReward = async function ( controllerSeed ){
 
     let bRet = false
@@ -249,7 +132,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     await this.waitEraChange()
 
     // get balance before era reward happen
-    const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.STAKE)
+    const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
     
     // push a transfer tx (do not wait finalise) to trigger an tx fee
     node.transfer('Alice', 'James', '10000', assetId = 16000, nodeApi = bootNodeApi, waitFinalisedFlag = false)
@@ -320,7 +203,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     }
 
     // get balance after era reward got
-    const balAfterEra = await node.queryFreeBalance(controllerSeed, CURRENCY.STAKE)
+    const balAfterEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
 
     // check era tx fee
     assert.equal(
@@ -336,7 +219,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     assert.equal(
         BigNumber(balAfterEra).toString(),
         BigNumber(balBeforeEra).add(expectedEraReward).toString(),
-        `${controllerSeed}'s asset(${CURRENCY.STAKE}) balance is wrong`)
+        `${controllerSeed}'s asset(${CURRENCY.SPEND}) balance is wrong`)
 
     bRet = true
     return bRet

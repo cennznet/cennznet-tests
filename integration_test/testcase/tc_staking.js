@@ -54,7 +54,7 @@ describe('Staking test suite', () => {
         assert.equal( txResult, true, `New node [${validator.charlie.sessionKeySeed}] failed to join the boot node.`)
     });
 
-    it('Make validator <Charlie> begin to stake', async function() {
+    it.only('Make validator <Charlie> begin to stake', async function() {
         const currvalidator = validator.charlie
         const stakerId = await staking.startStaking(
             currvalidator.stashSeed,
@@ -159,7 +159,7 @@ describe('Staking test suite', () => {
                 `Validator [${validator.seed}] did not get punishment.(Bal before tx = ${bal_preSession}, Bal after tx = ${bal_afterSession})`)
     });
 
-    it('Make staker <Ferdie> offline and chain is still working, and make <Ferdie> recover, it can stake again', async function() {
+    it('Make staker <Ferdie> offline and chain is still working, and will work again when <Ferdie> comes back', async function() {
         const currValidator = validator.ferdie
         
         // get last block id
@@ -177,14 +177,20 @@ describe('Staking test suite', () => {
         staking.startNewcennznetNode(currValidator.sessionKeyNode)
         
         await staking.waitEraChange()
-        
+
         // check if validator is still in the staking list
         const index = await staking.queryStakingControllerIndex(currValidator.controllerSeed)
         assert(index >= 0, `Validator [${currValidator.stashSeed}] is not in the staking list.`)
     });
 
-    it('Unstake validator <Ferdie>, the chain would be still working', async function() {
+    it.skip('TODO:Unstake validator <Ferdie>, the chain would be still working', async function() {
+        // get last block id
+        const preBlockId = await block.getCurrentBlockIndex()
+        // unstake
         await staking.endStaking(validator.ferdie.controllerSeed)
+        // await at least 2 blocks
+        const currBlockId = await block.waitBlockCnt(3)
+        assert(currBlockId > preBlockId, `Chain did not work well. (Current block id [${currBlockId}], previouse is []${preBlockId})`)
     });
 
 });
