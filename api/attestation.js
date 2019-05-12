@@ -19,7 +19,7 @@ const { bootNodeApi } = require('./websocket')
 const node = require('./node')
 // const { GenericAsset } = require('@cennznet/crml-generic-asset');
 // const { AssetId } = require('@cennznet/types');
-const { bnToHex } = require('@polkadot/util');
+const { bnToHex } = require('@cennznet/util');
 
 module.exports.setClaim2 = async function(issuer, holder, topic, value, nodeApi = bootNodeApi){ // issuer, holder : KeyringPair type
     // get api

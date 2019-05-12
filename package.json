@@ -18,7 +18,6 @@
         "@cennznet/types": "^0.12.3",
         "@cennznet/util": "^0.12.3",
         "@cennznet/wallet": "^0.12.3",
-        "@polkadot/api-derive": "^0.78.1",
         "big-number": "2.0.0",
         "chai": "^4.2.0",
         "fast-glob": "^2.2.6",
