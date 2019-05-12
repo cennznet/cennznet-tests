@@ -21,6 +21,7 @@
         "@polkadot/api-derive": "^0.78.1",
         "big-number": "2.0.0",
         "chai": "^4.2.0",
+        "fast-glob": "^2.2.6",
         "minimist": "^1.2.0",
         "mocha-logger": "^1.0.6",
         "rimraf": "2.6.3",

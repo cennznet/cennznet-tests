@@ -6,3 +6,5 @@ node_data
 jest
 coverage
 .nyc_*
+add_header
+header
