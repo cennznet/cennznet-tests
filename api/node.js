@@ -16,7 +16,6 @@
 
 const { bootNodeApi } = require('./websocket');
 const { TxResult, CURRENCY, keypairCryptoType } = require('./definition');
-const { hexToBn } = require('@cennznet/util');
 const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
 const GA  = require('./ga')
 const { queryTxFee, queryCurrentTxFee } = require('./fee')
@@ -31,12 +30,10 @@ const block = require('./block')
 async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi, waitFinalisedFlag = true) {
     const ga = await GA.initGA(fromSeed, nodeApi)
 
-    const amountBN = hexToBn(amount.toString(16))
-
     // convert to address if input is a seed
     const _toAddress = await getAddressFromSeed(toAddressOrSeed)
 
-    const tx = ga.transfer(assetId, _toAddress, amountBN)
+    const tx = ga.transfer(assetId, _toAddress, amount.toString())
 
     const txResult = await signAndSendTx(tx, fromSeed, -1, waitFinalisedFlag)
 
@@ -50,12 +47,10 @@ async function transferWithNonce(fromSeed, toAddressOrSeed, amount, nonce = -1, 
 
     await setApiSigner(api, fromSeed)
 
-    const amountBN = hexToBn(amount.toString(16))
-
     // convert to address if input is a seed
     const _toAddress = await getAddressFromSeed(toAddressOrSeed)
 
-    const trans = api.tx.genericAsset.transfer(assetId, _toAddress, amountBN)
+    const trans = api.tx.genericAsset.transfer(assetId, _toAddress, amount.toString())
 
     const txResult = await signAndSendTx(trans, fromSeed, nonce, false)
 

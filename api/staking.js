@@ -17,7 +17,6 @@
 const mlog = require('mocha-logger')
 const node = require('./node')
 const { bootNodeApi, WsApi } = require('./websocket');
-const { hexToBn } = require('@cennznet/util');
 const docker  = require('./docker')
 const block = require('./block')
 const assert = require('assert')
@@ -43,7 +42,7 @@ module.exports.initValidatorConfig = function (){
 }
 
 // make a new validator join newwork
-module.exports.startNewcennznetNode = async function (sessionKeyAccount) {
+module.exports.startNewValidatorNode = async function (sessionKeyAccount) {
 
     // check peer count before new node joins in
     const bootApi = await bootNodeApi.getApi()
@@ -150,7 +149,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
     
     // push a transfer tx (do not wait finalise) to trigger an tx fee
-    node.transfer('Alice', 'James', '10000', assetId = 16000, nodeApi = bootNodeApi, waitFinalisedFlag = false)
+    node.transfer('Alice', 'James', '10000', 16000, bootNodeApi, false)
 
     // listen to new block to check all fees
     const finalEraReward = await new Promise(async (resolve, reject) => { 
@@ -351,10 +350,8 @@ module.exports.bondExtra = async function (controllerSeed, bondAmount, nodeApi =
     // get api
     const api = await nodeApi.getApi()
 
-    const amountBN = hexToBn(bondAmount.toString(16))
-
     // bond extra fund
-    const trans = api.tx.staking.bondExtra(amountBN)
+    const trans = api.tx.staking.bondExtra(bondAmount.toString())
 
     // stake the validator
     const txResult = await node.signAndSendTx(trans, controllerSeed)
@@ -368,13 +365,11 @@ async function bond(stashAccSeed, controllerSeed, bondAmount, nodeApi = bootNode
 
     const controllerAddress = node.getAddressFromSeed(controllerSeed)
 
-    const amountBN = hexToBn(bondAmount.toString(16))
-
     // make the tx to bond
     //  Staked, 0x00: Pay into the stash account, increasing the amount at stake accordingly.
     //  Stash, 0x01 :Pay into the stash account, not increasing the amount at stake.
     //  Controller, 0x02: Pay into the controller account. ( Controller is the only one for 'validate' method)
-    const trans = api.tx.staking.bond(controllerAddress, amountBN, 0x02)
+    const trans = api.tx.staking.bond(controllerAddress, bondAmount.toString(), 0x02)
 
     // send tx
     const txResult = await node.signAndSendTx(trans, stashAccSeed)
@@ -405,7 +400,7 @@ async function stake(controllerSeed, nodeApi = bootNodeApi){
     // e.g. 0x0400 = {unstake_threshold: 1, validator_payment: 0}
     // - unstake_threshold (U8a, first 2 digitals): 04 = 1
     // - validator_payment (U8a, last 2 digitals): 00 = 0 
-    const validatorPrefs = '0x0400'
+    const validatorPrefs = '0x0000'
 
     // make tx to stake
     const trans = api.tx.staking.validate(validatorPrefs)

@@ -71,7 +71,7 @@ test()
 
 /*  run cmd:
     1. local:   
-        node tools/listenBalChange -s Alice --ws ws://127.0.0.1:9944
+        node tools/listenBalChange -s Alice -a 16000 --ws ws://127.0.0.1:9944
     2. remote:  
         node tools/listenBalChange -a 5DnThWP9rpHMe4XRgLpyxaesK91JxsRbL5zDkFb6t4jUUyYU --ws ws://10.1.1.100:9944
 */
