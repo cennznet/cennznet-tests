@@ -1,4 +1,0 @@
---timeout 60000
---exit
---opts "mocha.opts"
---file ./integration_test/setup.js
