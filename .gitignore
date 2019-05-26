@@ -1,0 +1,11 @@
+.DS_Store
+node_modules
+_*
+package-lock.json
+yarn.lock
+node_data
+jest
+coverage
+.nyc_*
+add_header
+header
