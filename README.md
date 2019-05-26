@@ -39,7 +39,7 @@ yarn test integration_test/testcase/TEST_SUITE.js
 yarn test integration_test/testcase/TEST_SUITE.js --ws REMOTE_WS_IP
 ```
 
-For example, test GA module on Rimu:
+For example, run GA test suite on Rimu:
 ```bash
 yarn test integration_test/testcase/tc_ga.js --ws wss://cennznet-node-0.centrality.cloud:9944
 ```

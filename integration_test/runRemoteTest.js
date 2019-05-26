@@ -26,8 +26,8 @@ describe('Remote Test (for Rimu or Kauri)', function () {
         'tc_staking.js',
     ]
 
-    // set Rimu ws ip as the default ip
-    args.nodeServerWsIp = 'wss://cennznet-node-0.centrality.cloud:9944'
+    // set the default ws ip
+    args.nodeServerWsIp = 'ws://127.0.0.1:9944'
 
     require('./testcase/bootNode')
 
