@@ -7,5 +7,5 @@ node_data
 jest
 coverage
 .nyc_*
-add_header.js
-header.js
+add_header*
+header*
