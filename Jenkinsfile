@@ -23,15 +23,6 @@ pipeline {
       }
     }
 
-    // stage('Build cennznet-node image') {
-    //   steps {
-    //     echo 'Build cennznet-node image...'
-    //     dir('cennznet-node') {
-    //         sh './scripts/build-docker.sh' 
-    //     }
-    //   }
-    // }
-
     stage('Run test') {
       steps {
         echo 'Run integration test...'
