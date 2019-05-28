@@ -140,6 +140,11 @@ async function getNonce(addressOrSeed, nodeApi = bootNodeApi){
 }
 
 function getAddressFromSeed(seed, keyType = keypairCryptoType){
+
+    if ( seed == null || seed == undefined ){
+        return ''
+    }
+
     let address = null;
 
     // Operate different input: seed or address

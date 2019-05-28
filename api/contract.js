@@ -49,12 +49,12 @@ module.exports.createContract = async function (issuerSeed, endowment, gasLimit,
     // sign and send tx
     const txResult = await node.signAndSendTx(trans, issuerSeed)
 
-    // console.log('events =', txResult.events)
-
-    // txResult.events.forEach(({ phase, event: { data, method, section } }) => {
-    //     console.log('phase =', phase)
-    //     console.log('event =', event)
-    // });
+    // get the contract hash
+    txResult.events.forEach(({ phase, event: { data, method, section } }) => {
+        if (method == 'Instantiated'){
+            txResult.bSucc = true
+        }
+    });
 
     return txResult
 }

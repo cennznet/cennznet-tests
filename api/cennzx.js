@@ -15,7 +15,7 @@
 "use strict";
 
 const { sleep } = require('./util')
-const { SpotX } = require('@cennznet/crml-cennzx-spot')
+const { CennzxSpot } = require('@cennznet/crml-cennzx-spot')
 const node = require('./node')
 const { bootNodeApi } = require('./websocket');
 const fee = require('./fee');
@@ -47,10 +47,10 @@ module.exports.CennzXBalance = class{
             this.coreId = await cennzx.getCoreAssetId()
         }
         
-        // get 
+        // get balances
         if (this.tokenId >= 0){
             if ( this.poolAddress == null || this.poolAddress.length != 48 ){    // 48 is the address length
-                this.poolAddress = await cennzx.getExchangeAddress(this.tokenId, this.traderSeed)
+                this.poolAddress = await getExchangeAddress(this.tokenId)
             }
                 
             if ( this.poolAddress.length == 48 ){
@@ -63,17 +63,17 @@ module.exports.CennzXBalance = class{
         // get core balance
         this.traderCoreAssetBal = await node.queryFreeBalance(this.traderSeed, this.coreId)
         // get trader's liquidity share
-        this.traderLiquidity    = await cennzx.getLiquidityBalance(this.tokenId, this.traderSeed)
+        this.traderLiquidity    = await getLiquidityBalance(this.tokenId, this.traderSeed)
         // get total liquidity
-        this.totalLiquidity     = await cennzx.getTotalLiquidity(this.tokenId, this.traderSeed)
+        this.totalLiquidity     = await getTotalLiquidity(this.tokenId)
     }
 }
 
 
- async function initSpotX(traderSeed, nodeApi = bootNodeApi){
-    let api = await nodeApi.getApi()
-    await node.setApiSigner(api, traderSeed)
-    const spotX = await SpotX.create(api)
+ async function initSpotX(nodeApi = bootNodeApi){
+    const api = await nodeApi.getApi()
+    // await node.setApiSigner(api, traderSeed)
+    const spotX = await CennzxSpot.create(api)
     return spotX;
 }
 
@@ -104,7 +104,7 @@ async function checkTxEvent(txResult, eventMethod){
  * @ coreAmount: the exact core asset amount to add into pool. This value is the initial liquidity.
  */
 module.exports.addLiquidity = async function (traderSeed, assetId, minLiquidity, maxAssetAmount, coreAmount, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
+    const spotX = await initSpotX(nodeApi)
 
     const trans = spotX.addLiquidity(assetId, minLiquidity, maxAssetAmount, coreAmount, 10)
 
@@ -133,7 +133,7 @@ module.exports.addLiquidity = async function (traderSeed, assetId, minLiquidity,
  * @ minCoreWithdraw: minimum trade asset withdrawn. If actual core amount withdrawded is lower than this value, tx will get failure.
  */
 module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmount, minAssetWithdraw, minCoreWithdraw, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
+    const spotX = await initSpotX(nodeApi)
 
     const trans = spotX.removeLiquidity(assetId, assetAmount, minAssetWithdraw, minCoreWithdraw)
 
@@ -157,7 +157,7 @@ module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmoun
 
 // Note: There will be an exchange fee rate (not the tx fee) in the calculation processs
 module.exports.coreToAssetSwapOutput = async function (traderSeed, assetId, assetAmountBought, maxCoreAssetSold, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
+    const spotX = await initSpotX(nodeApi)
 
     const trans = spotX.coreToAssetSwapOutput(assetId, assetAmountBought, maxCoreAssetSold)
 
@@ -168,7 +168,7 @@ module.exports.coreToAssetSwapOutput = async function (traderSeed, assetId, asse
 
 // swap token to core and transfer out. Then token bought is a fixed value, should 1st get the needed core asset and then calculate its exchange fee.
 module.exports.coreToAssetTransferOutput = async function (traderSeed, recipient, assetId, tokenAmountBought, maxCoreSold, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
+    const spotX = await initSpotX(nodeApi)
 
     const trans = spotX.coreToAssetTransferOutput( node.getAddressFromSeed(recipient) , assetId, tokenAmountBought, maxCoreSold)
 
@@ -178,38 +178,38 @@ module.exports.coreToAssetTransferOutput = async function (traderSeed, recipient
 }
 
 module.exports.getCoreToAssetOutputPrice = async function (assetId, assetAmountInput, traderSeed = 'Alice', nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
+    const spotX = await initSpotX(nodeApi)
     const coreSold = await spotX.getCoreToAssetOutputPrice(assetId, assetAmountInput)
     return coreSold.toString()
 }
 
-module.exports.getLiquidityBalance = async function (assetId, traderSeed, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
+
+
+module.exports.getCoreAssetId = async function (nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    
+    return await spotX.getCoreAssetId();
+}
+
+module.exports.getTotalLiquidity = getTotalLiquidity 
+module.exports.getLiquidityBalance = getLiquidityBalance 
+module.exports.getExchangeAddress = getExchangeAddress 
+
+
+async function getTotalLiquidity(assetId, nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    const val = await spotX.getTotalLiquidity(assetId)
+    return val.toString();
+}
+
+async function getLiquidityBalance(assetId, traderSeed, nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
     const val = await spotX.getLiquidityBalance(assetId, node.getAddressFromSeed(traderSeed))
     return val.toString()
 }
 
-module.exports.getExchangeAddress = async function ( assetId, traderSeed, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
-    const address = await spotX.getExchangeAddress(assetId)
+async function getExchangeAddress( assetId, nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    const address = await spotX.api.derive.cennzxSpot.exchangeAddress(assetId)
     return address.toString()
-}
-
-module.exports.getCoreAssetId = async function ( traderSeed = 'Alice', nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
-    return await spotX.getCoreAssetId();
-}
-
-module.exports.getFeeRate = async function ( traderSeed = 'Alice', nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
-    return spotX.getFeeRate()
-    // const x = spotX.getCoreAssetId()
-    // console.log('x =', x.toString())
-    // return 3000
-}
-
-module.exports.getTotalLiquidity = async function (assetId, traderSeed, nodeApi = bootNodeApi){
-    const spotX = await initSpotX(traderSeed, nodeApi)
-    const val = await spotX.getTotalLiquidity(assetId)
-    return val.toString();
 }

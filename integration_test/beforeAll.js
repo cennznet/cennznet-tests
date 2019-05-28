@@ -21,11 +21,14 @@
 "use strict";
 
 const { cryptoWaitReady } = require('@cennznet/util');
-const {bootNodeApi} = require('../api/websocket')
+const { bootNodeApi } = require('../api/websocket')
+const node = require('../api/node')
 
 before( async () => {
     // init for simplyKeyring()
     await cryptoWaitReady()
     // init api
     await bootNodeApi.init()
+    // top up account for rimu or kauri test
+    await node.topupTestAccount()
 })

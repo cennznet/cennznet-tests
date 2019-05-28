@@ -15,8 +15,9 @@
 "use strict";
 
 const assert = require('assert')
-const { putCode, createContract } = require('../../api/contract')
+const { putCode, createContract, callContract } = require('../../api/contract')
 const node = require('../../api/node')
+const BigNumber = require('big-number')
 
 
 const contractFilePath = __dirname + '/../../dependency/spin2win.wasm'
@@ -59,7 +60,25 @@ describe('Smart Contract test suite:', function () {
         assert.equal( result.bSucc, true, `Create() the smart contract failed.[MSG : ${result.message}]`)
     });
 
-    it.skip('TODO: Call() a smart contract', async function() {
-        // TODO:
+    it.skip('Call spin2win contract to transfer asset', async function() {
+
+        const destSeed = 'James'
+        const transAmt = 10000
+        const gasLimit = 50000
+
+        // check balance before tx
+        const destSeedBal_beforeTx = await node.queryFreeBalance(destSeed, CURRENCY.SPEND)
+
+        const txResult = await callContract(issuerSeed, destSeed, transAmt, gasLimit)
+        assert.equal(txResult.bSucc, true, `Function callContract() failed.`)
+
+        // check balance after tx
+        const destSeedBal_afterTx = await node.queryFreeBalance(destSeed, CURRENCY.SPEND)
+
+        assert.equal( 
+            destSeedBal_afterTx, 
+            BigNumber(destSeedBal_beforeTx).add(transAmt).toString(),
+            `Destination seed ${destSeed} did not get transfer amount ${transAmt}`)
+
     });
 });

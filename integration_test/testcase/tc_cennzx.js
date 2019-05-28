@@ -23,7 +23,7 @@ const BigNumber = require('big-number')
 
 
 var coreAsssetId = -1
-var tokenAsssetId = 17000//-1
+var tokenAsssetId = -1
 var tokenIssuerSeed = 'Bob'
 const tokenTotalAmount = 1000000
 var exchangeFeeRate = 0
@@ -31,16 +31,16 @@ var exchangeFeeRate = 0
 describe('TODO:(await new version release) CennzX test suite', function () {
     
     before( async function(){
-        await node.topupTestAccount()    // only for remote test
+        // await node.topupTestAccount()    // only for remote test
 
         // create new token
-        // tokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
+        tokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
 
         // get core asset id
         coreAsssetId = (await cennzx.getCoreAssetId()).toString()
 
-        let feeRate = (await cennzx.getFeeRate()).toString()
-        exchangeFeeRate = parseInt(feeRate) / 1000000.0     // the feeRate is for per mill
+        // let feeRate = (await cennzx.getFeeRate()).toString()
+        // exchangeFeeRate = parseInt(feeRate) / 1000000.0     // the feeRate is for per mill
     })
 
     after(function(){
@@ -312,6 +312,19 @@ describe('TODO:(await new version release) CennzX test suite', function () {
     it.skip('TODO: Bob swap one token asset with another token asset', async function() {
     });
     
+    it.skip('TODO: Pay tx fee with the new-created asset', async function() {
+        // create tx
+
+        // add fee option
+        tx.addFeeExchangeOpt({
+            assetId: 16000,
+            maxPayment: 50000,
+        });
+
+        // sign and send tx
+        
+    });
+
     it('Bob remove liquidity', async function() {
         
 
@@ -386,6 +399,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
             BigNumber(beforeTxBal.traderTokenAssetBal).add(withdrawalTokenAmt).toString(), 
             `Trader's token balance is wrong.` )
     });
+    
 });
 
 
@@ -397,7 +411,7 @@ async function displayInfo(traderSeed) {
     let getLiquidityBalance_token = await cennzx.getLiquidityBalance(tokenAsssetId, traderSeed)
     let getLiquidityBalance_token2 = await cennzx.getLiquidityBalance(tokenAsssetId, tokenIssuerSeed)
     let getTotalLiquidity_token = await cennzx.getTotalLiquidity(tokenAsssetId, traderSeed)
-    let getExchangeAddress = await cennzx.getExchangeAddress(tokenAsssetId, traderSeed)
+    let getExchangeAddress = await cennzx.getExchangeAddress(tokenAsssetId)
     let poolCoreAsssetBal = await node.queryFreeBalance(getExchangeAddress, coreAsssetId)
     let poolTokenAsssetBal = await node.queryFreeBalance(getExchangeAddress, tokenAsssetId)
     let traderCoreAsssetBal = await node.queryFreeBalance(traderSeed, coreAsssetId)
