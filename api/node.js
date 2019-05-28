@@ -27,7 +27,7 @@ const block = require('./block')
 
 
 
-async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi, waitFinalisedFlag = true) {
+async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, waitFinalisedFlag = true, nodeApi = bootNodeApi) {
     const ga = await GA.initGA(fromSeed, nodeApi)
 
     // convert to address if input is a seed
@@ -110,10 +110,10 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
 
                 resolve(true); 
             }
-            else if (r.type == 'Invalid'){
+            else if ('Invalid' == r.status.toString() || r.events == undefined){
                 txResult.bSucc = false
                 txResult.events = r.events
-                txResult.message = `Transaction type = ${r.type}`
+                txResult.message = `Transaction status = ${r.status.toString()}`
                 resolve(true);
             }
         }).catch((error) => {
@@ -196,11 +196,11 @@ async function topupTestAccount(){
     }
 
     let txCnt = 0
-    const transferFee = BigNumber(await getTransferFee())
+    // const transferFee = BigNumber(await getTransferFee())
     const fromSeed = 'Andrea'   // or change a wealthy account seed
     // topup spending and staking balance, topup: Alice, Bob, Charlie, Dave, Eve, Ferdie. These are endowed accounts in local node.
     const toSeedLst = ['Alice', 'Bob', 'Charlie', 'Dave', 'Eve', 'Ferdie'] 
-    const amount = 100000 * transferFee
+    const amount = '5000000000000000000'
     let nonce = await getNonce(fromSeed)
 
     toSeedLst.forEach(async toSeed => {

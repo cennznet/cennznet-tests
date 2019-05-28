@@ -149,7 +149,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
     
     // push a transfer tx (do not wait finalise) to trigger an tx fee
-    node.transfer('Alice', 'James', '10000', 16000, bootNodeApi, false)
+    node.transfer('Alice', 'James', '10000', 16000, false, bootNodeApi)
 
     // listen to new block to check all fees
     const finalEraReward = await new Promise(async (resolve, reject) => { 

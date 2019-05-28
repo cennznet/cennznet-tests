@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const {bootNodeApi} = require('./websocket')
-
 "use strict";
 
+const {bootNodeApi} = require('./websocket')
+const {signAndSendTx, getAddressFromSeed} = require('./node')
 const node = require('./node')
 const fs = require('fs');
 
@@ -43,6 +43,9 @@ module.exports.createContract = async function (issuerSeed, endowment, gasLimit,
     // get api
     const api = await nodeApi.getApi()
     
+    // read contract file
+    // let contractJsonCode = fs.readFileSync(contractJsonFilePath);
+
     // make tranction
     const trans = api.tx.contract.create(endowment, gasLimit, contractHash, '0x')
 
@@ -70,7 +73,7 @@ module.exports.callContract = async function (issuerSeed, destSeed, value, gasLi
     const trans = api.tx.contract.call(destAddress, value, gasLimit, '0x')
 
     // sign and send tx
-    const txResult = await signAndSendTx(api, trans, issuerSeed)
+    const txResult = await signAndSendTx(trans, issuerSeed)
 
     // get the contract hash
     txResult.events.forEach(({ phase, event: { data, method, section } }) => {

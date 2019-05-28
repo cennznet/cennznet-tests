@@ -14,28 +14,38 @@
 
 "use strict";
 
+const mlog = require('mocha-logger')
 const assert = require('assert')
 const { putCode, createContract, callContract } = require('../../api/contract')
+const { CURRENCY } = require('../../api/definition')
 const node = require('../../api/node')
 const BigNumber = require('big-number')
 
 
 const contractFilePath = __dirname + '/../../dependency/spin2win.wasm'
-// const contractHash = '0xef55f2f51f83c5dea3dd0ba33f654d00ca3f62e93929e4c0225e396c310fd1b3'
-const contractHash = '0xf7920e0110a280214c3f490f96cb1894761ac8fdbb7ebbc44cc9d8c46a78bbd4'
-const issuerSeed = 'Bob'
-const gasLimit = 10000
-const endowment = 1001
+var contractHash = '' //'0x1adcb2e5becd80a4250534bd43e4f172a33ffcac5590e9777665677ebfc58285'
+var issuerSeed = '' 
+const gasLimit = '50000'
+const endowment = '10000000000000000000'
 
 describe('Smart Contract test suite:', function () {
     
     before(async function(){
         await node.topupTestAccount()    // only for remote test
+
+        // create a random seed
+        issuerSeed = 'issuer_' + Math.random().toString(36).substr(2)    
+        
+        mlog.log('issuerSeed =', issuerSeed)
+
+        // top up the issuer account
+        await node.transfer('Alice', issuerSeed, endowment + '0', CURRENCY.STAKE)
+        await node.transfer('Alice', issuerSeed, endowment + '0', CURRENCY.SPEND)
     })
 
     it('Put a smart contract code (Spin2Win) onto chain', async function() {
 
-        let _contractHash= ''
+        let _contractHash = ''
 
         // put the contract code onto chain
         const result = await putCode(issuerSeed, gasLimit, contractFilePath)
@@ -47,8 +57,12 @@ describe('Smart Contract test suite:', function () {
                 _contractHash = data[0].toString()   // data is an array
             }
         });
-        assert.equal( _contractHash, contractHash, `Contract hash is not correct.[Expected: ${contractHash}, Actual: ${_contractHash}]`)
 
+        contractHash = _contractHash
+
+        mlog.log('Get contractHash =', contractHash)
+
+        assert.notEqual( _contractHash, '', `Contract hash is null.`)        
     });
 
     it('Initialize the deplyed contract using create()', async function() {
@@ -60,11 +74,10 @@ describe('Smart Contract test suite:', function () {
         assert.equal( result.bSucc, true, `Create() the smart contract failed.[MSG : ${result.message}]`)
     });
 
-    it.skip('Call spin2win contract to transfer asset', async function() {
+    it('Call spin2win contract to transfer asset', async function() {
 
         const destSeed = 'James'
         const transAmt = 10000
-        const gasLimit = 50000
 
         // check balance before tx
         const destSeedBal_beforeTx = await node.queryFreeBalance(destSeed, CURRENCY.SPEND)
@@ -79,6 +92,5 @@ describe('Smart Contract test suite:', function () {
             destSeedBal_afterTx, 
             BigNumber(destSeedBal_beforeTx).add(transAmt).toString(),
             `Destination seed ${destSeed} did not get transfer amount ${transAmt}`)
-
     });
 });

@@ -98,7 +98,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         const maxCoreAssetSold = 200000
 
         // get all balances before tx
-        const beforeTxBal = new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await beforeTxBal.getAll()
 
         // call getCoreToAssetOutputPrice() to verify its value
@@ -112,7 +112,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await afterTxBal.getAll()
 
         /**
@@ -167,7 +167,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         const traderSeed            = 'Alice'
 
         // get all balances before tx
-        const beforeTxBal = new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await beforeTxBal.getAll()
 
         // add new liquidity
@@ -178,7 +178,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await afterTxBal.getAll()
 
 
@@ -244,7 +244,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         const reciepent             = 'Dave'
 
         // get all balances before tx
-        const beforeTxBal = new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await beforeTxBal.getAll()
 
         // get reciepent's token balance
@@ -259,7 +259,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         console.log('txFee =', txFee)
 
         // get all balances after tx
-        const afterTxBal = new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await afterTxBal.getAll()
 
         // get reciepent's token balance
@@ -336,7 +336,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         // await displayInfo(traderSeed)
 
         // get all balances before tx
-        const beforeTxBal = await new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await beforeTxBal.getAll()
 
         // first add the liquidity
@@ -347,7 +347,7 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = await new cennz.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
         await afterTxBal.getAll()
 
 
