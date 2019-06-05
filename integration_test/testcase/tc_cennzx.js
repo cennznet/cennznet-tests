@@ -116,25 +116,19 @@ describe('CennzX test suite', function () {
         assert.equal( afterTxBal.traderLiquidity , coreAmountInput, `Trader's liquidity is wrong.` )
     });
 
-    it.only('TODO: new framework test== Alice spends core asset to buy fixed tokenAsssetId_1', async function() {
-        const methodParameter = new cennzx.MethodParameter()
-        methodParameter.method          = cennzx.assetSwapOutput
-        methodParameter.traderSeed      = 'Alice'
-        methodParameter.assetIdSell     = coreAsssetId
-        methodParameter.assetIdBuy      = tokenAsssetId_1
-        methodParameter.amountBuy       = '50000'
-        methodParameter.maxAmountSell   = '2000000'
+    it.only('duplicate => Alice spends core asset to buy fixed tokenAsssetId_1', async function() {
+        const mp = new cennzx.MethodParameter()
+        mp.method          = cennzx.assetSwapOutput
+        mp.traderSeed      = 'Alice'
+        mp.assetIdSell     = coreAsssetId
+        mp.assetIdBuy      = tokenAsssetId_1
+        mp.amountBuy       = '50000'
+        mp.maxAmountSell   = '2000000'
 
-        const checker = new cennzx.BalanceChecker(methodParameter)
-        await checker.checkMethod()
-        
-        
-
-        // let display = new cennzx.CennzXBalance(methodParameter.traderSeed, methodParameter.assetIdBuy)
-        // await display.displayInfo()
+        await cennzx.checkMethod(mp)
     });
 
-    it('Alice spends core asset to buy fixed tokenAsssetId_1', async function() {
+    it.skip('Alice spends core asset to buy fixed tokenAsssetId_1', async function() {
         const traderSeed        = 'Alice'
         const amountBought      = '50000'
         const maxCoreAssetSold  = '2000000'
@@ -204,7 +198,20 @@ describe('CennzX test suite', function () {
         assert.equal( afterTxBal.traderLiquidity.toString() , afterTxBal.traderLiquidity.toString(), `Trader's liquidity is wrong.` )
     });
 
-    it('Alice sells fixed core asset to buy tokenAsssetId_1', async function() {
+    it('duplicate => Alice sells fixed core asset to buy tokenAsssetId_1', async function() {
+        const mp = new cennzx.MethodParameter()
+        mp.method          = cennzx.assetSwapInput
+        mp.traderSeed      = 'Alice'
+        mp.assetIdSell     = coreAsssetId
+        mp.assetIdBuy      = tokenAsssetId_1
+        mp.amountSell      = '10000'
+        mp.minAmountBuy    = '2'
+
+        await cennzx.checkMethod(mp)
+        
+    });
+
+    it.skip('Alice sells fixed core asset to buy tokenAsssetId_1', async function() {
         const traderSeed        = 'Alice'
         const assetIdSold       = coreAsssetId
         const assetIdBought     = tokenAsssetId_1 
@@ -648,7 +655,25 @@ describe('CennzX test suite', function () {
             `Trader's liquidity is wrong.` )
     });
 
-    it(`Eve spends 'tokenAsssetId_2' to transfer fixed 'tokenAsssetId_1' to Dave`, async function() {
+    it.only(`duplicate => Eve spends 'tokenAsssetId_2' to transfer fixed 'tokenAsssetId_1' to Dave`, async function() {
+
+        const mp = new cennzx.MethodParameter()
+        mp.method          = cennzx.assetSwapOutput
+        mp.traderSeed      = 'Eve'
+        mp.recipient       = 'Dave'
+        mp.assetIdSell     = tokenAsssetId_2
+        mp.assetIdBuy      = tokenAsssetId_1
+        mp.amountBuy       = '1000'
+        mp.maxAmountSell   = '20000'
+
+        // top up assetSell account
+        let txResult = await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.maxAmountSell, mp.assetIdSell)
+        assert(txResult.bSucc, `Call transfer() failed. [MSG = ${txResult.message}]`)
+
+        await cennzx.checkMethod(mp)
+    });
+
+    it.skip(`Eve spends 'tokenAsssetId_2' to transfer fixed 'tokenAsssetId_1' to Dave`, async function() {
 
         const traderSeed            = 'Eve'
         const recipient             = 'Dave'
