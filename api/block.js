@@ -73,6 +73,6 @@ module.exports.waitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi) 
 }
 
 // await specified block number
-module.exports.getCurrentBlockIndex = async function ( blockNum, nodeApi = bootNodeApi) {
+module.exports.getCurrentBlockIndex = async function (nodeApi = bootNodeApi) {
     return await this.waitBlockCnt(0)
 }

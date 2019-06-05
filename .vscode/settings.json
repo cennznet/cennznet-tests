@@ -1,5 +1,5 @@
 {
     "code-runner.executorMap": {
-        "javascript": "node"
+        "javascript": "/usr/local/bin/node"
     },
 }

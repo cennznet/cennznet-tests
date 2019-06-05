@@ -14,6 +14,8 @@
 
 "use strict";
 
+const mlog = require('mocha-logger')
+const {GenericAsset} = require('@cennznet/crml-generic-asset')
 const { bootNodeApi } = require('./websocket');
 const { TxResult, CURRENCY, keypairCryptoType } = require('./definition');
 const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
@@ -101,10 +103,10 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                 txResult.txFee = await queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
 
                 // check if the extrinsic succeeded
-                r.events.forEach(({ phase, event: { data, method, section } }) => {
+                r.events.forEach( ({ phase, event: { data, method, section } }) => {
                     if ( method == 'ExtrinsicFailed'){
                         txResult.bSucc = false
-                        txResult.message = `Transaction failed: ${section}.${method}`
+                        txResult.message = `Transaction failed at block(${txResult.blockHash}): ${section}.${method}`
                     }
                 });
 
@@ -195,8 +197,10 @@ async function topupTestAccount(){
         return
     }
 
+    mlog.log('Top up test account...')
+
     let txCnt = 0
-    // const transferFee = BigNumber(await getTransferFee())
+    const transferFee = 10000 //BigNumber(await getTransferFee())
     const fromSeed = 'Andrea'   // or change a wealthy account seed
     // topup spending and staking balance, topup: Alice, Bob, Charlie, Dave, Eve, Ferdie. These are endowed accounts in local node.
     const toSeedLst = ['Alice', 'Bob', 'Charlie', 'Dave', 'Eve', 'Ferdie'] 

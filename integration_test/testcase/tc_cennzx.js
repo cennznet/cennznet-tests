@@ -19,53 +19,77 @@ const cennzx = require('../../api/cennzx')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
 const BigNumber = require('big-number')
-// const CennzXBalance = require('')
+const mlog = require('mocha-logger')
 
 
-var coreAsssetId = -1
-var tokenAsssetId = -1
-var tokenIssuerSeed = 'Bob'
-const tokenTotalAmount = 1000000
-var exchangeFeeRate = 0
+var     coreAsssetId        = -1
+var     tokenAsssetId_1     = -1
+var     tokenAsssetId_2     = -1
+var     tokenIssuerSeed     = 'Bob'
+const   tokenTotalAmount    = 1000000
+var     exchangeFeeRate     = 0
 
-describe('TODO:(await new version release) CennzX test suite', function () {
+/**
+ * Formula for token exchange:
+ * -- Buy token: [poolCoreBal + coreAmt] * (poolTokenBal - amountBought) = poolCoreBal * poolTokenBal
+ *       @ Buy fixed amount of token: finalCoreCost = coreAmt ( 1 + feeRate )
+ *       @ Sell fixed amount of core: coreAmt = totalCoreSellAmount / ( 1 + feeRate )
+ *            
+ * -- Buy core: [poolCoreBal - coreAmt] * (poolTokenBal + amountBought) = poolCoreBal * poolTokenBal
+ *       @ Buy fixed amount of core: finalCoreCost = amountBought ( 1 + feeRate )
+ *       @ Sell fixed amount of token: amountBought = totalTokenSellAmount / ( 1 + feeRate )
+ * 
+ */
+
+describe('CennzX test suite', function () {
     
     before( async function(){
-        // await node.topupTestAccount()    // only for remote test
-
-        // create new token
-        tokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
 
         // get core asset id
         coreAsssetId = (await cennzx.getCoreAssetId()).toString()
+        mlog.log('Core asset ID =', coreAsssetId)
+        mlog.log('Pool address =', await cennzx.getExchangeAddress(tokenAsssetId_1))
 
-        // let feeRate = (await cennzx.getFeeRate()).toString()
-        // exchangeFeeRate = parseInt(feeRate) / 1000000.0     // the feeRate is for per mill
+        // create new token_1
+        tokenAsssetId_1 = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
+        mlog.log('Create new token_1 ID =', tokenAsssetId_1)
+
+        const feeRate = (await cennzx.defaultFeeRate()).toString()
+        exchangeFeeRate = feeRate / 1000000.0     // the feeRate is for per mill
+
+        mlog.log('Exchange fee rate =', exchangeFeeRate.toString())
+
+        // create new token_2
+        tokenAsssetId_2 = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
+        mlog.log('Create new token_2 ID =', tokenAsssetId_2)
+        mlog.log('Pool address =', await cennzx.getExchangeAddress(tokenAsssetId_2))
+
+        // create pool for tokenAsssetId_2
+        const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '100000', '200000')
+        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+        mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
     })
 
-    after(function(){
-    })
-
-    it('Bob creates pool and liquidity for a new token - 1st time to call addLiquidity()', async function() {
+    it.only('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function() {
         
-        const traderSeed = tokenIssuerSeed // Bob
+        const traderSeed            = tokenIssuerSeed // Bob
         const minLiquidityWanted    = 2
         const maxAssetAmountInput   = 100000
         const coreAmountInput       = 200000
 
         // get all balances before tx
-        const beforeTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1)
         await beforeTxBal.getAll()
 
-        // first add the liquidity
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
+        // first add the liquidity for tokenAsssetId_1
+        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
         assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
 
         // get tx fee
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1)
         await afterTxBal.getAll()
 
         // check issuer's token balance
@@ -92,93 +116,482 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         assert.equal( afterTxBal.traderLiquidity , coreAmountInput, `Trader's liquidity is wrong.` )
     });
 
-    it('Alice swap core asset to token asset', async function() {
-        const traderSeed = 'Alice'
-        const tokenAmountBought = 14005
-        const maxCoreAssetSold = 200000
+    it.only('TODO: new framework test== Alice spends core asset to buy fixed tokenAsssetId_1', async function() {
+        const methodParameter = new cennzx.MethodParameter()
+        methodParameter.method          = cennzx.assetSwapOutput
+        methodParameter.traderSeed      = 'Alice'
+        methodParameter.assetIdSell     = coreAsssetId
+        methodParameter.assetIdBuy      = tokenAsssetId_1
+        methodParameter.amountBuy       = '50000'
+        methodParameter.maxAmountSell   = '2000000'
+
+        const checker = new cennzx.BalanceChecker(methodParameter)
+        await checker.checkMethod()
+        
+        
+
+        // let display = new cennzx.CennzXBalance(methodParameter.traderSeed, methodParameter.assetIdBuy)
+        // await display.displayInfo()
+    });
+
+    it('Alice spends core asset to buy fixed tokenAsssetId_1', async function() {
+        const traderSeed        = 'Alice'
+        const amountBought      = '50000'
+        const maxCoreAssetSold  = '2000000'
 
         // get all balances before tx
-        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1)
         await beforeTxBal.getAll()
 
-        // call getCoreToAssetOutputPrice() to verify its value
-        const coreToTokenPrice = await cennzx.getCoreToAssetOutputPrice(tokenAsssetId, tokenAmountBought, traderSeed)
+        // get estimated price
+        const coreToTokenOutputPrice = await cennzx.getOutputPrice(coreAsssetId, tokenAsssetId_1, amountBought)
 
         // swap core to token
-        const txResult = await cennzx.coreToAssetSwapOutput(traderSeed, tokenAsssetId, tokenAmountBought, maxCoreAssetSold)
-        assert(txResult.bSucc, `Call coreToAssetSwapOutput() failed. [MSG = ${txResult.message}]`)
+        const txResult = await cennzx.assetSwapOutput(traderSeed, coreAsssetId, tokenAsssetId_1, amountBought, maxCoreAssetSold)
+        assert(txResult.bSucc, `Call assetSwapOutput() failed. [MSG = ${txResult.message}]`)
 
         // get all balance after tx
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
         await afterTxBal.getAll()
 
         /**
          * Calculate the estimated core asset spen
-         * - formula: [poolCoreBal + coreAmt] * (poolTokenBal - tokenAmountBought) = poolCoreBal * poolTokenBal
-         *            coreAmt = [ poolCoreBal * poolTokenBal / (poolTokenBal - tokenAmountBought) - poolCoreBal ]
+         * - formula: [poolCoreBal + coreAmt] * (poolTokenBal - amountBought) = poolCoreBal * poolTokenBal
+         *            coreAmt = [ poolCoreBal * poolTokenBal / (poolTokenBal - amountBought) - poolCoreBal ]
          *            finalCoreCost = coreAmt ( 1 + feeRate )
          * - [coreAmt] should be rounded up to an integer, but [finalCoreCost] not
          */
-        let finalCoreSpent = beforeTxBal.poolCoreAsssetBal * tokenAmountBought / ( beforeTxBal.poolTokenAsssetBal - tokenAmountBought )
-        finalCoreSpent = Math.ceil(finalCoreSpent)
+        /*
+        let finalCoreSpent2 = beforeTxBal.poolCoreAsssetBal * amountBought / ( beforeTxBal.poolTokenAsssetBal - amountBought )
+        finalCoreSpent2 = Math.ceil(finalCoreSpent2)
         // add fee
-        finalCoreSpent = Math.floor( finalCoreSpent * ( 1 + exchangeFeeRate))
+        finalCoreSpent2 = Math.floor( finalCoreSpent2 * ( 1 + exchangeFeeRate))
 
         // check query price and excepted price
         assert.equal( 
             coreToTokenPrice , 
             finalCoreSpent, 
-            `Value from getCoreToAssetOutputPrice() is wrong. ` )
+            `Value from getOutputPrice() is wrong. ` )
+        */
 
         // check trader's token balance
         assert.equal( 
-            afterTxBal.traderTokenAssetBal , 
-            BigNumber(beforeTxBal.traderTokenAssetBal).add(tokenAmountBought).toString(), 
+            afterTxBal.traderTokenAssetBal.toString() , 
+            BigNumber(beforeTxBal.traderTokenAssetBal).add(amountBought).toString(), 
             `Token asset balance is wrong. ` )
         // check trader's core balance
         assert.equal( 
-            afterTxBal.traderCoreAssetBal,
-            BigNumber(beforeTxBal.traderCoreAssetBal).minus(finalCoreSpent + txFee).toString(), 
-            `Core asset balance is wrong. `)
+            afterTxBal.traderCoreAssetBal.toString(),
+            BigNumber(beforeTxBal.traderCoreAssetBal).minus(coreToTokenOutputPrice).minus(txFee).toString(), 
+            `Trader's core asset balance is wrong. `)
         // check core asset balance in exchange address
         assert.equal( 
-            afterTxBal.poolCoreAsssetBal, 
-            BigNumber(beforeTxBal.poolCoreAsssetBal).add(finalCoreSpent).toString(), 
+            afterTxBal.poolCoreAsssetBal.toString(), 
+            BigNumber(beforeTxBal.poolCoreAsssetBal).add(coreToTokenOutputPrice).toString(), 
             `Exchange core asset balance is wrong.`)
         // check token asset balance in exchange address
         assert.equal( 
-            afterTxBal.poolTokenAsssetBal , 
-            BigNumber(beforeTxBal.poolTokenAsssetBal).minus(tokenAmountBought).toString(), 
+            afterTxBal.poolTokenAsssetBal.toString() , 
+            BigNumber(beforeTxBal.poolTokenAsssetBal).minus(amountBought).toString(), 
             `Exchange token asset balance is wrong.` )
 
         // check total liquidity
-        assert.equal( afterTxBal.totalLiquidity , beforeTxBal.totalLiquidity, `Total liquidity is wrong.` )
+        assert.equal( afterTxBal.totalLiquidity.toString() , beforeTxBal.totalLiquidity.toString(), `Total liquidity is wrong.` )
         // check trader liquidity
-        assert.equal( afterTxBal.traderLiquidity , afterTxBal.traderLiquidity, `Trader's liquidity is wrong.` )
+        assert.equal( afterTxBal.traderLiquidity.toString() , afterTxBal.traderLiquidity.toString(), `Trader's liquidity is wrong.` )
     });
 
-    it('Alice adds new liquility - 2nd time to call addLiquidity()', async function() {
+    it('Alice sells fixed core asset to buy tokenAsssetId_1', async function() {
+        const traderSeed        = 'Alice'
+        const assetIdSold       = coreAsssetId
+        const assetIdBought     = tokenAsssetId_1 
+        const amountSell        = '10000'
+        const minReceive        = '2'
+
+        // get all balances before tx
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, assetIdBought)
+        await beforeTxBal.getAll()
+
+        await beforeTxBal.displayInfo()
+
+        // get estimated price
+        const coreToTokenInputPrice = await cennzx.getInputPrice(assetIdSold, assetIdBought, amountSell)
+        console.log('coreToTokenInputPrice =', coreToTokenInputPrice)
+
+        // swap core to token
+        const txResult = await cennzx.assetSwapInput(traderSeed, assetIdSold, assetIdBought, amountSell, minReceive)
+        assert(txResult.bSucc, `Call assetSwapOutput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+
+        // get all balances after tx
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, assetIdBought)
+        await afterTxBal.getAll()
+
+        await afterTxBal.displayInfo()
+
+        // check trader's token balance
+        assert.equal( 
+            afterTxBal.traderTokenAssetBal.toString(), 
+            BigNumber(beforeTxBal.traderTokenAssetBal).add(coreToTokenInputPrice).toString(), 
+            `Trader's token asset balance is wrong. ` )
+        // check trader's core balance
+        assert.equal( 
+            afterTxBal.traderCoreAssetBal.toString(),
+            BigNumber(beforeTxBal.traderCoreAssetBal).minus(amountSell).minus(txFee).toString(), 
+            `Trader's core asset balance is wrong. `)
+        // check core asset balance in exchange address
+        assert.equal( 
+            afterTxBal.poolCoreAsssetBal.toString(), 
+            BigNumber(beforeTxBal.poolCoreAsssetBal).add(amountSell).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check token asset balance in exchange address
+        assert.equal( 
+            afterTxBal.poolTokenAsssetBal.toString() , 
+            BigNumber(beforeTxBal.poolTokenAsssetBal).minus(coreToTokenInputPrice).toString(), 
+            `Exchange token asset balance is wrong.` )
+
+        // check total liquidity
+        assert.equal( afterTxBal.totalLiquidity.toString() , beforeTxBal.totalLiquidity.toString(), `Total liquidity is wrong.` )
+        // check trader liquidity
+        assert.equal( afterTxBal.traderLiquidity.toString() , afterTxBal.traderLiquidity.toString(), `Trader's liquidity is wrong.` )
+    });
+
+    it('Alice spends tokenAsssetId_1 to buy fixed core asset ', async function() {
+
+        const traderSeed       = 'Alice'
+        const assetIdSold      = tokenAsssetId_1
+        const assetIdBought    = coreAsssetId
+        const amountBought     = '10000'
+        const maxAmountSold    = '20000'
+
+
+        // top up asset account
+        await node.transfer(tokenIssuerSeed, traderSeed, maxAmountSold, assetIdSold)
+
+        // get all balances before tx
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1)
+        await beforeTxBal.getAll()
+        await beforeTxBal.displayInfo()
+
+        // get estimated price
+        const tokenToCoreOutputPrice = await cennzx.getOutputPrice(assetIdSold, assetIdBought, amountBought)
+        console.log('token2CoreOutputPrice = ', tokenToCoreOutputPrice)
+
+        // swap core to token
+        const txResult = await cennzx.assetSwapOutput(traderSeed, assetIdSold, assetIdBought, amountBought, maxAmountSold)
+        assert(txResult.bSucc, `Call assetSwapOutput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+
+        // get all balances after tx
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
+        await afterTxBal.getAll()
+        await afterTxBal.displayInfo()
+
+        // check trader's token balance
+        assert.equal( 
+            afterTxBal.traderTokenAssetBal.toString() , 
+            BigNumber(beforeTxBal.traderTokenAssetBal).minus(tokenToCoreOutputPrice).toString(), 
+            `Token asset balance is wrong. ` )
+        // check trader's core balance
+        assert.equal( 
+            afterTxBal.traderCoreAssetBal.toString(),
+            BigNumber(beforeTxBal.traderCoreAssetBal).add(amountBought).minus(txFee).toString(), 
+            `Trader's core asset balance is wrong. `)
+        // check core asset balance in exchange address
+        assert.equal( 
+            afterTxBal.poolCoreAsssetBal.toString(), 
+            BigNumber(beforeTxBal.poolCoreAsssetBal).minus(amountBought).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check token asset balance in exchange address
+        assert.equal( 
+            afterTxBal.poolTokenAsssetBal.toString() , 
+            BigNumber(beforeTxBal.poolTokenAsssetBal).add(tokenToCoreOutputPrice).toString(), 
+            `Exchange token asset balance is wrong.` )
+
+        // check total liquidity
+        assert.equal( afterTxBal.totalLiquidity.toString() , beforeTxBal.totalLiquidity.toString(), `Total liquidity is wrong.` )
+        // check trader liquidity
+        assert.equal( afterTxBal.traderLiquidity.toString() , afterTxBal.traderLiquidity.toString(), `Trader's liquidity is wrong.` )
+    });
+
+    it('Alice sells fixed tokenAsssetId_1 to buy core asset ', async function() {
+
+        const traderSeed        = 'Alice'
+        const assetIdSold       = tokenAsssetId_1
+        const assetIdBought     = coreAsssetId
+        const amountSell        = '5000'
+        const minReceive        = '2'
+
+        // top up asset account
+        // await node.transfer(tokenIssuerSeed, traderSeed, maxAmountSold, assetIdSold)
+
+        // get all balances before tx
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, assetIdSold)
+        await beforeTxBal.getAll()
+        await beforeTxBal.displayInfo()
+
+        // get estimated price
+        const core2Token_inputPrice = await cennzx.getInputPrice(assetIdSold, assetIdBought, amountSell)
+        console.log('core2Token_inputPrice = ', core2Token_inputPrice)
+
+        // swap core to token
+        const txResult = await cennzx.assetSwapInput(traderSeed, assetIdSold, assetIdBought, amountSell, minReceive)
+        assert(txResult.bSucc, `Call assetSwapInput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+
+        // get all balances after tx
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, assetIdSold)
+        await afterTxBal.getAll()
+        await afterTxBal.displayInfo()
+
+        // check trader's token balance
+        assert.equal( 
+            afterTxBal.traderTokenAssetBal.toString(), 
+            BigNumber(beforeTxBal.traderTokenAssetBal).minus(amountSell).toString(), 
+            `Trader's token asset balance is wrong. ` )
+        // check trader's core balance
+        assert.equal( 
+            afterTxBal.traderCoreAssetBal.toString(),
+            BigNumber(beforeTxBal.traderCoreAssetBal).add(core2Token_inputPrice).minus(txFee).toString(), 
+            `Trader's core asset balance is wrong. `)
+        // check core asset balance in exchange address
+        assert.equal( 
+            afterTxBal.poolCoreAsssetBal.toString(), 
+            BigNumber(beforeTxBal.poolCoreAsssetBal).minus(core2Token_inputPrice).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check token asset balance in exchange address
+        assert.equal( 
+            afterTxBal.poolTokenAsssetBal.toString() , 
+            BigNumber(beforeTxBal.poolTokenAsssetBal).add(amountSell).toString(), 
+            `Exchange token asset balance is wrong.` )
+
+        // check total liquidity
+        assert.equal( afterTxBal.totalLiquidity.toString() , beforeTxBal.totalLiquidity.toString(), `Total liquidity is wrong.` )
+        // check trader liquidity
+        assert.equal( afterTxBal.traderLiquidity.toString() , afterTxBal.traderLiquidity.toString(), `Trader's liquidity is wrong.` )
+    });
+
+    it(`Alice spends 'tokenAsssetId_2' to buy fixed 'tokenAsssetId_1'`, async function() {
+
+        const traderSeed       = 'Alice'
+        const assetIdSold      = tokenAsssetId_2
+        const assetIdBought    = tokenAsssetId_1
+        const amountBought     = '1000'
+        const maxAmountSold    = '20000'
+
+        // top up asset account
+        await node.transfer(tokenIssuerSeed, traderSeed, maxAmountSold, assetIdSold)
+
+        // get all balances before tx
+        const assetSoldBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdSold)
+        const assetBoughtBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdBought)
+        await assetSoldBal_beforeTx.getAll()
+        await assetBoughtBal_beforeTx.getAll()
+
+        await assetSoldBal_beforeTx.displayInfo()
+        await assetBoughtBal_beforeTx.displayInfo()
+
+        // get estimated price
+        const swapPrice = await cennzx.getOutputPrice(assetIdSold, assetIdBought, amountBought)
+        console.log(`swapPrice ${assetIdSold} -> ${assetIdBought}=`, swapPrice)
+        console.log(`swapPrice ${assetIdBought} -> ${assetIdSold}=`, await cennzx.getOutputPrice(assetIdBought, assetIdSold, amountBought))
+
+        const coreToAssetBought_price = await cennzx.getOutputPrice(coreAsssetId, assetIdBought, amountBought)
+
+        // test --->
+        const assetSoldToCore_price = await cennzx.getOutputPrice(assetIdSold, coreAsssetId, coreToAssetBought_price)
+        console.log('coreToAssetBought_price =', coreToAssetBought_price)
+        console.log('assetSoldToCore_price =', assetSoldToCore_price)
+        // <---
+
+        // swap core to token
+        const txResult = await cennzx.assetSwapOutput(traderSeed, assetIdSold, assetIdBought, amountBought, maxAmountSold)
+        assert(txResult.bSucc, `Call assetSwapOutput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+        console.log('txFee =', txFee)
+
+        // get all balances after tx
+        const assetSoldBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdSold)
+        const assetBoughtBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdBought)
+        await assetSoldBal_afterTx.getAll()
+        await assetBoughtBal_afterTx.getAll()
+
+        await assetSoldBal_afterTx.displayInfo()
+        await assetBoughtBal_afterTx.displayInfo()
+
+        // check trader's assetSold balance
+        assert.equal( 
+            assetSoldBal_afterTx.traderTokenAssetBal , 
+            BigNumber(assetSoldBal_beforeTx.traderTokenAssetBal).minus(swapPrice).toString(), 
+            `Trader's assetSold(${assetIdSold}) balance is wrong.` )
+        // check trader's assetBought balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderTokenAssetBal , 
+            BigNumber(assetBoughtBal_beforeTx.traderTokenAssetBal).add(amountBought).toString(), 
+            `Trader's assetBought(${assetIdBought}) balance is wrong.` )
+        // check trader's core asset balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderCoreAssetBal,
+            BigNumber(assetBoughtBal_beforeTx.traderCoreAssetBal).minus(txFee).toString(), 
+            `Trader's core asset(${coreAsssetId}) balance is wrong.`)
+
+        // check core asset balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetSoldBal_beforeTx.poolCoreAsssetBal).minus(coreToAssetBought_price).toString(), 
+            `Core asset balance is wrong in assetSold(${assetIdSold}) exchange pool.`)
+        // check assetSold balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetSoldBal_beforeTx.poolTokenAsssetBal).add(swapPrice).toString(), 
+            `AssetSold(${assetIdSold}) balance is wrong in its exchange pool.` )
+
+        // check core asset balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetBoughtBal_beforeTx.poolCoreAsssetBal).add(coreToAssetBought_price).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check assetBought balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetBoughtBal_beforeTx.poolTokenAsssetBal).minus(amountBought).toString(), 
+            `Exchange token asset balance is wrong.` )
+
+        // check total liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.totalLiquidity , assetSoldBal_beforeTx.totalLiquidity, `Total liquidity of assetSold is wrong.` )
+        // check trader liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.traderLiquidity , assetSoldBal_beforeTx.traderLiquidity, `Trader's liquidity assetSold is wrong.` )
+
+        // check total liquidity for assetBought
+        assert.equal( assetBoughtBal_afterTx.totalLiquidity , assetBoughtBal_beforeTx.totalLiquidity, `Total liquidity of assetBought is wrong.` )
+        // check trader liquidity for token_2
+        assert.equal( assetBoughtBal_afterTx.traderLiquidity , assetBoughtBal_beforeTx.traderLiquidity, `Trader's liquidity of assetBought is wrong.` )
+    });
+
+    it(`Alice sells fixed 'tokenAsssetId_2' to buy 'tokenAsssetId_1'`, async function() {
+
+        const traderSeed       = 'Alice'
+        const assetIdSold      = tokenAsssetId_2
+        const assetIdBought    = tokenAsssetId_1
+        const amountSell       = '5000'
+        const minReceive       = '2'
+
+        // top up asset account
+        await node.transfer(tokenIssuerSeed, traderSeed, amountSell, assetIdSold)
+
+        // get all balances before tx
+        const assetSoldBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdSold)
+        const assetBoughtBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdBought)
+        await assetSoldBal_beforeTx.getAll()
+        await assetBoughtBal_beforeTx.getAll()
+
+        // await assetSoldBal_beforeTx.displayInfo()
+        // await assetBoughtBal_beforeTx.displayInfo()
+
+        // query swap price
+        const token2ToToken1_inputPrice = await cennzx.getInputPrice(assetIdSold, assetIdBought, amountSell)
+        const token2ToCore_inputPrice = await cennzx.getInputPrice(assetIdSold, coreAsssetId, amountSell)
+
+        // swap core to token
+        const txResult = await cennzx.assetSwapInput(traderSeed, assetIdSold, assetIdBought, amountSell, minReceive)
+        assert(txResult.bSucc, `Call assetSwapInput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+        // console.log('txFee =', txFee)
+
+        // get all balances after tx
+        const assetSoldBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdSold)
+        const assetBoughtBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdBought)
+        await assetSoldBal_afterTx.getAll()
+        await assetBoughtBal_afterTx.getAll()
+
+        // await assetSoldBal_afterTx.displayInfo()
+        // await assetBoughtBal_afterTx.displayInfo()
+
+        // check trader's assetSold balance
+        assert.equal( 
+            assetSoldBal_afterTx.traderTokenAssetBal , 
+            BigNumber(assetSoldBal_beforeTx.traderTokenAssetBal).minus(amountSell).toString(), 
+            `Trader's assetSold(${assetIdSold}) balance is wrong.` )
+        // check trader's assetBought balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderTokenAssetBal , 
+            BigNumber(assetBoughtBal_beforeTx.traderTokenAssetBal).add(token2ToToken1_inputPrice).toString(), 
+            `Trader's assetBought(${assetIdBought}) balance is wrong.` )
+        // check trader's core asset balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderCoreAssetBal,
+            BigNumber(assetBoughtBal_beforeTx.traderCoreAssetBal).minus(txFee).toString(), 
+            `Trader's core asset(${coreAsssetId}) balance is wrong.`)
+
+        // check core asset balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetSoldBal_beforeTx.poolCoreAsssetBal).minus(token2ToCore_inputPrice).toString(), 
+            `Core asset balance is wrong in assetSold(${assetIdSold}) exchange pool.`)
+        // check assetSold balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetSoldBal_beforeTx.poolTokenAsssetBal).add(amountSell).toString(), 
+            `AssetSold(${assetIdSold}) balance is wrong in its exchange pool.` )
+
+        // check core asset balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetBoughtBal_beforeTx.poolCoreAsssetBal).add(token2ToCore_inputPrice).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check assetBought balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetBoughtBal_beforeTx.poolTokenAsssetBal).minus(token2ToToken1_inputPrice).toString(), 
+            `Exchange token asset balance is wrong.` )
+
+        // check total liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.totalLiquidity , assetSoldBal_beforeTx.totalLiquidity, `Total liquidity of assetSold is wrong.` )
+        // check trader liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.traderLiquidity , assetSoldBal_beforeTx.traderLiquidity, `Trader's liquidity assetSold is wrong.` )
+
+        // check total liquidity for assetBought
+        assert.equal( assetBoughtBal_afterTx.totalLiquidity , assetBoughtBal_beforeTx.totalLiquidity, `Total liquidity of assetBought is wrong.` )
+        // check trader liquidity for token_2
+        assert.equal( assetBoughtBal_afterTx.traderLiquidity , assetBoughtBal_beforeTx.traderLiquidity, `Trader's liquidity of assetBought is wrong.` )
+    });
+
+    it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function() {
         const minLiquidityWanted    = 2
         const maxAssetAmountInput   = 10000
         const coreAmountInput       = 20000
         const traderSeed            = 'Alice'
 
         // get all balances before tx
-        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
         await beforeTxBal.getAll()
 
+        // await displayInfo(traderSeed)
+
         // add new liquidity
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
+        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
         assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+
+        // await displayInfo(traderSeed)
 
         // get tx fee
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
         await afterTxBal.getAll()
 
 
@@ -233,83 +646,220 @@ describe('TODO:(await new version release) CennzX test suite', function () {
             afterTxBal.traderLiquidity , 
             BigNumber(beforeTxBal.traderLiquidity ).add( estimatedLiquidityMinted ).toString(), 
             `Trader's liquidity is wrong.` )
-        
     });
 
-    it('Eve (only has core asset) transfers token asset to Dave', async function() {
-        
-        const maxCoreSold           = 1000000
-        const tokenAmountBought     = 15000
+    it(`Eve spends 'tokenAsssetId_2' to transfer fixed 'tokenAsssetId_1' to Dave`, async function() {
+
         const traderSeed            = 'Eve'
-        const reciepent             = 'Dave'
+        const recipient             = 'Dave'
+        const assetIdSold           = tokenAsssetId_2
+        const assetIdBought         = tokenAsssetId_1
+        const amountBought          = '1000'
+        const maxAmountSold         = '20000'
+
+        let txResult = null
+
+        // top up asset account
+        txResult = await node.transfer(tokenIssuerSeed, traderSeed, maxAmountSold, assetIdSold)
+        assert(txResult.bSucc, `Call transfer() failed. [MSG = ${txResult.message}]`)
+
+        // get reciepent's token balance
+        const reciepentTokenBal_beforeTx = await node.queryFreeBalance(recipient, assetIdBought)
 
         // get all balances before tx
-        const beforeTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
-        await beforeTxBal.getAll()
+        const assetSoldBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdSold, coreAsssetId)
+        const assetBoughtBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdBought, coreAsssetId)
+        await assetSoldBal_beforeTx.getAll()
+        await assetBoughtBal_beforeTx.getAll()
+
+        // await assetSoldBal_beforeTx.displayInfo()
+        // await assetBoughtBal_beforeTx.displayInfo()
+
+        // get estimated price
+        const swapPrice = await cennzx.getOutputPrice(assetIdSold, assetIdBought, amountBought)
+
+        const coreToAssetBought_price = await cennzx.getOutputPrice(coreAsssetId, assetIdBought, amountBought)
+
+        // swap core to token
+        txResult = await cennzx.assetTransferOutput(traderSeed, recipient, assetIdSold, assetIdBought, amountBought, maxAmountSold)
+        assert(txResult.bSucc, `Call assetTransferOutput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+        // console.log('txFee =', txFee)
 
         // get reciepent's token balance
-        const reciepentTokenBal_beforeTx = await node.queryFreeBalance(reciepent, tokenAsssetId)
-
-        // swap and transfer.
-        const txResult = await cennzx.coreToAssetTransferOutput(traderSeed, reciepent, tokenAsssetId, tokenAmountBought, maxCoreSold)
-        assert(txResult.bSucc, `Call coreToAssetTransferOutput() failed. [MSG = ${txResult.message}]`)
-
-        // get tx fee
-        const txFee = txResult.txFee
-        console.log('txFee =', txFee)
+        const reciepentTokenBal_afterTx = await node.queryFreeBalance(recipient, assetIdBought)
 
         // get all balances after tx
-        const afterTxBal = new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
-        await afterTxBal.getAll()
+        const assetSoldBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdSold, coreAsssetId)
+        const assetBoughtBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdBought, coreAsssetId)
+        await assetSoldBal_afterTx.getAll()
+        await assetBoughtBal_afterTx.getAll()
 
-        // get reciepent's token balance
-        const reciepentTokenBal_afterTx = await node.queryFreeBalance(reciepent, tokenAsssetId)
-        console.log('reciepentTokenBal_afterTx =', reciepentTokenBal_afterTx)
+        // await assetSoldBal_afterTx.displayInfo()
+        // await assetBoughtBal_afterTx.displayInfo()
 
-        /**
-         * Calculate the estimated core asset spent.
-         * - formula: [poolCoreBal + coreAmt(1 - feeRate)] * (poolTokenBal - tokenAmountBought) = poolCoreBal * poolTokenBal
-         *            coreAmt = [ poolCoreBal * poolTokenBal / (poolTokenBal - tokenAmountBought) - poolCoreBal ] / (1 - feeRate)
-         *                    = poolCoreBal * tokenAmountBought / (poolTokenBal - tokenAmountBought) / (1 - feeRate)
-         * - result should be rounded up to an integer
-         */
-        let finalCoreSpent = beforeTxBal.poolCoreAsssetBal * tokenAmountBought / ( beforeTxBal.poolTokenAsssetBal - tokenAmountBought )
-        finalCoreSpent = Math.ceil(finalCoreSpent)
-        // add fee
-        finalCoreSpent = Math.floor( finalCoreSpent * ( 1 + exchangeFeeRate))
-        console.log('finalCoreSpent =', finalCoreSpent)
-
-        // check trader's core balance
-        assert.equal( 
-            afterTxBal.traderCoreAssetBal,
-            BigNumber(beforeTxBal.traderCoreAssetBal).minus(finalCoreSpent + txFee).toString(), 
-            `Trader's core asset balance is wrong. `)
-
-        // check recipient's token balance
+        // check recipient's assetIdBought balance
         assert.equal( 
             reciepentTokenBal_afterTx,
-            BigNumber(reciepentTokenBal_beforeTx).add(tokenAmountBought).toString(), 
+            BigNumber(reciepentTokenBal_beforeTx).add(amountBought).toString(), 
             `Recipient's core asset balance is wrong. `)
 
-        // check core asset balance in exchange address
+        // check trader's assetSold balance
         assert.equal( 
-            afterTxBal.poolCoreAsssetBal, 
-            BigNumber(beforeTxBal.poolCoreAsssetBal).add(finalCoreSpent).toString(), 
-            `Exchange core asset balance is wrong.`)
+            assetSoldBal_afterTx.traderTokenAssetBal , 
+            BigNumber(assetSoldBal_beforeTx.traderTokenAssetBal).minus(swapPrice).toString(), 
+            `Trader's assetSold(${assetIdSold}) balance is wrong.` )
+        // check trader's assetBought balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderTokenAssetBal, 
+            assetBoughtBal_beforeTx.traderTokenAssetBal, 
+            `Trader's assetBought(${assetIdBought}) balance is wrong.` )
+        // check trader's core asset balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderCoreAssetBal,
+            BigNumber(assetBoughtBal_beforeTx.traderCoreAssetBal).minus(txFee).toString(), 
+            `Trader's core asset(${coreAsssetId}) balance is wrong.`)
 
-        // check token asset balance in exchange address
+        // check core asset balance in assetSold exchange pool
         assert.equal( 
-            afterTxBal.poolTokenAsssetBal , 
-            BigNumber(beforeTxBal.poolTokenAsssetBal).minus(tokenAmountBought).toString(), 
+            assetSoldBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetSoldBal_beforeTx.poolCoreAsssetBal).minus(coreToAssetBought_price).toString(), 
+            `Core asset balance is wrong in assetSold(${assetIdSold}) exchange pool.`)
+        // check assetSold balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetSoldBal_beforeTx.poolTokenAsssetBal).add(swapPrice).toString(), 
+            `AssetSold(${assetIdSold}) balance is wrong in its exchange pool.` )
+
+        // check core asset balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetBoughtBal_beforeTx.poolCoreAsssetBal).add(coreToAssetBought_price).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check assetBought balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetBoughtBal_beforeTx.poolTokenAsssetBal).minus(amountBought).toString(), 
             `Exchange token asset balance is wrong.` )
 
-        // check total liquidity
-        assert.equal( afterTxBal.totalLiquidity , beforeTxBal.totalLiquidity, `Total liquidity is wrong.` )
-        // check trader liquidity
-        assert.equal( afterTxBal.traderLiquidity , afterTxBal.traderLiquidity, `Trader's liquidity is wrong.` )
+        // check total liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.totalLiquidity , assetSoldBal_beforeTx.totalLiquidity, `Total liquidity of assetSold is wrong.` )
+        // check trader liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.traderLiquidity , assetSoldBal_beforeTx.traderLiquidity, `Trader's liquidity assetSold is wrong.` )
+
+        // check total liquidity for assetBought
+        assert.equal( assetBoughtBal_afterTx.totalLiquidity , assetBoughtBal_beforeTx.totalLiquidity, `Total liquidity of assetBought is wrong.` )
+        // check trader liquidity for token_2
+        assert.equal( assetBoughtBal_afterTx.traderLiquidity , assetBoughtBal_beforeTx.traderLiquidity, `Trader's liquidity of assetBought is wrong.` )
     });
 
-    it.skip('TODO: Bob swap one token asset with another token asset', async function() {
+    it(`TODO: Eve sells fixed 'tokenAsssetId_2' to transfer 'tokenAsssetId_1' to Dave`, async function() {
+
+        const traderSeed            = 'Eve'
+        const recipient             = 'Dave'
+        const assetIdSold           = tokenAsssetId_2
+        const assetIdBought         = tokenAsssetId_1
+        const amountBought          = '1000'
+        const maxAmountSold         = '20000'
+
+        let txResult = null
+
+        // top up asset account
+        txResult = await node.transfer(tokenIssuerSeed, traderSeed, maxAmountSold, assetIdSold)
+        assert(txResult.bSucc, `Call transfer() failed. [MSG = ${txResult.message}]`)
+
+        // get reciepent's token balance
+        const reciepentTokenBal_beforeTx = await node.queryFreeBalance(recipient, assetIdBought)
+
+        // get all balances before tx
+        const assetSoldBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdSold, coreAsssetId)
+        const assetBoughtBal_beforeTx = new cennzx.CennzXBalance(traderSeed, assetIdBought, coreAsssetId)
+        await assetSoldBal_beforeTx.getAll()
+        await assetBoughtBal_beforeTx.getAll()
+
+        // await assetSoldBal_beforeTx.displayInfo()
+        // await assetBoughtBal_beforeTx.displayInfo()
+
+        // get estimated price
+        const swapPrice = await cennzx.getOutputPrice(assetIdSold, assetIdBought, amountBought)
+
+        const coreToAssetBought_price = await cennzx.getOutputPrice(coreAsssetId, assetIdBought, amountBought)
+
+        // swap core to token
+        txResult = await cennzx.assetTransferOutput(traderSeed, recipient, assetIdSold, assetIdBought, amountBought, maxAmountSold)
+        assert(txResult.bSucc, `Call assetTransferOutput() failed. [MSG = ${txResult.message}]`)
+
+        // get all balance after tx
+        const txFee = txResult.txFee
+        // console.log('txFee =', txFee)
+
+        // get reciepent's token balance
+        const reciepentTokenBal_afterTx = await node.queryFreeBalance(recipient, assetIdBought)
+
+        // get all balances after tx
+        const assetSoldBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdSold, coreAsssetId)
+        const assetBoughtBal_afterTx = new cennzx.CennzXBalance(traderSeed, assetIdBought, coreAsssetId)
+        await assetSoldBal_afterTx.getAll()
+        await assetBoughtBal_afterTx.getAll()
+
+        // await assetSoldBal_afterTx.displayInfo()
+        // await assetBoughtBal_afterTx.displayInfo()
+
+        // check recipient's assetIdBought balance
+        assert.equal( 
+            reciepentTokenBal_afterTx,
+            BigNumber(reciepentTokenBal_beforeTx).add(amountBought).toString(), 
+            `Recipient's core asset balance is wrong. `)
+
+        // check trader's assetSold balance
+        assert.equal( 
+            assetSoldBal_afterTx.traderTokenAssetBal , 
+            BigNumber(assetSoldBal_beforeTx.traderTokenAssetBal).minus(swapPrice).toString(), 
+            `Trader's assetSold(${assetIdSold}) balance is wrong.` )
+        // check trader's assetBought balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderTokenAssetBal, 
+            assetBoughtBal_beforeTx.traderTokenAssetBal, 
+            `Trader's assetBought(${assetIdBought}) balance is wrong.` )
+        // check trader's core asset balance
+        assert.equal( 
+            assetBoughtBal_afterTx.traderCoreAssetBal,
+            BigNumber(assetBoughtBal_beforeTx.traderCoreAssetBal).minus(txFee).toString(), 
+            `Trader's core asset(${coreAsssetId}) balance is wrong.`)
+
+        // check core asset balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetSoldBal_beforeTx.poolCoreAsssetBal).minus(coreToAssetBought_price).toString(), 
+            `Core asset balance is wrong in assetSold(${assetIdSold}) exchange pool.`)
+        // check assetSold balance in assetSold exchange pool
+        assert.equal( 
+            assetSoldBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetSoldBal_beforeTx.poolTokenAsssetBal).add(swapPrice).toString(), 
+            `AssetSold(${assetIdSold}) balance is wrong in its exchange pool.` )
+
+        // check core asset balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolCoreAsssetBal, 
+            BigNumber(assetBoughtBal_beforeTx.poolCoreAsssetBal).add(coreToAssetBought_price).toString(), 
+            `Exchange core asset balance is wrong.`)
+        // check assetBought balance in assetBought exchange pool
+        assert.equal( 
+            assetBoughtBal_afterTx.poolTokenAsssetBal , 
+            BigNumber(assetBoughtBal_beforeTx.poolTokenAsssetBal).minus(amountBought).toString(), 
+            `Exchange token asset balance is wrong.` )
+
+        // check total liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.totalLiquidity , assetSoldBal_beforeTx.totalLiquidity, `Total liquidity of assetSold is wrong.` )
+        // check trader liquidity for assetSold
+        assert.equal( assetSoldBal_afterTx.traderLiquidity , assetSoldBal_beforeTx.traderLiquidity, `Trader's liquidity assetSold is wrong.` )
+
+        // check total liquidity for assetBought
+        assert.equal( assetBoughtBal_afterTx.totalLiquidity , assetBoughtBal_beforeTx.totalLiquidity, `Total liquidity of assetBought is wrong.` )
+        // check trader liquidity for token_2
+        assert.equal( assetBoughtBal_afterTx.traderLiquidity , assetBoughtBal_beforeTx.traderLiquidity, `Trader's liquidity of assetBought is wrong.` )
     });
     
     it.skip('TODO: Pay tx fee with the new-created asset', async function() {
@@ -336,18 +886,18 @@ describe('TODO:(await new version release) CennzX test suite', function () {
         // await displayInfo(traderSeed)
 
         // get all balances before tx
-        const beforeTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const beforeTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
         await beforeTxBal.getAll()
 
         // first add the liquidity
-        const txResult = await cennzx.removeLiquidity(traderSeed, tokenAsssetId, burnedAmount, minAssetWithdraw, minCoreWithdraw)
+        const txResult = await cennzx.removeLiquidity(traderSeed, tokenAsssetId_1, burnedAmount, minAssetWithdraw, minCoreWithdraw)
         assert(txResult.bSucc, `Call removeLiquidity() failed. [MSG = ${txResult.message}]`)
 
         // get tx fee
         const txFee = txResult.txFee
 
         // get all balances after tx
-        const afterTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId, coreAsssetId)
+        const afterTxBal = await new cennzx.CennzXBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
         await afterTxBal.getAll()
 
 
@@ -403,31 +953,3 @@ describe('TODO:(await new version release) CennzX test suite', function () {
 });
 
 
-async function displayInfo(traderSeed) {
-            
-    console.log('coreAsssetId = ', coreAsssetId)
-    console.log('tokenAsssetId = ', tokenAsssetId)
-
-    let getLiquidityBalance_token = await cennzx.getLiquidityBalance(tokenAsssetId, traderSeed)
-    let getLiquidityBalance_token2 = await cennzx.getLiquidityBalance(tokenAsssetId, tokenIssuerSeed)
-    let getTotalLiquidity_token = await cennzx.getTotalLiquidity(tokenAsssetId, traderSeed)
-    let getExchangeAddress = await cennzx.getExchangeAddress(tokenAsssetId)
-    let poolCoreAsssetBal = await node.queryFreeBalance(getExchangeAddress, coreAsssetId)
-    let poolTokenAsssetBal = await node.queryFreeBalance(getExchangeAddress, tokenAsssetId)
-    let traderCoreAsssetBal = await node.queryFreeBalance(traderSeed, coreAsssetId)
-    let traderTokenAsssetBal = await node.queryFreeBalance(traderSeed, tokenAsssetId)
-
-    console.log(`getLiquidityBalance_token = ${traderSeed}`,    getLiquidityBalance_token.toString())
-    console.log(`getLiquidityBalance_token = ${tokenIssuerSeed}`,    getLiquidityBalance_token2.toString())
-    console.log('getTotalLiquidity_token =',      getTotalLiquidity_token.toString())
-    console.log('getExchangeAddress =',     getExchangeAddress.toString())
-    console.log('poolCoreAsssetBal =',  poolCoreAsssetBal.toString())
-    console.log('poolTokenAsssetBal =', poolTokenAsssetBal.toString())
-    console.log(`traderCoreAsssetBal = ${traderSeed}`,    traderCoreAsssetBal.toString())
-    console.log(`traderTokenAsssetBal = ${traderSeed}`,   traderTokenAsssetBal.toString())
-    console.log('-------------------')
-}
-
-/**
- * Class for save all relevant balances that will be verified
- */
