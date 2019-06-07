@@ -28,12 +28,11 @@ function MethodParameter(){
     this.recipientSeed  = ''
     this.assetIdSell    = ''
     this.assetIdBuy     = ''
-    this.amountSell     = ''
-    this.amountBuy      = ''
+    this.amountSell     = 0
+    this.amountBuy      = 0
     this.maxAmountSell  = '999999999'
-    this.minAmountBuy   = '1'
+    this.minAmountBuy   = 1
 }
-
 
 class SpotXBalance{
     /**
@@ -48,26 +47,26 @@ class SpotXBalance{
         this.amountBuy = methodParameter.amountBuy
         this.amountSell = methodParameter.amountSell
         
-        this.trader_assetCore_bal = ''
-        this.trader_assetSell_bal = ''
-        this.trader_assetBuy_bal  = ''
-        this.trader_poolAssetSell_liquidity = ''
-        this.trader_poolAssetBuy_liquidity  = ''
+        this.trader_assetCore_bal = 0
+        this.trader_assetSell_bal = 0
+        this.trader_assetBuy_bal  = 0
+        this.trader_poolAssetSell_liquidity = 0
+        this.trader_poolAssetBuy_liquidity  = 0
 
-        this.recipient_assetCore_bal = ''
-        this.recipient_assetSell_bal = ''
-        this.recipient_assetBuy_bal  = ''
-        this.recipient_poolAssetSell_liquidity = ''
-        this.recipient_poolAssetBuy_liquidity  = ''
+        this.recipient_assetCore_bal = 0
+        this.recipient_assetSell_bal = 0
+        this.recipient_assetBuy_bal  = 0
+        this.recipient_poolAssetSell_liquidity = 0
+        this.recipient_poolAssetBuy_liquidity  = 0
 
-        this.poolAssetSell_assetCore_bal = ''
-        this.poolAssetSell_assetSell_bal = ''
+        this.poolAssetSell_assetCore_bal = 0
+        this.poolAssetSell_assetSell_bal = 0
 
-        this.poolAssetBuy_assetCore_bal = ''
-        this.poolAssetBuy_assetBuy_bal  = ''
+        this.poolAssetBuy_assetCore_bal = 0
+        this.poolAssetBuy_assetBuy_bal  = 0
 
-        this.totalLiquidity_assetSell = ''
-        this.totalLiquidity_assetBuy  = ''
+        this.totalLiquidity_assetSell = 0
+        this.totalLiquidity_assetBuy  = 0
 
         this.coreAssetId = ''
     }
@@ -100,13 +99,6 @@ class SpotXBalance{
 
         this.totalLiquidity_assetSell = await getTotalLiquidity(this.assetIdSell)
         this.totalLiquidity_assetBuy  = await getTotalLiquidity(this.assetIdBuy)
-
-        // create big-nunmber object for each variable
-        // Object.keys(this).forEach(v => {
-        //     if (v != 'traderSeed' && v != 'recipientSeed'){
-        //         this[v] = BN(this[v])
-        //     }
-        // })
     }
 
     async displayAll(){
@@ -130,23 +122,27 @@ class BalanceChecker{
 
         this.beforeTxBal = null
         this.afterTxBal = null
-        this.txFee = ''
+        this.txFee = 0
 
         // swap price
-        this.priceBuy_assetSellToBuy = ''
-        this.priceBuy_assetCoreToBuy = ''
-        this.priceSell_assetSellToBuy = ''
-        this.priceSell_assetSellToCore = ''
+        this.priceBuy_assetSellToBuy = 0
+        this.priceBuy_assetCoreToBuy = 0
+        this.priceSell_assetSellToBuy = 0
+        this.priceSell_assetSellToCore = 0
 
         // balance change amount
-        this.assetSell_bal_change = ''
-        this.assetSell_bal_change = ''
-        this.pool_assetCore_bal_change = ''
+        this.assetSell_bal_change = 0
+        this.assetSell_bal_change = 0
+        this.pool_assetCore_bal_change = 0
     }
 
     _checkBalance(){
         if (this.beforeTxBal == '' || this.afterTxBal == ''){
             assert(false, `Balance set is empty.`)
+        }
+
+        if (this.isTransfer == true ){
+            assert.notEqual(this.methodPara.recipientSeed, '', `No recipient seed found.`)
         }
 
         // make expectedBal point to beforeTxBal
@@ -184,10 +180,6 @@ class BalanceChecker{
             this.pool_assetCore_bal_change = this.priceBuy_assetCoreToBuy
         }
 
-        // console.log('this.assetBuy_bal_change =', this.assetBuy_bal_change)
-        // console.log('this.assetSell_bal_change  =', this.assetSell_bal_change )
-        // console.log('this.pool_assetCore_bal_change =', this.pool_assetCore_bal_change)
-
         /**
           * Calculate expected balance
           */
@@ -221,7 +213,7 @@ class BalanceChecker{
             expectedBal[v] = expectedBal[v].value.toString()
         })
 
-        expectedBal.displayAll()
+        // expectedBal.displayAll()
 
         // check all values
         Object.keys(expectedBal).forEach(v => {
@@ -245,17 +237,12 @@ class BalanceChecker{
         this.priceSell_assetSellToBuy = await getInputPrice(assetIdSell, assetIdBuy, amountSell)
         this.priceBuy_assetCoreToBuy = await getOutputPrice(coreAssetId, assetIdBuy, amountBuy)
         this.priceSell_assetSellToCore = await getInputPrice(assetIdSell, coreAssetId, amountSell)
-
-        console.log('priceBuy_assetSellToBuy =', this.priceBuy_assetSellToBuy)
-        console.log('priceSell_assetSellToBuy =', this.priceSell_assetSellToBuy)
-        console.log('priceBuy_assetCoreToBuy =', this.priceBuy_assetCoreToBuy)
-        console.log('priceSell_assetSellToCore =', this.priceSell_assetSellToCore)
     }
 
     /**
      * Run cennzxspot method and check all relevant balances and liquidities. 
      */
-    async run() {
+    async doCheck() {
         const methodPara = this.methodPara
         let txResult = {}
         const methodName = methodPara.method.name
@@ -263,7 +250,7 @@ class BalanceChecker{
         // get balances before tx
         this.beforeTxBal = new SpotXBalance(methodPara)
         await this.beforeTxBal.fetchAll()
-        this.beforeTxBal.displayAll()
+        // this.beforeTxBal.displayAll()
 
         // get swap price
         await this._getSwapPrice()
@@ -275,7 +262,7 @@ class BalanceChecker{
             if (methodName.indexOf('Transfer') >= 0) {
                 this.isTransfer = true
                 txResult = await methodPara.method(
-                    methodPara.traderSeed, methodPara.recipient, methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell, methodPara.minAmountBuy
+                    methodPara.traderSeed, methodPara.recipientSeed, methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell, methodPara.minAmountBuy
                 )
             }
             else {
@@ -291,7 +278,7 @@ class BalanceChecker{
             if (methodName.indexOf('Transfer') >= 0) {
                 this.isTransfer = true
                 txResult = await methodPara.method(
-                    methodPara.traderSeed, methodPara.recipient, methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountBuy, methodPara.maxAmountSell
+                    methodPara.traderSeed, methodPara.recipientSeed, methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountBuy, methodPara.maxAmountSell
                 )
             }
             else {
@@ -307,6 +294,15 @@ class BalanceChecker{
 
         // check transaction result
         assert(txResult.bSucc, `Call method(${methodName}) failed. [MSG = ${txResult.message}]`)
+        // check specified event
+        const bSucc = checkTxEvent(txResult, 'AssetPurchase')
+        if (bSucc){
+            txResult.bSucc = true
+            txResult.txFee = await fee.queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
+        }
+        else{
+            txResult.bSucc = false
+        }
 
         this.txFee = txResult.txFee
         console.log('txFee =', this.txFee)
@@ -314,14 +310,15 @@ class BalanceChecker{
         // get balances after tx
         this.afterTxBal = new SpotXBalance(methodPara)
         await this.afterTxBal.fetchAll()
-        this.afterTxBal.displayAll()
+        // this.afterTxBal.displayAll()
 
-        this._checkBalance(methodPara)
+        this._checkBalance()
+
+        return txResult
     }
-
 }
 
-module.exports.CennzXBalance = class{
+class CennzXBalance{
 
     constructor(traderSeed = null, tokenId = -1, coreId = -1){
         this.traderSeed             = traderSeed
@@ -385,7 +382,8 @@ module.exports.CennzXBalance = class{
  */
 async function checkMethod(methodPara){
     const checker = new BalanceChecker(methodPara)
-    await checker.run()
+    const txResult = await checker.doCheck()
+    return txResult
 }
 
 
@@ -595,3 +593,4 @@ module.exports.assetTransferOutput = assetTransferOutput
 module.exports.getInputPrice = getInputPrice
 module.exports.getOutputPrice = getOutputPrice
 module.exports.MethodParameter = MethodParameter
+module.exports.CennzXBalance = CennzXBalance

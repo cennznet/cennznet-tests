@@ -27,7 +27,7 @@ describe('Fee test suite', function () {
         await topupTestAccount()    // only for remote test
     })
 
-    it.skip("TODO: Transfer Fee formula check", async function() {
+    it("Transfer Fee formula check", async function() {
         // formula: transferFee + baseFee + byteFee * byteLength
         
         const fromSeed = 'Bob'
@@ -38,9 +38,9 @@ describe('Fee test suite', function () {
         // transfer and get fee
         const txResult = await transfer(fromSeed, toSeed, transAmt, assetId)
         const fee_cal = await calulateTxFee(txResult.byteLength)                    // calculated fee
-        const fee_query = await queryTxFee(txResult.blockHash, txResult.txHash)     // queried fee
+        // const fee_query = await queryTxFee(txResult.blockHash, txResult.txHash)     // queried fee
 
-        assert( fee_cal == fee_query, `Transfer fee [${fee_query}] did not equal to expected fee [${fee_cal}].`)
+        assert.equal( txResult.txFee, fee_cal, `Transfer fee is wrong.`)
     });
 
 

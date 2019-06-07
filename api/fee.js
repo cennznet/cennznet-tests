@@ -15,6 +15,7 @@
 "use strict";
 
 const { bootNodeApi } = require('./websocket');
+const BN = require('big-number')
 
 
 class SystemFee{
@@ -38,20 +39,20 @@ class SystemFee{
 
     async _queryBaseFee(){
         const api = await bootNodeApi.getApi()
-        let fee = await api.query.fees.transactionBaseFee()
-        return parseInt(fee.toString())
+        let fee = await api.query.fees.feeRegistry('0x0100')
+        return fee.toString()
     }
     
     async _queryByteFee(){
         const api = await bootNodeApi.getApi()
-        let fee =  await api.query.fees.transactionByteFee()
-        return parseInt(fee.toString())
+        let fee =  await api.query.fees.feeRegistry('0x0101')
+        return fee.toString()
     }
     
     async _queryTransferFee(){
         const api = await bootNodeApi.getApi()
-        let fee =  await api.query.genericAsset.transferFee()
-        return parseInt(fee.toString())
+        let fee =  await api.query.fees.feeRegistry('0x0000')
+        return fee.toString()
     }
 
     async _queryCreationFee(){
@@ -62,8 +63,8 @@ class SystemFee{
 
     async calulateTransferFee(txByteLength){
         await this.fetchSysFees()
-        const totalTxFee = this.transferFee + this.baseFee + this.byteFee * txByteLength
-        return totalTxFee
+        const totalTxFee = BN(this.transferFee).add(this.baseFee).add(BN(this.byteFee).multiply(txByteLength))
+        return totalTxFee.toString()
     }
 }
 

@@ -27,8 +27,6 @@ const block = require('./block')
 
 
 
-
-
 async function transfer(fromSeed, toAddressOrSeed, amount, assetId = CURRENCY.STAKE, waitFinalisedFlag = true, nodeApi = bootNodeApi) {
     const ga = await GA.initGA(fromSeed, nodeApi)
 
@@ -82,6 +80,7 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
         // get tx hash and length (byte)
         const signedTx = transaction.sign(account, nonce)
         txResult.txHash = signedTx.hash.toString()
+        console.log('txResult.txHash =', txResult.txHash)
         txResult.byteLength = signedTx.encodedLength
         // send tx
         await transaction.send( async (r) => {
@@ -90,11 +89,16 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                 resolve(true); 
             }
 
-            if ( r.status.isFinalized == true && r.events !== undefined ){
+            if (r.status.isFinalized == true && r.events != undefined){
                 // get block hash
                 txResult.blockHash = r.status.raw.toString()
+                // console.log('txResult.blockHash =', txResult.blockHash)
+                // console.log('r.events.length = ', r.events.length.toString())
                 // get extrinsic id
                 txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
+                // txResult.extrinsicIndex = r.events.extrinsicIndex
+                // console.log('txResult.extrinsicIndex = ', txResult.extrinsicIndex)
+
                 // set tx result symbol
                 txResult.bSucc = true
                 // get all events
@@ -143,7 +147,7 @@ async function getNonce(addressOrSeed, nodeApi = bootNodeApi){
 
 function getAddressFromSeed(seed, keyType = keypairCryptoType){
 
-    if ( seed == null || seed == undefined ){
+    if ( seed == null || seed == undefined || seed == ''){
         return ''
     }
 
