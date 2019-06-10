@@ -19,21 +19,22 @@ const cennzx = require('../../api/cennzx')
 const fee = require('../../api/fee')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
-const BigNumber = require('big-number')
+const BN = require('bignumber.js')
 const mlog = require('mocha-logger')
+const GA  = require('../../api/ga')
 
 
 
 
 /**
  * Formula for token exchange:
- * -- Buy token: [poolCoreBal + coreAmt] * (poolTokenBal - amountBought) = poolCoreBal * poolTokenBal
- *       @ Buy fixed amount of token: finalCoreCost = coreAmt ( 1 + feeRate )
- *       @ Sell fixed amount of core: coreAmt = totalCoreSellAmount / ( 1 + feeRate )
+ * -- Buy token: [poolCoreBal + coreCost ] * (poolTokenBal - tokenBuy) = poolCoreBal * poolTokenBal
+ *       @ Buy fixed amount of token: actualCoreCost = coreCost ( 1 + feeRate )
+ *       @ Sell fixed amount of core: actualCoreCost = coreCost, actualCoreSell = coreCost / ( 1 + feeRate )
  *            
- * -- Buy core: [poolCoreBal - coreAmt] * (poolTokenBal + amountBought) = poolCoreBal * poolTokenBal
- *       @ Buy fixed amount of core: finalCoreCost = amountBought ( 1 + feeRate )
- *       @ Sell fixed amount of token: amountBought = totalTokenSellAmount / ( 1 + feeRate )
+ * -- Buy core: [poolCoreBal - coreBuy] * (poolTokenBal + tokenCost) = poolCoreBal * poolTokenBal
+ *       @ Buy fixed amount of core: actualTokenCost = tokenCost ( 1 + feeRate )
+ *       @ Sell fixed amount of token: actualTokenCost = tokenCost, actualTokenSell = tokenCost / ( 1 + feeRate )
  * 
  */
 
@@ -68,7 +69,7 @@ describe('CennzX test suite', function () {
         mlog.log('Pool address =', await cennzx.getExchangeAddress(tokenAsssetId_2))
 
         // create pool for tokenAsssetId_2
-        const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '100000', '200000')
+        const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '10000000', '20000000')
         assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
         mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
     })
@@ -295,61 +296,96 @@ describe('CennzX test suite', function () {
         await cennzx.checkMethod(mp)
     });
     
-    it.only('TODO: Pay tx fee with the new-created asset', async function() {
+    it.only('TODO: Pay tx fee with tokenAsssetId_2', async function() {
 
-        let txResult = null
-        const GA  = require('../../api/ga')
         const traderSeed    = 'Bob'
         const payeeSeed     = 'James'
-        const amount        = '10000'
-        const transferToken = coreAsssetId
-        const tokenForFee   = tokenAsssetId_1
+        const transferAmt   = '10000'
+        const transferToken = tokenAsssetId_1
+        const feeToken      = tokenAsssetId_2
         const maxPayAmount  = 50000
+
+        let txResult = null
+        let tokenSellAmount  = 0
+        let coreBuyAmount   = 0
 
         // create tx
         const ga = await GA.initGA(traderSeed)
         const payeeAddress = node.getAddressFromSeed(payeeSeed)
-        const tx = ga.transfer(transferToken, payeeAddress, amount.toString())
-
-        // sign and send tx
-        txResult = await node.signAndSendTx(tx, traderSeed)
-        console.log('txResult.fee 1 =', txResult.txFee)
+        const tx = ga.transfer(transferToken, payeeAddress, transferAmt.toString())
 
         // add fee option
         tx.addFeeExchangeOpt({
-            assetId: tokenForFee,
+            assetId: feeToken,
             maxPayment: maxPayAmount,
         });
 
-        const poolAddress = await cennzx.getExchangeAddress(tokenAsssetId_1)
+        // get pool balance before tx
+        const poolAddress = await cennzx.getExchangeAddress(feeToken)
+        const poolCoreBal = await node.queryFreeBalance(poolAddress, coreAsssetId)
+        const poolTokenBal = await node.queryFreeBalance(poolAddress, feeToken)
 
+        // for test
         console.log('bal coreAsssetId =', await node.queryFreeBalance(traderSeed, coreAsssetId))
-        console.log('bal tokenAsssetId_1 =', await node.queryFreeBalance(traderSeed, tokenAsssetId_1))
+        console.log('bal feeToken =', await node.queryFreeBalance(traderSeed, feeToken))
         console.log('pool bal coreAsssetId =', await node.queryFreeBalance(poolAddress, coreAsssetId))
-        console.log('pool bal tokenAsssetId_1 =', await node.queryFreeBalance(poolAddress, tokenAsssetId_1))
+        console.log('pool bal feeToken =', await node.queryFreeBalance(poolAddress, feeToken))
 
+        // balance before tx
+        const transferTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, transferToken)
+        const feeTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, feeToken)
+        const coreBal_beforeTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
 
         // sign and send tx
         txResult = await node.signAndSendTx(tx, traderSeed)
+        coreBuyAmount = txResult.txFee
         console.log('txResult.fee 2 =', txResult.txFee)
 
-        const expectSpendTokenFee = await fee.calulateTxFee(txResult.byteLength)
-
+        // get sell amount from events
         txResult.events.forEach(e => {
             if(e.event.method == 'AssetPurchase') {
+                // for test
                 console.log(e.event.data[0].toString()) // sell id
                 console.log(e.event.data[1].toString()) // buy id
                 console.log(e.event.data[2].toString()) // account address
-                console.log(e.event.data[3].toString()) // buy amount
-                console.log(e.event.data[4].toString()) // sell amount
+                console.log(e.event.data[3].toString()) // sell amount
+                console.log(e.event.data[4].toString()) // buy amount
+
+                tokenSellAmount  = e.event.data[3].toString()
+                // coreBuyAmount   = e.event.data[4].toString()
             }
         })
 
-        // TODO: check payee transferToken balance
-        // TODO: check payer tokenForFee balance 
-        // TODO: check payer core balance
-        // TODO: check expected spend token fee
-        // TODO: check real token fee
+        // for test
+        console.log('pool bal coreAsssetId =', await node.queryFreeBalance(poolAddress, coreAsssetId))
+        console.log('pool bal feeToken =', await node.queryFreeBalance(poolAddress, feeToken))
+
+        /**
+         * Calculate the actual token cost
+         * Formula for buying fixed core: [poolCoreBal - coreBuy] * (poolTokenBal + tokenCost) = poolCoreBal * poolTokenBal
+         *                                tokenCost = poolCoreBal * poolTokenBal / [poolCoreBal - coreBuy] - poolTokenBal
+         *                                actualTokenCost = tokenCost (1 + feeRate)
+         *                                actualTokenCost = Math.ceil(actualTokenCost)
+         */
+        const tokenCost = BN(poolCoreBal).times(poolTokenBal).div(BN(poolCoreBal).minus(coreBuyAmount)).minus(poolTokenBal)
+        const actualTokenCost = Math.ceil(tokenCost.times(1 + exchangeFeeRate))
+
+        // balance after tx
+        const transferTokenBal_afterTx = await node.queryFreeBalance(traderSeed, transferToken)
+        const feeTokenBal_afterTx = await node.queryFreeBalance(traderSeed, feeToken)
+        const coreBal_afterTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
+
+        // check payee transferToken balance
+        assert.equal(transferTokenBal_afterTx, BN(transferTokenBal_beforeTx).minus(transferAmt).toString(),
+            `Balance of transfer token is wrong.`)
+        // check payer feeToken balance 
+        assert.equal(feeTokenBal_afterTx, BN(feeTokenBal_beforeTx).minus(actualTokenCost).toString(),
+            `Balance of token to pay tx fee is wrong.`)
+        // check payer core balance
+        assert.equal(coreBal_beforeTx, coreBal_afterTx,
+            `Balance of core token is wrong.`)
+        // check expected spend token fee
+        assert.equal(tokenSellAmount.toString(), actualTokenCost.toString(), `The token amount to sell is wrong.`)
     });
 
     it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function() {
