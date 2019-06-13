@@ -19,7 +19,7 @@ const { CennzxSpot } = require('@cennznet/crml-cennzx-spot')
 const node = require('./node')
 const { bootNodeApi } = require('./websocket');
 const fee = require('./fee');
-const BN = require('big-number')
+const BN = require('bignumber.js')
 
 
 function MethodParameter(){
@@ -185,13 +185,13 @@ class BalanceChecker{
           */
         expectedBal.trader_assetCore_bal.value = BN(copyBeforeTxBal.trader_assetCore_bal.value).minus(this.txFee)
         expectedBal.trader_assetSell_bal.value = BN(copyBeforeTxBal.trader_assetSell_bal.value).minus(this.assetSell_bal_change)
-        expectedBal.trader_assetBuy_bal.value = BN(copyBeforeTxBal.trader_assetBuy_bal.value).add(this.assetBuy_bal_change)
+        expectedBal.trader_assetBuy_bal.value = BN(copyBeforeTxBal.trader_assetBuy_bal.value).plus(this.assetBuy_bal_change)
         expectedBal.trader_poolAssetSell_liquidity.value = BN(copyBeforeTxBal.trader_poolAssetSell_liquidity.value)
         expectedBal.trader_poolAssetBuy_liquidity.value = BN(copyBeforeTxBal.trader_poolAssetBuy_liquidity.value)
 
         expectedBal.poolAssetSell_assetCore_bal.value = BN(copyBeforeTxBal.poolAssetSell_assetCore_bal.value).minus(this.pool_assetCore_bal_change)
-        expectedBal.poolAssetSell_assetSell_bal.value = BN(copyBeforeTxBal.poolAssetSell_assetSell_bal.value).add(this.assetSell_bal_change)
-        expectedBal.poolAssetBuy_assetCore_bal.value = BN(copyBeforeTxBal.poolAssetBuy_assetCore_bal.value).add(this.pool_assetCore_bal_change)
+        expectedBal.poolAssetSell_assetSell_bal.value = BN(copyBeforeTxBal.poolAssetSell_assetSell_bal.value).plus(this.assetSell_bal_change)
+        expectedBal.poolAssetBuy_assetCore_bal.value = BN(copyBeforeTxBal.poolAssetBuy_assetCore_bal.value).plus(this.pool_assetCore_bal_change)
         expectedBal.poolAssetBuy_assetBuy_bal.value = BN(copyBeforeTxBal.poolAssetBuy_assetBuy_bal.value).minus(this.assetBuy_bal_change)
 
         expectedBal.totalLiquidity_assetSell.value = BN(copyBeforeTxBal.totalLiquidity_assetSell.value)
@@ -200,7 +200,7 @@ class BalanceChecker{
         if ( this.isTransfer ){
             expectedBal.recipient_assetCore_bal.value = BN(copyBeforeTxBal.recipient_assetCore_bal.value)
             expectedBal.recipient_assetSell_bal.value = BN(copyBeforeTxBal.recipient_assetSell_bal.value)
-            expectedBal.recipient_assetBuy_bal.value = BN(copyBeforeTxBal.recipient_assetBuy_bal.value).add(this.assetBuy_bal_change)
+            expectedBal.recipient_assetBuy_bal.value = BN(copyBeforeTxBal.recipient_assetBuy_bal.value).plus(this.assetBuy_bal_change)
             expectedBal.recipient_poolAssetSell_liquidity.value = BN(copyBeforeTxBal.recipient_poolAssetSell_liquidity.value)
             expectedBal.recipient_poolAssetBuy_liquidity.value = BN(copyBeforeTxBal.recipient_poolAssetBuy_liquidity.value)
             
@@ -305,7 +305,6 @@ class BalanceChecker{
         }
 
         this.txFee = txResult.txFee
-        console.log('txFee =', this.txFee)
 
         // get balances after tx
         this.afterTxBal = new SpotXBalance(methodPara)
@@ -318,7 +317,7 @@ class BalanceChecker{
     }
 }
 
-class CennzXBalance{
+class LiquidityBalance{
 
     constructor(traderSeed = null, tokenId = -1, coreId = -1){
         this.traderSeed             = traderSeed
@@ -593,4 +592,5 @@ module.exports.assetTransferOutput = assetTransferOutput
 module.exports.getInputPrice = getInputPrice
 module.exports.getOutputPrice = getOutputPrice
 module.exports.MethodParameter = MethodParameter
-module.exports.CennzXBalance = CennzXBalance
+module.exports.LiquidityBalance = LiquidityBalance
+module.exports.SpotXBalance = SpotXBalance

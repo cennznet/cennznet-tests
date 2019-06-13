@@ -21,16 +21,14 @@ const docker  = require('./docker')
 const block = require('./block')
 const assert = require('assert')
 const {cennznetNode, CURRENCY} = require('./definition')
-const BigNumber = require('big-number')
+const BN = require('bignumber.js')
 
-class ValidatorInfo{
-    constructor(){
-        this.stashSeed = ''
-        this.bondAmount = ''     
-        this.controllerSeed = '' 
-        this.sessionKeySeed = '' 
-        this.sessionKeyNode = null
-    }
+function ValidatorInfo(){
+    this.stashSeed = ''
+    this.bondAmount = ''     
+    this.controllerSeed = '' 
+    this.sessionKeySeed = '' 
+    this.sessionKeyNode = null
 }
 
 // initialize the information for cennznetNode
@@ -168,13 +166,13 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             // calculate last session's reward and add it into total reward
             if ( currSessionId > preSessionId ){
                 // calculate the additional_reward = block_reward * block_per_session + session_tx_fee * fee_reward_multiplier
-                const sessionReward = BigNumber(blockReward).mult(blockPerSession).add(BigNumber(preSessionTxFee).mult(rewardMultiplier))
+                const sessionReward = BN(blockReward).times(blockPerSession).plus(BN(preSessionTxFee).times(rewardMultiplier))
                 // console.log('sessionReward =', sessionReward.toString())
-                totalEraReward = BigNumber(totalEraReward).add(sessionReward.toString())
+                totalEraReward = BN(totalEraReward).plus(sessionReward.toString())
                 // console.log('totalEraReward =', totalEraReward.toString())
 
                 // get total era tx fee
-                queryEraTxFee = BigNumber(preSessionTxFee).add(queryEraTxFee)
+                queryEraTxFee = BN(preSessionTxFee).plus(queryEraTxFee)
 
                 const currEraId = (await api.query.staking.currentEra()).toString()
                 
@@ -211,7 +209,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             // console.log('record =', record)
             if (event.section.toLowerCase() == 'fees' && event.method.toLowerCase() == 'charged') {
                 const feeAmount = event.data[1].toString()
-                calEraTxFee = BigNumber(feeAmount).add(calEraTxFee)
+                calEraTxFee = BN(feeAmount).plus(calEraTxFee)
             }
         });
     }
@@ -231,8 +229,8 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     )
     // check balance
     assert.equal(
-        BigNumber(balAfterEra).toString(),
-        BigNumber(balBeforeEra).add(expectedEraReward).toString(),
+        BN(balAfterEra).toString(),
+        BN(balBeforeEra).plus(expectedEraReward).toString(),
         `${controllerSeed}'s asset(${CURRENCY.SPEND}) balance is wrong`)
 
     bRet = true
@@ -258,16 +256,19 @@ module.exports.queryIntentionIndex = async function(stakerSeed, nodeApi = bootNo
 
 module.exports.queryStakingControllerIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
     let index = -1;
+    let stakerAddress = ''
 
-    // get api
     const api = await nodeApi.getApi()
 
-    const stakerAddress = node.getAccount(stakerSeed).address()
+    if ( stakerSeed.toString().length == 48){   // length is 48 if input is an address
+        stakerAddress = stakerSeed
+    }
+    else{
+        stakerAddress = node.getAccount(stakerSeed.toString()).address()
+    }
 
-    // get intentions list
     const stakerList = await api.query.session.validators()
 
-    // get the intention index
     index = stakerList.indexOf(stakerAddress)
     
     return index
@@ -310,7 +311,7 @@ module.exports.getEraReward = async function(nodeApi = bootNodeApi){
             let fee = await api.query.rewards.sessionTransactionFee()
             console.log('fee =', fee.toString())
             // if era changed, the reward would be cleared, so the previous value is the total reward for last ear.
-            if ( BigNumber(currAccumulatedEraReward.toString()).lt(preAccumulatedEraReward.toString()) ){
+            if ( BN(currAccumulatedEraReward.toString()).lt(preAccumulatedEraReward.toString()) ){
                 resolve(preAccumulatedEraReward)
             }
             else{
@@ -357,6 +358,34 @@ module.exports.bondExtra = async function (controllerSeed, bondAmount, nodeApi =
     const txResult = await node.signAndSendTx(trans, controllerSeed)
 
     return txResult
+}
+
+module.exports.getPoorestStaker = async function(nodeApi = bootNodeApi){ 
+    const api = await nodeApi.getApi()
+    const stakerList = await api.query.session.validators()
+
+    let poorestControllerAddress = ''
+    let leastTotalBondAmount = 0
+
+    stakerList.forEach(async (stakerAddress) => {
+        let ledger = await api.query.staking.ledger(stakerAddress)
+        const totalBondAmount = BN(ledger.raw.total.toString())
+        if ( leastTotalBondAmount == 0 || BN(totalBondAmount).lt(leastTotalBondAmount)){
+            leastTotalBondAmount = totalBondAmount
+            poorestControllerAddress = stakerAddress
+        }
+    });
+
+    for (let i = 0; i < stakerList.length; i++){
+        let ledger = await api.query.staking.ledger(stakerList[i])
+        const totalBondAmount = BN(ledger.raw.total.toString())
+        if ( leastTotalBondAmount == 0 || BN(totalBondAmount).lt(leastTotalBondAmount)){
+            leastTotalBondAmount = totalBondAmount
+            poorestControllerAddress = stakerList[i]
+        }
+    }
+    
+    return poorestControllerAddress
 }
 
 async function bond(stashAccSeed, controllerSeed, bondAmount, nodeApi = bootNodeApi){ 

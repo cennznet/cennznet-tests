@@ -21,7 +21,7 @@ const docker = require('../../api/docker')
 const block = require('../../api/block')
 const { sleep } = require('../../api/util')
 const staking = require('../../api/staking')
-const BigNumber = require('big-number');
+const BN = require('bignumber.js');
 const { cennznetNode, CURRENCY } = require('../../api/definition')
 
 
@@ -52,6 +52,8 @@ describe('Staking test suite', () => {
             sessionKeyNode: cennznetNode.monkey,
         }
     }
+
+    var poorestControllerAddress = ''
 
     before(async function(){
         // get address for each validator
@@ -110,9 +112,12 @@ describe('Staking test suite', () => {
         await staking.checkAdditionalReward(validator.charlie.controllerSeed)
     });
 
-    it('Let richer validator <Eve> join in and least-bond staker <Ferdie> will be replaced', async function() {
+    it('Let richer validator <Eve> join in and least-bond staker <call it staker_x> will be replaced', async function() {
         this.timeout(180000)
     
+        // find the least-bond staker's controller
+        poorestControllerAddress = await staking.getPoorestStaker()
+
         // start up the new node
         const txResult = await staking.startNewValidatorNode(validator.eve.sessionKeyNode)
         assert.equal( txResult, true, `New node [${validator.eve.sessionKeySeed}] failed to join the boot node.`)
@@ -123,28 +128,31 @@ describe('Staking test suite', () => {
             validator.eve.controllerSeed,
             validator.eve.sessionKeySeed,
             validator.eve.bondAmount)
-        assert( stakerId >= 0, `Failed to make controller [${validator.eve.controllerSeed}] stake.`)
+        // assert( stakerId >= 0, `Failed to make controller [${validator.eve.controllerSeed}] stake.`)
+        expect(stakerId).to.be.gte(0, `Failed to make controller [${validator.eve.controllerSeed}] stake.`)
 
         const stakeId_eve = await staking.queryStakingControllerIndex(validator.eve.controllerSeed)
-        const stakeId_ferdie = await staking.queryStakingControllerIndex(validator.ferdie.controllerSeed)
+        const stakeId_poorestController = await staking.queryStakingControllerIndex(poorestControllerAddress)
 
-        assert( stakeId_eve >= 0, `Failed to make richer controller [${validator.eve.controllerSeed}] into staking list.`) // TODO: failed here
-        assert( stakeId_ferdie < 0, `Failed to kick controller [${validator.ferdie.controllerSeed}] out from staking list.`)
+        // assert( stakeId_eve >= 0, `Failed to make richer controller [${validator.eve.controllerSeed}] into staking list.`) // TODO: failed here
+        expect(stakeId_eve).to.be.gte(0, `Failed to make richer controller [${validator.eve.controllerSeed}] into staking list.`)
+        // assert( stakeId_ferdie < 0, `Failed to kick controller [${validator.ferdie.controllerSeed}] out of staking list.`)
+        expect(stakeId_poorestController).to.be.lt(0, `Failed to kick controller [${poorestControllerAddress}] out of staking list.`)
     });
 
-    it('Unstake <Eve> and waiting validator <Ferdie> comes back', async function() {   
+    it('Unstake <Eve> and waiting validator <staker_x> comes back', async function() {   
         this.timeout(120000) 
 
         await staking.endStaking(validator.eve.controllerSeed)
 
         // const stakeId_eve = await staking.queryStakingControllerIndex(validator.eve.controllerSeed)
-        const stakeId_ferdie = await staking.queryStakingControllerIndex(validator.ferdie.controllerSeed)
+        const stakeId_controllerBack = await staking.queryStakingControllerIndex(poorestControllerAddress)
 
         // assert( stakeId_eve < 0, `Failed to unstake controller [${validator.eve.controllerSeed}].`)
-        assert( stakeId_ferdie >= 0, `Failed to put validator [${validator.ferdie.controllerSeed}] back to staking list.`)
+        assert( stakeId_controllerBack >= 0, `Failed to put validator [${poorestControllerAddress}] back to staking list.`)
     });
 
-    it.skip('Make richest staker <Charlie> offline, chain is still working', async function() {
+    it('Make richest staker <Charlie> offline, chain is still working', async function() {
         // get block number before drop node
         const preBlockNum = await block.getCurrentBlockIndex()
 
@@ -200,7 +208,7 @@ describe('Staking test suite', () => {
 
         // bal_afterSlash < bal_beforeSlash
         assert(
-            BigNumber(bal_afterSlash).lt(bal_beforeSlash), 
+            BN(bal_afterSlash).lt(bal_beforeSlash), 
             `Did not find the slash on staker[${staker.stashSeed}]: bal_afterSlash = ${bal_afterSlash}, bal_beforeSlash = ${bal_beforeSlash}`)    
     });
 
@@ -241,5 +249,9 @@ describe('Staking test suite', () => {
         const currBlockId = await block.waitBlockCnt(3)
         assert(currBlockId > preBlockId, `Chain did not work well. (Current block id [${currBlockId}], previouse is []${preBlockId})`)
     });
+
+    it.skip('TODO: Nominate test cases', async function(){
+
+    })
     
 });

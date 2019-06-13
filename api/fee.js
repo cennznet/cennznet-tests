@@ -15,7 +15,7 @@
 "use strict";
 
 const { bootNodeApi } = require('./websocket');
-const BN = require('big-number')
+const BN = require('bignumber.js')
 
 
 class SystemFee{
@@ -63,7 +63,7 @@ class SystemFee{
 
     async calulateTransferFee(txByteLength){
         await this.fetchSysFees()
-        const totalTxFee = BN(this.transferFee).add(this.baseFee).add(BN(this.byteFee).multiply(txByteLength))
+        const totalTxFee = BN(this.transferFee).plus(this.baseFee).plus(BN(this.byteFee).multiply(txByteLength))
         return totalTxFee.toString()
     }
 }

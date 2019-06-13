@@ -19,7 +19,7 @@
 const assert = require('assert')
 const ga = require('../../api/ga')
 const node = require('../../api/node')
-const BigNumber = require('big-number')
+const BN = require('bignumber.js')
 // const { transfer, queryFreeBalance } = require('../../api/node')
 const { CURRENCY } = require('../../api/definition')
 
@@ -72,7 +72,7 @@ describe('Generic Asset test suite:', function () {
         // check tx fee
         assert.equal(
             spendBal_afterTx.toString(),
-            BigNumber(spendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(spendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`
         )
     });
@@ -96,8 +96,8 @@ describe('Generic Asset test suite:', function () {
 
         // check the spending token balance
         assert.equal(
-            BigNumber(spendBal_afterTx).toString(), 
-            BigNumber(spendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(spendBal_afterTx).toString(), 
+            BN(spendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`)
     });
 
@@ -121,15 +121,15 @@ describe('Generic Asset test suite:', function () {
 
         // check asset balance
         assert.equal(
-            BigNumber(ownerAssetBal_afterTx).toString(),
-            BigNumber(ownerAssetBal_beforeTx).minus(burn_amount).toString(),
+            BN(ownerAssetBal_afterTx).toString(),
+            BN(ownerAssetBal_beforeTx).minus(burn_amount).toString(),
             `Owner's asset balance is wrong.`
         )
 
         // check trader's spending token balance
         assert.equal(
-            BigNumber(burnerSpendBal_afterTx).toString(),
-            BigNumber(burnerSpendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(burnerSpendBal_afterTx).toString(),
+            BN(burnerSpendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance of tx sender is wrong.`
         ) 
     });
@@ -154,15 +154,15 @@ describe('Generic Asset test suite:', function () {
 
         // check asset balance
         assert.equal(
-            BigNumber(ownerAssetBal_afterTx).toString(),
-            BigNumber(ownerAssetBal_beforeTx).add(mint_amount).toString(),
+            BN(ownerAssetBal_afterTx).toString(),
+            BN(ownerAssetBal_beforeTx).plus(mint_amount).toString(),
             `Owner's asset balance is wrong.`
         )
 
         // check trader's spending token balance
         assert.equal(
-            BigNumber(minterSpendBal_afterTx).toString(),
-            BigNumber(minterSpendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(minterSpendBal_afterTx).toString(),
+            BN(minterSpendBal_beforeTx).minus(txResult.txFee).toString(),
             `Spending token balance of tx sender is wrong.`
         )
     });
@@ -188,13 +188,13 @@ describe('Generic Asset test suite:', function () {
 
         // check payee's asset balance
         assert.equal( 
-            BigNumber(afterTx_payeeassetBal).toString(), 
-            BigNumber(beforeTx_payeeAssetBal).add(transAmt).toString(),
+            BN(afterTx_payeeassetBal).toString(), 
+            BN(beforeTx_payeeAssetBal).plus(transAmt).toString(),
             `Asset balance is wrong.`)
         // check payer's spending token balance
         assert.equal( 
-            BigNumber(afterTx_payerSpendBal).toString(), 
-            BigNumber(beforeTx_payerSpendBal).minus(txResult.txFee).toString(),
+            BN(afterTx_payerSpendBal).toString(), 
+            BN(beforeTx_payerSpendBal).minus(txResult.txFee).toString(),
             `Spending token balance is wrong.`)
     });
 });

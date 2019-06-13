@@ -18,7 +18,7 @@
 const node = require('../api/node')
 const GA = require('../api/ga')
 const ws = require('../api/websocket')
-const BN = require('big-number')
+const BN = require('bignumber.js')
 const { cryptoWaitReady } = require('@cennznet/util');
 
 var nodeServerWsIp = "";

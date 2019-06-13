@@ -19,7 +19,7 @@ const assert = require('assert')
 const { putCode, createContract, callContract } = require('../../api/contract')
 const { CURRENCY } = require('../../api/definition')
 const node = require('../../api/node')
-const BigNumber = require('big-number')
+const BN = require('bignumber.js')
 
 
 const contractFilePath = __dirname + '/../../dependency/spin2win.wasm'
@@ -90,7 +90,7 @@ describe('Smart Contract test suite:', function () {
 
         assert.equal( 
             destSeedBal_afterTx, 
-            BigNumber(destSeedBal_beforeTx).add(transAmt).toString(),
+            BN(destSeedBal_beforeTx).plus(transAmt).toString(),
             `Destination seed ${destSeed} did not get transfer amount ${transAmt}`)
     });
 });

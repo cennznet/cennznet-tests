@@ -18,11 +18,11 @@ const rimraf = require("rimraf")
 const mlog = require('mocha-logger')
 const fs = require('fs')
 const docker = require('../api/docker')
-const {chainDataFolder} = require('../api/definition')
-const {loadTestCase} = require('../api/util')
-const {removeNodeContainers} = require('../api/docker')
-
-
+const { chainDataFolder } = require('../api/definition')
+const { loadTestCase } = require('../api/util')
+const { removeNodeContainers } = require('../api/docker')
+const { bootNodeApi } = require('../api/websocket')
+const { cryptoWaitReady } = require('@cennznet/util');
 
 describe('Cennznet-Node Integration Test', function () {
     
@@ -37,10 +37,13 @@ describe('Cennznet-Node Integration Test', function () {
         fs.copyFileSync(__dirname + '/../dependency/nodeConfig.json', '/tmp/nodeConfig.json')
         // start boot node
         await docker.startBootNode()
+        // init for simplyKeyring()
+        await cryptoWaitReady()
+        // init api
+        await bootNodeApi.init()
     })
 
     after(function(){
-
         // remove all containers
         mlog.log('Stop nodes and remove all containers...')
         removeNodeContainers()

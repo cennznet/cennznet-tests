@@ -22,7 +22,7 @@ const { SimpleKeyring, Wallet } = require('@cennznet/wallet')
 const GA  = require('./ga')
 const { queryTxFee, queryCurrentTxFee } = require('./fee')
 const { nodeServerWsIp } = require('./args')
-const BigNumber = require('big-number')
+const BN = require('bignumber.js')
 const block = require('./block')
 
 
@@ -80,7 +80,7 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
         // get tx hash and length (byte)
         const signedTx = transaction.sign(account, nonce)
         txResult.txHash = signedTx.hash.toString()
-        console.log('txResult.txHash =', txResult.txHash)
+        
         txResult.byteLength = signedTx.encodedLength
         // send tx
         await transaction.send( async (r) => {
@@ -90,29 +90,38 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
             }
 
             if (r.status.isFinalized == true && r.events != undefined){
-                // get block hash
-                txResult.blockHash = r.status.raw.toString()
-                // console.log('txResult.blockHash =', txResult.blockHash)
-                // console.log('r.events.length = ', r.events.length.toString())
-                // get extrinsic id
-                txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
-                // txResult.extrinsicIndex = r.events.extrinsicIndex
-                // console.log('txResult.extrinsicIndex = ', txResult.extrinsicIndex)
+                try{
+                    // get block hash
+                    txResult.blockHash = r.status.raw.toString()
+                    // console.log('txResult.blockHash =', txResult.blockHash)
+                    // console.log('r.events.length = ', r.events.length.toString())
+                    // get extrinsic id
+                    txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
+                    // txResult.extrinsicIndex = r.events.extrinsicIndex
+                    // console.log('txResult.extrinsicIndex = ', txResult.extrinsicIndex)
 
-                // set tx result symbol
-                txResult.bSucc = true
-                // get all events
-                txResult.events = r.events
-                // get tx fee
-                txResult.txFee = await queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
+                    // set tx result symbol
+                    txResult.bSucc = true
+                    // get all events
+                    txResult.events = r.events
+                    // get tx fee
+                    txResult.txFee = await queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
 
-                // check if the extrinsic succeeded
-                r.events.forEach( ({ phase, event: { data, method, section } }) => {
-                    if ( method == 'ExtrinsicFailed'){
-                        txResult.bSucc = false
-                        txResult.message = `Transaction failed at block(${txResult.blockHash}): ${section}.${method}`
-                    }
-                });
+                    // check if the extrinsic succeeded
+                    r.events.forEach(({ phase, event: { data, method, section } }) => {
+                        if (method == 'ExtrinsicFailed') {
+                            txResult.bSucc = false
+                            txResult.message = `Transaction failed at block(${txResult.blockHash}): ${section}.${method}`
+                        }
+                    });
+                }
+                catch(error){
+                    txResult.bSucc = false
+                    txResult.events = r.events
+                    txResult.message = `Transaction got error = ${error.toString()}`
+                    reject(error);
+                }
+                
 
                 resolve(true); 
             }
@@ -204,7 +213,7 @@ async function topupTestAccount(){
     mlog.log('Top up test account...')
 
     let txCnt = 0
-    const transferFee = 10000 //BigNumber(await getTransferFee())
+    const transferFee = 10000 //BN(await getTransferFee())
     const fromSeed = 'Andrea'   // or change a wealthy account seed
     // topup spending and staking balance, topup: Alice, Bob, Charlie, Dave, Eve, Ferdie. These are endowed accounts in local node.
     const toSeedLst = ['Alice', 'Bob', 'Charlie', 'Dave', 'Eve', 'Ferdie'] 
@@ -218,13 +227,13 @@ async function topupTestAccount(){
         let spendBal = await queryFreeBalance(toSeed, CURRENCY.SPEND)
 
         // transfer staking token if needed
-        if ( BigNumber(stakeBal).div(transferFee) < 100 ){
+        if ( BN(stakeBal).div(transferFee) < 100 ){
             await transferWithNonce( fromSeed, toSeed, amount, nonce++, CURRENCY.STAKE )   // transfer staking token
             txCnt ++
         }
 
         // transfer spending token if needed
-        if ( BigNumber(spendBal).div(transferFee) < 100 ){
+        if ( BN(spendBal).div(transferFee) < 100 ){
             await transferWithNonce( fromSeed, toSeed, amount, nonce++, CURRENCY.SPEND )   // transfer spending token
             txCnt ++
         }

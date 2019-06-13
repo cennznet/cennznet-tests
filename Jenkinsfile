@@ -18,8 +18,7 @@ pipeline {
     stage('Build test image') {
       steps {
         echo 'Build test image...'
-        sh 'docker build -f integration_test/Dockerfile -t ${TEST_IMAGE_NAME} \
-            --build-arg GEMFURY=H39FzaepFzxeWAwRCpRu .' 
+        sh 'docker build -f integration_test/Dockerfile -t ${TEST_IMAGE_NAME} .' 
       }
     }
 
@@ -31,7 +30,7 @@ pipeline {
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v /tmp:/tmp \
             ${TEST_IMAGE_NAME} \
-            npm test integration_test/run.js'
+            npm testall integration_test/run.js'
       }
     }
   }

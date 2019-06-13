@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const shell = require('shelljs');
+
 
 "use strict";
 
 const block = require('./block')
 const util = require('./util')
-const {cennznetNode} = require('./definition')
+const { cennznetNode } = require('./definition')
 const node = require('./websocket')
+const shell = require('shelljs');
 
 const ciImageName = 'integration_test'
 var bootNodeIp = ''

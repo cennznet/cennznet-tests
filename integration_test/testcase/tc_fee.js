@@ -17,7 +17,7 @@
 const assert = require('assert')
 const { transfer, queryFreeBalance, topupTestAccount } = require('../../api/node')
 const { calulateTxFee, queryTxFee } = require('../../api/fee')
-const BigNumber = require('big-number');
+const BN = require('bignumber.js');
 const { CURRENCY } = require('../../api/definition')
 
 
@@ -65,13 +65,13 @@ describe('Fee test suite', function () {
 
         assert.notEqual(expectFee, 0, `Transaction fee is 0.`)
         assert.equal( 
-            BigNumber(afterTx_cennz).toString(),
-            BigNumber(beforeTx_cennz).minus(transAmt).toString(), 
+            BN(afterTx_cennz).toString(),
+            BN(beforeTx_cennz).minus(transAmt).toString(), 
             `Sender's staking token balance is worng.`)
         // check spending token balance
         assert.equal( 
-            BigNumber(afterTx_spend).toString(), 
-            BigNumber(beforeTx_spend).minus(expectFee).toString(),
+            BN(afterTx_spend).toString(), 
+            BN(beforeTx_spend).minus(expectFee).toString(),
             `Sender's spending token balance is wrong.`)
     });
 
@@ -99,8 +99,8 @@ describe('Fee test suite', function () {
 
         // check spending token balance
         assert.equal( 
-            BigNumber(afterTx_spend).toString(),
-            BigNumber(beforeTx_spend).minus(transAmt).minus(expectFee).toString(),
+            BN(afterTx_spend).toString(),
+            BN(beforeTx_spend).minus(transAmt).minus(expectFee).toString(),
             `Spending token balance is wrong.`)
     });
 

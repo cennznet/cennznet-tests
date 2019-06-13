@@ -17,6 +17,7 @@
 const assert = require('assert')
 const { transfer, queryFreeBalance, topupTestAccount } = require('../../api/node')
 const { CURRENCY } = require('../../api/definition')
+const BN = require('bignumber.js')
 
 
 describe('Transfer Token test suite:', function () {
@@ -33,20 +34,18 @@ describe('Transfer Token test suite:', function () {
         const assetId = CURRENCY.STAKE
 
         // get bal before tx
-        const beforeTx_cennz = await queryFreeBalance(toSeed, CURRENCY.STAKE)
+        const beforeTx_stake = await queryFreeBalance(toSeed, CURRENCY.STAKE)
         const beforeTx_spend = await queryFreeBalance(toSeed, CURRENCY.SPEND)
 
         // transfer
         await transfer(fromSeed, toSeed, transAmt, assetId)
 
         // get bal after tx
-        const afterTx_cennz = await queryFreeBalance(toSeed, CURRENCY.STAKE)
+        const afterTx_stake = await queryFreeBalance(toSeed, CURRENCY.STAKE)
         const afterTx_spend = await queryFreeBalance(toSeed, CURRENCY.SPEND)
 
-        assert( (afterTx_cennz - beforeTx_cennz) == transAmt, 
-                `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toSeed}) failed. Payee's balance changed from [${beforeTx_cennz}] to [${afterTx_cennz}]`)
-        assert( beforeTx_spend == afterTx_spend, 
-                `Spending token changed from ${beforeTx_spend} to ${afterTx_spend}`)
+        assert.equal(afterTx_stake, BN(beforeTx_stake).plus(transAmt).toFixed(), `Payee's balance is wrong.`)
+        assert.equal(afterTx_spend, beforeTx_spend, `Spending token balance is wrong.c`)
 
     });
 
@@ -58,19 +57,20 @@ describe('Transfer Token test suite:', function () {
         const assetId = CURRENCY.SPEND
 
         // get bal before tx
-        let beforeTx_cennz = await queryFreeBalance(toSeed, CURRENCY.STAKE)
+        let beforeTx_stake = await queryFreeBalance(toSeed, CURRENCY.STAKE)
         let beforeTx_spend = await queryFreeBalance(toSeed, CURRENCY.SPEND)
 
         // transfer
         await transfer(fromSeed, toSeed, transAmt, assetId)
 
         // get bal after tx
-        let afterTx_cennz = await queryFreeBalance(toSeed, CURRENCY.STAKE)
+        let afterTx_stake = await queryFreeBalance(toSeed, CURRENCY.STAKE)
         let afterTx_spend = await queryFreeBalance(toSeed, CURRENCY.SPEND)
 
-        assert( (afterTx_spend - beforeTx_spend) == transAmt, 
-                `Transfer tx (${fromSeed} -> amount: ${transAmt}, asset id:${assetId} -> ${toSeed}) failed. Payee's balance changed from [${afterTx_spend}] to [${beforeTx_spend}]`)
-        assert( beforeTx_cennz == afterTx_cennz, `Spending token changed from ${beforeTx_cennz} to ${afterTx_cennz}`)
+        assert.equal(afterTx_spend,  
+                    BN(beforeTx_spend).plus(transAmt).toFixed(), 
+                    `Payee's balance is wrong`)
+        assert.equal(afterTx_stake, beforeTx_stake, `Staking token balance is wrong.`)
     });
 
 });
