@@ -93,12 +93,10 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                 try{
                     // get block hash
                     txResult.blockHash = r.status.raw.toString()
-                    // console.log('txResult.blockHash =', txResult.blockHash)
-                    // console.log('r.events.length = ', r.events.length.toString())
+                    
                     // get extrinsic id
+                    // txResult.extrinsicIndex = 1
                     txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
-                    // txResult.extrinsicIndex = r.events.extrinsicIndex
-                    // console.log('txResult.extrinsicIndex = ', txResult.extrinsicIndex)
 
                     // set tx result symbol
                     txResult.bSucc = true

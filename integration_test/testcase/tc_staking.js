@@ -82,6 +82,35 @@ describe('Staking test suite', () => {
         assert( stakerId >= 0, `Failed to make controller [${currvalidator.controllerSeed}] stake.`)
     });
 
+    it('<Eve> nominates on <Charlie> and cancels it, TODO: contains bugs', async function() {
+        const nominator = validator.eve
+        const nominee = validator.charlie
+        const nomineeSeedLst = []
+        const nominateAmount = nominator.bondAmount
+        
+        const totalNominateAmount_beforeTx = await staking.getTotalBondAmount(nominee.stashSeed)
+        // console.log('totalNominateAmount_beforeTx =', totalNominateAmount_beforeTx)
+
+        // create nominee list
+        nomineeSeedLst.push(nominee.stashSeed)
+
+        await staking.nominateStaker(nominator.stashSeed, nominator.controllerSeed, nominateAmount, nomineeSeedLst)
+
+        const totalNominateAmount_afterTx = await staking.getTotalBondAmount(nominee.stashSeed)
+        // console.log('totalNominateAmount_afterTx =', totalNominateAmount_afterTx)
+
+        expect(totalNominateAmount_afterTx)
+            .to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toString(), `Total bond amount is wrong after nominate`)
+
+        await staking.unnominateStaker(nominator.controllerSeed)
+
+        const totalNominateAmount_afterUnominate = await staking.getTotalBondAmount(nominee.stashSeed)
+        // console.log('totalNominateAmount_afterUnominate =', totalNominateAmount_afterUnominate)
+
+        expect(totalNominateAmount_afterUnominate)
+            .to.be.equal(totalNominateAmount_beforeTx, `Total bond amount is wrong after unnominate`)
+    });
+
     it('Launch new node for validator <Ferdie> (controller uses new account) and make it stake', async function() {
         this.timeout(180000)
 
@@ -107,7 +136,7 @@ describe('Staking test suite', () => {
         assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
     });
 
-    it('Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
+    it.only('Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
         // additional_reward belongs to Cennznet-node, should be tested here.
         await staking.checkAdditionalReward(validator.charlie.controllerSeed)
     });
@@ -249,9 +278,5 @@ describe('Staking test suite', () => {
         const currBlockId = await block.waitBlockCnt(3)
         assert(currBlockId > preBlockId, `Chain did not work well. (Current block id [${currBlockId}], previouse is []${preBlockId})`)
     });
-
-    it.skip('TODO: Nominate test cases', async function(){
-
-    })
     
 });

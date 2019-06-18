@@ -78,6 +78,27 @@ module.exports.startNewValidatorNode = async function (sessionKeyAccount) {
     return txResult
 }
 
+module.exports.nominateStaker = async function (stashAccSeed, controllerSeed, bondAmount, nomineeStashSeedLst){
+    // bond amount first
+    await bond(stashAccSeed, controllerSeed, bondAmount)
+
+    const txResult = await nominate(controllerSeed, nomineeStashSeedLst)
+
+    // validator will be added in next era
+    await this.waitEraChange()
+
+    return txResult
+}
+
+module.exports.unnominateStaker = async function (controllerSeed){
+    const txResult = await unnominate(controllerSeed)
+
+    // validator will be added in next era
+    await this.waitEraChange()
+
+    return txResult
+}
+
 module.exports.startStaking = async function (stashAccSeed, controllerSeed, sessionKeySeed, bondAmount){
     // bond amount first
     await bond(stashAccSeed, controllerSeed, bondAmount)
@@ -136,7 +157,7 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     assert(stakerId >= 0, `Controller (${controllerSeed}) is not in staking list.`)
 
     // get values for formula
-    const rewardMultiplier = (await api.query.rewards.feeRewardMultiplier()).toString()
+    const rewardMultiplierPermill = (await api.query.rewards.feeRewardMultiplier()).toString()
     const blockReward = (await api.query.rewards.blockReward()).toString()
     const blockPerSession = (await api.query.session.sessionLength()).toString()
 
@@ -166,10 +187,8 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             // calculate last session's reward and add it into total reward
             if ( currSessionId > preSessionId ){
                 // calculate the additional_reward = block_reward * block_per_session + session_tx_fee * fee_reward_multiplier
-                const sessionReward = BN(blockReward).times(blockPerSession).plus(BN(preSessionTxFee).times(rewardMultiplier))
-                // console.log('sessionReward =', sessionReward.toString())
-                totalEraReward = BN(totalEraReward).plus(sessionReward.toString())
-                // console.log('totalEraReward =', totalEraReward.toString())
+                const sessionReward = BN(blockReward).times(blockPerSession).plus(BN(preSessionTxFee).times(rewardMultiplierPermill).div('1000000'))
+                totalEraReward = BN(totalEraReward).plus(sessionReward)
 
                 // get total era tx fee
                 queryEraTxFee = BN(preSessionTxFee).plus(queryEraTxFee)
@@ -225,8 +244,8 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
 
     // check reward
     assert.equal(
-        finalEraReward, expectedEraReward, `Final era reward is wrong.`
-    )
+        finalEraReward.toString(), expectedEraReward.toString(), `Final era reward is wrong.`)
+
     // check balance
     assert.equal(
         BN(balAfterEra).toString(),
@@ -367,15 +386,6 @@ module.exports.getPoorestStaker = async function(nodeApi = bootNodeApi){
     let poorestControllerAddress = ''
     let leastTotalBondAmount = 0
 
-    stakerList.forEach(async (stakerAddress) => {
-        let ledger = await api.query.staking.ledger(stakerAddress)
-        const totalBondAmount = BN(ledger.raw.total.toString())
-        if ( leastTotalBondAmount == 0 || BN(totalBondAmount).lt(leastTotalBondAmount)){
-            leastTotalBondAmount = totalBondAmount
-            poorestControllerAddress = stakerAddress
-        }
-    });
-
     for (let i = 0; i < stakerList.length; i++){
         let ledger = await api.query.staking.ledger(stakerList[i])
         const totalBondAmount = BN(ledger.raw.total.toString())
@@ -386,6 +396,26 @@ module.exports.getPoorestStaker = async function(nodeApi = bootNodeApi){
     }
     
     return poorestControllerAddress
+}
+
+module.exports.getTotalBondAmount = async function(stashSeed, nodeApi = bootNodeApi){ 
+    const api = await nodeApi.getApi()
+    const stashAddress = node.getAddressFromSeed(stashSeed)
+    const stakers = await api.query.staking.stakers(stashAddress)
+
+    console.log(stakers.toString())
+
+    return stakers.total.toString()
+}
+
+module.exports.getAllNominators = async function(stashSeed, nodeApi = bootNodeApi){ 
+    const api = await nodeApi.getApi()
+    const stashAddress = node.getAddressFromSeed(stashSeed)
+    const stakers = await api.query.staking.stakers(stashAddress)
+
+    console.log('nominatorLst =', nominatorLst)
+
+    return nominatorLst
 }
 
 async function bond(stashAccSeed, controllerSeed, bondAmount, nodeApi = bootNodeApi){ 
@@ -449,6 +479,32 @@ async function unstake(controllerSeed, nodeApi = bootNodeApi){
 
     // unstake the validator
     const txResult = await node.signAndSendTx(trans, controllerSeed)
+
+    return txResult
+}
+
+async function nominate(controllerSeed, nomineeSeedLst, nodeApi = bootNodeApi){ 
+    // get api
+    const api = await nodeApi.getApi()
+
+    const nomineeAddressLst = []
+
+    for (let i = 0; i < nomineeSeedLst.length; i++){
+        nomineeAddressLst.push( node.getAddressFromSeed(nomineeSeedLst[i])  )
+    }
+
+    // make tx to stake
+    const tx = api.tx.staking.nominate(nomineeAddressLst)
+
+    // send tx
+    const txResult = await node.signAndSendTx(tx, controllerSeed)
+
+    return txResult
+}
+
+async function unnominate(controllerSeed, nodeApi = bootNodeApi){ 
+    // send tx
+    const txResult = await unstake(controllerSeed)
 
     return txResult
 }
