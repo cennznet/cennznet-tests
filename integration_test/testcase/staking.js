@@ -136,7 +136,7 @@ describe('Staking test suite', () => {
         assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
     });
 
-    it.only('Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
+    it('Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
         // additional_reward belongs to Cennznet-node, should be tested here.
         await staking.checkAdditionalReward(validator.charlie.controllerSeed)
     });

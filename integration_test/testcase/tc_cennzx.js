@@ -59,7 +59,7 @@ describe('CennzX test suite', function () {
         mlog.log('Create new token_1 ID =', tokenAsssetId_1)
 
         const feeRate = (await cennzx.defaultFeeRate()).toString()
-        exchangeFeeRate = feeRate / 1000000.0     // the feeRate is for per mill
+        exchangeFeeRate = BN(feeRate).div('1000000')    // the feeRate is for per mill
 
         mlog.log('Exchange fee rate =', exchangeFeeRate.toString())
 
@@ -74,7 +74,7 @@ describe('CennzX test suite', function () {
         mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
     })
 
-    it('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function() {
+    it.only('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function() {
         
         const traderSeed            = tokenIssuerSeed // Bob
         const minLiquidityWanted    = 2
@@ -296,7 +296,7 @@ describe('CennzX test suite', function () {
         await cennzx.checkMethod(mp)
     });
     
-    it('TODO: Pay tx fee with tokenAsssetId_2', async function() {
+    it.only('Pay tx fee with tokenAsssetId_2', async function() {
 
         const traderSeed    = 'Bob'
         const payeeSeed     = 'James'
@@ -325,12 +325,6 @@ describe('CennzX test suite', function () {
         const poolCoreBal = await node.queryFreeBalance(poolAddress, coreAsssetId)
         const poolTokenBal = await node.queryFreeBalance(poolAddress, feeToken)
 
-        // for test
-        console.log('bal coreAsssetId =', await node.queryFreeBalance(traderSeed, coreAsssetId))
-        console.log('bal feeToken =', await node.queryFreeBalance(traderSeed, feeToken))
-        console.log('pool bal coreAsssetId =', await node.queryFreeBalance(poolAddress, coreAsssetId))
-        console.log('pool bal feeToken =', await node.queryFreeBalance(poolAddress, feeToken))
-
         // balance before tx
         const transferTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, transferToken)
         const feeTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, feeToken)
@@ -339,26 +333,13 @@ describe('CennzX test suite', function () {
         // sign and send tx
         txResult = await node.signAndSendTx(tx, traderSeed)
         coreBuyAmount = txResult.txFee
-        console.log('txResult.fee 2 =', txResult.txFee)
 
         // get sell amount from events
         txResult.events.forEach(e => {
             if(e.event.method == 'AssetPurchase') {
-                // for test
-                console.log(e.event.data[0].toString()) // sell id
-                console.log(e.event.data[1].toString()) // buy id
-                console.log(e.event.data[2].toString()) // account address
-                console.log(e.event.data[3].toString()) // sell amount
-                console.log(e.event.data[4].toString()) // buy amount
-
                 tokenSellAmount  = e.event.data[3].toString()
-                // coreBuyAmount   = e.event.data[4].toString()
             }
         })
-
-        // for test
-        console.log('pool bal coreAsssetId =', await node.queryFreeBalance(poolAddress, coreAsssetId))
-        console.log('pool bal feeToken =', await node.queryFreeBalance(poolAddress, feeToken))
 
         /**
          * Calculate the actual token cost
@@ -368,7 +349,7 @@ describe('CennzX test suite', function () {
          *                                actualTokenCost = Math.ceil(actualTokenCost)
          */
         const tokenCost = BN(poolCoreBal).times(poolTokenBal).div(BN(poolCoreBal).minus(coreBuyAmount)).minus(poolTokenBal)
-        const actualTokenCost = Math.ceil(tokenCost.times(1 + exchangeFeeRate))
+        const actualTokenCost = Math.ceil(BN(tokenCost).times(BN(1).plus(exchangeFeeRate)))
 
         // balance after tx
         const transferTokenBal_afterTx = await node.queryFreeBalance(traderSeed, transferToken)
@@ -382,10 +363,10 @@ describe('CennzX test suite', function () {
         assert.equal(feeTokenBal_afterTx, BN(feeTokenBal_beforeTx).minus(actualTokenCost).toFixed(),
             `Balance of token to pay tx fee is wrong.`)
         // check payer core balance
-        assert.equal(coreBal_beforeTx, coreBal_afterTx,
+        assert.equal(coreBal_afterTx, coreBal_beforeTx,
             `Balance of core token is wrong.`)
         // check expected spend token fee
-        assert.equal(tokenSellAmount.toFixed(), actualTokenCost.toFixed(), `The token amount to sell is wrong.`)
+        assert.equal(tokenSellAmount.toString(), actualTokenCost.toString(), `The token amount to sell is wrong.`)
     });
 
     it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function() {

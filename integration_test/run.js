@@ -58,6 +58,7 @@ describe('Cennznet-Node Integration Test', function () {
     loadTestCase(__dirname + '/testcase')
 
     // last test case: check if 50 blocks reached
+    require('./testcase/staking')
     require('./testcase/lastCase')
 });
 

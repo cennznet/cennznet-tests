@@ -72,7 +72,7 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
     
     // if no nonce value, then get it
     if (nonce_in < 0){
-        nonce = await getNonce(account.address());
+        nonce = await getNonce(account.address);
     }
 
     // Send and wait nonce changed
@@ -93,11 +93,8 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                 try{
                     // get block hash
                     txResult.blockHash = r.status.raw.toString()
-                    
                     // get extrinsic id
-                    // txResult.extrinsicIndex = 1
                     txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
-
                     // set tx result symbol
                     txResult.bSucc = true
                     // get all events
@@ -165,7 +162,7 @@ function getAddressFromSeed(seed, keyType = keypairCryptoType){
         address = seed
     }
     else{   // seed
-        address = getAccount(seed, keyType).address()
+        address = getAccount(seed, keyType).address
     }
 
     return address

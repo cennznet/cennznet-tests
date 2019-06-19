@@ -23,7 +23,7 @@ describe('Remote Test (for Rimu or Kauri)', function () {
     
     // first test case: start up bootnode
     const fileNotRun = [
-        'tc_staking.js',
+        'staking.js',
     ]
 
     // set the default ws ip

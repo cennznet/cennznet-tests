@@ -168,7 +168,16 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
     
     // push a transfer tx (do not wait finalise) to trigger an tx fee
+    // node.transfer('Alice', 'James', '10000', 16000, false, bootNodeApi)
+    // node.transfer('Charlie', 'James', '10000', 16000, false, bootNodeApi)
+    // node.transfer('Dave', 'James', '10000', 16000, false, bootNodeApi)
+    node.transfer('Eve', 'James', '10000', 16000, false, bootNodeApi)
+    await node.transfer('Ferdie', 'James', '10000', 16000, true, bootNodeApi)
     node.transfer('Alice', 'James', '10000', 16000, false, bootNodeApi)
+    node.transfer('Charlie', 'James', '10000', 16000, false, bootNodeApi)
+    node.transfer('Dave', 'James', '10000', 16000, false, bootNodeApi)
+    // node.transfer('Eve', 'James', '10000', 16000, false, bootNodeApi)
+    // node.transfer('Ferdie', 'James', '10000', 16000, false, bootNodeApi)
 
     // listen to new block to check all fees
     const finalEraReward = await new Promise(async (resolve, reject) => { 
@@ -184,6 +193,15 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             const currSessionId = (await api.query.session.currentIndex()).toString()
             const currEraReward = (await api.query.staking.currentEraReward()).toString() // era reward will change for each block
             const currSessionTxFee = (await api.query.rewards.sessionTransactionFee()).toString()
+
+            // TODO: for test
+            const blockNo = block.blockNumber.toString()
+            console.log('blockNo =', blockNo)
+            console.log('currSessionId =', currSessionId)
+            console.log('currEraReward =', currEraReward)
+            console.log('currSessionTxFee =', currSessionTxFee)
+            console.log('=====================')
+
             // calculate last session's reward and add it into total reward
             if ( currSessionId > preSessionId ){
                 // calculate the additional_reward = block_reward * block_per_session + session_tx_fee * fee_reward_multiplier
@@ -248,8 +266,8 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
 
     // check balance
     assert.equal(
-        BN(balAfterEra).toString(),
-        BN(balBeforeEra).plus(expectedEraReward).toString(),
+        BN(balAfterEra).toFixed(),
+        BN(balBeforeEra).plus(expectedEraReward).toFixed(),
         `${controllerSeed}'s asset(${CURRENCY.SPEND}) balance is wrong`)
 
     bRet = true
@@ -275,16 +293,18 @@ module.exports.queryIntentionIndex = async function(stakerSeed, nodeApi = bootNo
 
 module.exports.queryStakingControllerIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
     let index = -1;
-    let stakerAddress = ''
+    // let stakerAddress = ''
 
     const api = await nodeApi.getApi()
 
-    if ( stakerSeed.toString().length == 48){   // length is 48 if input is an address
-        stakerAddress = stakerSeed
-    }
-    else{
-        stakerAddress = node.getAccount(stakerSeed.toString()).address()
-    }
+    // if ( stakerSeed.toString().length == 48){   // length is 48 if input is an address
+    //     stakerAddress = stakerSeed
+    // }
+    // else{
+    //     stakerAddress = node.getAccount(stakerSeed.toString()).address()
+    // }
+
+    const stakerAddress = node.getAddressFromSeed(stakerSeed.toString())
 
     const stakerList = await api.query.session.validators()
 
