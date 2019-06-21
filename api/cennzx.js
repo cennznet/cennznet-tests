@@ -104,7 +104,7 @@ class SpotXBalance{
     async displayAll(){
         console.log('==========================')
         Object.keys(this).forEach(v => {
-            console.log(`${v} = ${this[v].toString()}`)
+            console.log(`${v} = ${BN(this[v]).toFixed()}`)
         })
     }
 }
@@ -217,7 +217,7 @@ class BalanceChecker{
 
         // check all values
         Object.keys(expectedBal).forEach(v => {
-            assert.equal(this.afterTxBal[v], expectedBal[v], `The value of [${v}] is wrong.`)
+            assert.equal(BN(this.afterTxBal[v]).toFixed(), BN(expectedBal[v]).toFixed(), `The value of [${v}] is wrong.`)
         })
     }
 

@@ -65,14 +65,14 @@ describe('Generic Asset test suite:', function () {
 
         // check asset balance
         assert.equal(
-            assetBalance.toString(),
-            assetAmount.toString(),
+            BN(assetBalance).toFixed(),
+            BN(assetAmount).toFixed(),
             `Token owner's asset balance is wrong.`)    
         
         // check tx fee
         assert.equal(
-            spendBal_afterTx.toString(),
-            BN(spendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(spendBal_afterTx).toFixed(),
+            BN(spendBal_beforeTx).minus(txResult.txFee).toFixed(),
             `Spending token balance is wrong.`
         )
     });
@@ -96,8 +96,8 @@ describe('Generic Asset test suite:', function () {
 
         // check the spending token balance
         assert.equal(
-            BN(spendBal_afterTx).toString(), 
-            BN(spendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(spendBal_afterTx).toFixed(), 
+            BN(spendBal_beforeTx).minus(txResult.txFee).toFixed(),
             `Spending token balance is wrong.`)
     });
 
@@ -121,15 +121,15 @@ describe('Generic Asset test suite:', function () {
 
         // check asset balance
         assert.equal(
-            BN(ownerAssetBal_afterTx).toString(),
-            BN(ownerAssetBal_beforeTx).minus(burn_amount).toString(),
+            BN(ownerAssetBal_afterTx).toFixed(),
+            BN(ownerAssetBal_beforeTx).minus(burn_amount).toFixed(),
             `Owner's asset balance is wrong.`
         )
 
         // check trader's spending token balance
         assert.equal(
-            BN(burnerSpendBal_afterTx).toString(),
-            BN(burnerSpendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(burnerSpendBal_afterTx).toFixed(),
+            BN(burnerSpendBal_beforeTx).minus(txResult.txFee).toFixed(),
             `Spending token balance of tx sender is wrong.`
         ) 
     });
@@ -154,15 +154,15 @@ describe('Generic Asset test suite:', function () {
 
         // check asset balance
         assert.equal(
-            BN(ownerAssetBal_afterTx).toString(),
-            BN(ownerAssetBal_beforeTx).plus(mint_amount).toString(),
+            BN(ownerAssetBal_afterTx).toFixed(),
+            BN(ownerAssetBal_beforeTx).plus(mint_amount).toFixed(),
             `Owner's asset balance is wrong.`
         )
 
         // check trader's spending token balance
         assert.equal(
-            BN(minterSpendBal_afterTx).toString(),
-            BN(minterSpendBal_beforeTx).minus(txResult.txFee).toString(),
+            BN(minterSpendBal_afterTx).toFixed(),
+            BN(minterSpendBal_beforeTx).minus(txResult.txFee).toFixed(),
             `Spending token balance of tx sender is wrong.`
         )
     });
@@ -188,13 +188,13 @@ describe('Generic Asset test suite:', function () {
 
         // check payee's asset balance
         assert.equal( 
-            BN(afterTx_payeeassetBal).toString(), 
-            BN(beforeTx_payeeAssetBal).plus(transAmt).toString(),
+            BN(afterTx_payeeassetBal).toFixed(), 
+            BN(beforeTx_payeeAssetBal).plus(transAmt).toFixed(),
             `Asset balance is wrong.`)
         // check payer's spending token balance
         assert.equal( 
-            BN(afterTx_payerSpendBal).toString(), 
-            BN(beforeTx_payerSpendBal).minus(txResult.txFee).toString(),
+            BN(afterTx_payerSpendBal).toFixed(), 
+            BN(beforeTx_payerSpendBal).minus(txResult.txFee).toFixed(),
             `Spending token balance is wrong.`)
     });
 });

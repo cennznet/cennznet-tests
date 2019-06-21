@@ -30,12 +30,16 @@ const GA  = require('../../api/ga')
  * Formula for token exchange:
  * -- Buy token: [poolCoreBal + coreCost ] * (poolTokenBal - tokenBuy) = poolCoreBal * poolTokenBal
  *       @ Buy fixed amount of token: actualCoreCost = coreCost ( 1 + feeRate )
- *       @ Sell fixed amount of core: actualCoreCost = coreCost, actualCoreSell = coreCost / ( 1 + feeRate )
+ *       @ Sell fixed amount of core: actualCoreSell = coreCost / ( 1 + feeRate )
  *            
  * -- Buy core: [poolCoreBal - coreBuy] * (poolTokenBal + tokenCost) = poolCoreBal * poolTokenBal
  *       @ Buy fixed amount of core: actualTokenCost = tokenCost ( 1 + feeRate )
- *       @ Sell fixed amount of token: actualTokenCost = tokenCost, actualTokenSell = tokenCost / ( 1 + feeRate )
+ *       @ Sell fixed amount of token: actualTokenSell = tokenCost / ( 1 + feeRate )
  * 
+ * @ Result gets rounded down in Input Tx
+ *      eg. 100.7 -> 100
+ * @ Result（includes integer) gets rounded up in Output Tx:
+ *      eg. 0.12 -> 1,  10 -> 11
  */
 
 var     coreAsssetId        = -1
@@ -70,11 +74,13 @@ describe('CennzX test suite', function () {
 
         // create pool for tokenAsssetId_2
         const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '10000000', '20000000')
+        // const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '19954051', '10023097')
+        // const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '100000', '200000')
         assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
         mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
     })
 
-    it.only('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function() {
+    it('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function() {
         
         const traderSeed            = tokenIssuerSeed // Bob
         const minLiquidityWanted    = 2
@@ -296,7 +302,7 @@ describe('CennzX test suite', function () {
         await cennzx.checkMethod(mp)
     });
     
-    it.only('Pay tx fee with tokenAsssetId_2', async function() {
+    it('Pay tx fee with tokenAsssetId_2', async function() {
 
         const traderSeed    = 'Bob'
         const payeeSeed     = 'James'
@@ -306,7 +312,7 @@ describe('CennzX test suite', function () {
         const maxPayAmount  = 50000
 
         let txResult = null
-        let tokenSellAmount  = 0
+        let tokenSellAmount = 0
         let coreBuyAmount   = 0
 
         // create tx
@@ -345,17 +351,20 @@ describe('CennzX test suite', function () {
          * Calculate the actual token cost
          * Formula for buying fixed core: [poolCoreBal - coreBuy] * (poolTokenBal + tokenCost) = poolCoreBal * poolTokenBal
          *                                tokenCost = poolCoreBal * poolTokenBal / [poolCoreBal - coreBuy] - poolTokenBal
+         *                                tokenCost = Math.ceil(tokenCost)
          *                                actualTokenCost = tokenCost (1 + feeRate)
-         *                                actualTokenCost = Math.ceil(actualTokenCost)
+         *                                actualTokenCost = Math.floor(actualTokenCost)
          */
         const tokenCost = BN(poolCoreBal).times(poolTokenBal).div(BN(poolCoreBal).minus(coreBuyAmount)).minus(poolTokenBal)
-        const actualTokenCost = Math.ceil(BN(tokenCost).times(BN(1).plus(exchangeFeeRate)))
+        // const actualTokenCost = Math.ceil(BN(tokenCost).times(BN(1).plus(exchangeFeeRate)))
+        const actualTokenCost = Math.floor(
+            BN(Math.ceil(tokenCost)).times(BN(1).plus(exchangeFeeRate)))
 
         // balance after tx
         const transferTokenBal_afterTx = await node.queryFreeBalance(traderSeed, transferToken)
         const feeTokenBal_afterTx = await node.queryFreeBalance(traderSeed, feeToken)
         const coreBal_afterTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
-
+        
         // check payee transferToken balance
         assert.equal(transferTokenBal_afterTx, BN(transferTokenBal_beforeTx).minus(transferAmt).toFixed(),
             `Balance of transfer token is wrong.`)

@@ -63,8 +63,8 @@ class SystemFee{
 
     async calulateTransferFee(txByteLength){
         await this.fetchSysFees()
-        const totalTxFee = BN(this.transferFee).plus(this.baseFee).plus(BN(this.byteFee).multiply(txByteLength))
-        return totalTxFee.toString()
+        const totalTxFee = BN(this.transferFee).plus(this.baseFee).plus(BN(this.byteFee).times(txByteLength))
+        return totalTxFee.toFixed()
     }
 }
 

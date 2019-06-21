@@ -51,7 +51,7 @@ describe('Attestation test suite', function () {
         assert(txResult.txHash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult.toString()})`)
 
         // query the value
-        const claimValue = await getClaim(holder.address(), issuer.address(), topic)
+        const claimValue = await getClaim(holder.address, issuer.address, topic)
 
         // remove '0x' and check if the retrieved value contains the expected value
         assert(claimValue.toString().indexOf(value.slice(2)) > 0, `The retrieved value(${claimValue}) is not the expected one(${value}).`)
@@ -65,7 +65,7 @@ describe('Attestation test suite', function () {
         assert(txResult.txHash.toString().length == 66, `SetClaim has not been finalised. (result = ${txResult.toString()})`) 
 
         // query the value after remove
-        const claimValueAfterRemove = await getClaim(holder.address(), issuer.address(), topic)
+        const claimValueAfterRemove = await getClaim(holder.address, issuer.address, topic)
 
         // check if the retrieved value is 0
         assert( claimValueAfterRemove, '0', `The claim(${claimValueAfterRemove}) is not removed.`)

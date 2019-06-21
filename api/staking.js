@@ -46,14 +46,12 @@ module.exports.startNewValidatorNode = async function (sessionKeyAccount) {
     const bootApi = await bootNodeApi.getApi()
     const peers_Before = await bootApi.rpc.system.peers()
     const peersCnt_Before = peers_Before.length
-    // console.log('peers =', peersCnt_Before)
 
     // start a new node
     docker.startNewNode(sessionKeyAccount)
 
     // init the connection to the new node, using 'ws://127.0.0.1:XXXX'
     const newNodeWsIp = bootNodeApi.getWsIp().replace('9944', sessionKeyAccount.wsPort)
-    // console.log('newNodeWsIp =', newNodeWsIp)
     const newNodeApi = new WsApi(newNodeWsIp)
     await newNodeApi.init()
 
@@ -194,14 +192,6 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             const currEraReward = (await api.query.staking.currentEraReward()).toString() // era reward will change for each block
             const currSessionTxFee = (await api.query.rewards.sessionTransactionFee()).toString()
 
-            // TODO: for test
-            const blockNo = block.blockNumber.toString()
-            console.log('blockNo =', blockNo)
-            console.log('currSessionId =', currSessionId)
-            console.log('currEraReward =', currEraReward)
-            console.log('currSessionTxFee =', currSessionTxFee)
-            console.log('=====================')
-
             // calculate last session's reward and add it into total reward
             if ( currSessionId > preSessionId ){
                 // calculate the additional_reward = block_reward * block_per_session + session_tx_fee * fee_reward_multiplier
@@ -243,7 +233,6 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             // extract the phase, event and the event types
             const { event, phase } = record;
 
-            // console.log('record =', record)
             if (event.section.toLowerCase() == 'fees' && event.method.toLowerCase() == 'charged') {
                 const feeAmount = event.data[1].toString()
                 calEraTxFee = BN(feeAmount).plus(calEraTxFee)
@@ -332,8 +321,6 @@ module.exports.waitSessionChange = async function(nodeApi = bootNodeApi){
         });
     })
 
-    // console.log('sessionIndex =',sessionIndex.toString())
-
     return newSessionId
 }
 
@@ -348,7 +335,7 @@ module.exports.getEraReward = async function(nodeApi = bootNodeApi){
         // era reward is changing after each block
         api.query.staking.currentEraReward(async (currAccumulatedEraReward) => {
             let fee = await api.query.rewards.sessionTransactionFee()
-            console.log('fee =', fee.toString())
+            
             // if era changed, the reward would be cleared, so the previous value is the total reward for last ear.
             if ( BN(currAccumulatedEraReward.toString()).lt(preAccumulatedEraReward.toString()) ){
                 resolve(preAccumulatedEraReward)
@@ -423,8 +410,6 @@ module.exports.getTotalBondAmount = async function(stashSeed, nodeApi = bootNode
     const stashAddress = node.getAddressFromSeed(stashSeed)
     const stakers = await api.query.staking.stakers(stashAddress)
 
-    console.log(stakers.toString())
-
     return stakers.total.toString()
 }
 
@@ -432,8 +417,6 @@ module.exports.getAllNominators = async function(stashSeed, nodeApi = bootNodeAp
     const api = await nodeApi.getApi()
     const stashAddress = node.getAddressFromSeed(stashSeed)
     const stakers = await api.query.staking.stakers(stashAddress)
-
-    console.log('nominatorLst =', nominatorLst)
 
     return nominatorLst
 }

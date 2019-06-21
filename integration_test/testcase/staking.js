@@ -89,7 +89,6 @@ describe('Staking test suite', () => {
         const nominateAmount = nominator.bondAmount
         
         const totalNominateAmount_beforeTx = await staking.getTotalBondAmount(nominee.stashSeed)
-        // console.log('totalNominateAmount_beforeTx =', totalNominateAmount_beforeTx)
 
         // create nominee list
         nomineeSeedLst.push(nominee.stashSeed)
@@ -97,7 +96,6 @@ describe('Staking test suite', () => {
         await staking.nominateStaker(nominator.stashSeed, nominator.controllerSeed, nominateAmount, nomineeSeedLst)
 
         const totalNominateAmount_afterTx = await staking.getTotalBondAmount(nominee.stashSeed)
-        // console.log('totalNominateAmount_afterTx =', totalNominateAmount_afterTx)
 
         expect(totalNominateAmount_afterTx)
             .to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toString(), `Total bond amount is wrong after nominate`)
@@ -105,7 +103,6 @@ describe('Staking test suite', () => {
         await staking.unnominateStaker(nominator.controllerSeed)
 
         const totalNominateAmount_afterUnominate = await staking.getTotalBondAmount(nominee.stashSeed)
-        // console.log('totalNominateAmount_afterUnominate =', totalNominateAmount_afterUnominate)
 
         expect(totalNominateAmount_afterUnominate)
             .to.be.equal(totalNominateAmount_beforeTx, `Total bond amount is wrong after unnominate`)

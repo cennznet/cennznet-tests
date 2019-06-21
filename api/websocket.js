@@ -42,8 +42,8 @@ class WsApi{
                 break
             }
             catch(e){
-                console.log('Init api failed!')
-                console.log('error =', e)
+                console.log('Init api failed! Try again.')
+                // console.log('error =', e)
                 this._provider = null
                 this._api = null
             }

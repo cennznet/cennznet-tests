@@ -26,7 +26,7 @@ module.exports.setClaim = async function(issuerAccount, holderAccount, topic, va
     // get api
     const api = await nodeApi.getApi()
 
-    const trans = api.tx.attestation.setClaim(holderAccount.address(), topic, value)
+    const trans = api.tx.attestation.setClaim(holderAccount.address, topic, value)
 
     const txResult = await node.signAndSendTx(trans, issuerAccount)
 
@@ -38,7 +38,7 @@ module.exports.removeClaim = async function(issuerAccount, holderAccount, topic,
     // get api
     const api = await nodeApi.getApi()
 
-    const trans = api.tx.attestation.removeClaim(holderAccount.address(), topic)
+    const trans = api.tx.attestation.removeClaim(holderAccount.address, topic)
 
     const txResult = await node.signAndSendTx(trans, issuerAccount)
 
