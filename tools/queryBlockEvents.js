@@ -45,3 +45,8 @@ async function run(){
 
 
 run()
+
+/*
+* Command:
+       node tools/queryBlockEvents
+*/

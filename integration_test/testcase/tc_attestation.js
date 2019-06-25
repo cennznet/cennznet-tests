@@ -34,7 +34,7 @@ var issuer = null
 describe('Attestation test suite', function () {
 
     before(async function () {
-        await topupTestAccount()    // only for remote test
+        // await topupTestAccount()    // only for remote test
 
         // set Alice as the holder
         holder = getAccount('Alice')

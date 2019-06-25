@@ -17,22 +17,23 @@
 const { sleep } = require('./util')
 const { Api } = require('@cennznet/api')
 const { WsProvider } = require('@cennznet/api/polkadot')
-const { nodeServerWsIp } = require('./args')
+const args = require('./args')
 
 
 class WsApi{
     constructor(ip = 'ws://127.0.0.1:9944'){
-        this._wsIp = ip
+        this._wsIp = ''
         this._provider = null
         this._api = null
-        // this._type = apiType.CENNZ
     }
 
-    async init(){
+    async init(wsIp){
         // if api is existing , just use it
         if ( this._api != null ){
             return
         }
+
+        wsIp ? this._wsIp = wsIp : this._wsIp = args.getDefaultWsIp()
 
         // repeat trying if connection is failed
         for ( let i = 0; i < 120; i++ ){
@@ -43,7 +44,7 @@ class WsApi{
             }
             catch(e){
                 console.log('Init api failed! Try again.')
-                // console.log('error =', e)
+                // console.log('this._wsIp =', this._wsIp)
                 this._provider = null
                 this._api = null
             }
@@ -78,7 +79,7 @@ class WsApi{
     }
 }
 
-module.exports.bootNodeApi = new WsApi(nodeServerWsIp)
+module.exports.bootNodeApi = new WsApi()
 module.exports.WsApi = WsApi
 
 

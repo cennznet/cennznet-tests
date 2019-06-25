@@ -8,7 +8,8 @@
     },
     "scripts": {
         "test": "mocha --exit --file ./integration_test/beforeAll.js",
-        "testall": "mocha --exit",
+        "runlocaltest": "mocha --exit integration_test/run.js",
+        "runremotetest": "mocha --exit --file ./integration_test/beforeAll.js integration_test/runRemoteTest.js",
         "debug": "mocha --inspect-brk --exit --file ./integration_test/beforeAll.js"
     },
     "dependencies": {
@@ -21,7 +22,7 @@
         "@cennznet/wallet": "^0.14.0",
         "bignumber.js": "^9.0.0",
         "chai": "^4.2.0",
-        "fast-glob": "^3.0.1",
+        "fast-glob": "^3.0.2",
         "minimist": "^1.2.0",
         "mocha-logger": "^1.0.6",
         "rimraf": "2.6.3",

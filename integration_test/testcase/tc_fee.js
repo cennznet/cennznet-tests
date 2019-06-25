@@ -24,7 +24,7 @@ const { CURRENCY } = require('../../api/definition')
 describe('Fee test suite', function () {
 
     before(async function(){
-        await topupTestAccount()    // only for remote test
+        // await topupTestAccount()    // only for remote test
     })
 
     it("Transfer Fee formula check", async function() {

@@ -24,6 +24,7 @@ const { queryTxFee, queryCurrentTxFee } = require('./fee')
 const { nodeServerWsIp } = require('./args')
 const BN = require('bignumber.js')
 const block = require('./block')
+const args = require('./args')
 
 
 
@@ -201,6 +202,7 @@ async function getTransferFee(nodeApi = bootNodeApi){
 // Topup account for the test on Rimu or Kauri node
 async function topupTestAccount(){
     // local node donot need to topup
+    const nodeServerWsIp = args.getDefaultWsIp()
     if ( nodeServerWsIp.indexOf('127.0.0.1') >= 0 ){
         return
     }
@@ -222,13 +224,13 @@ async function topupTestAccount(){
         let spendBal = await queryFreeBalance(toSeed, CURRENCY.SPEND)
 
         // transfer staking token if needed
-        if ( BN(stakeBal).div(transferFee) < 100 ){
+        if ( BN(stakeBal).div(transferFee).lt(100) ){
             await transferWithNonce( fromSeed, toSeed, amount, nonce++, CURRENCY.STAKE )   // transfer staking token
             txCnt ++
         }
 
         // transfer spending token if needed
-        if ( BN(spendBal).div(transferFee) < 100 ){
+        if ( BN(spendBal).div(transferFee).lt(100) ){
             await transferWithNonce( fromSeed, toSeed, amount, nonce++, CURRENCY.SPEND )   // transfer spending token
             txCnt ++
         }

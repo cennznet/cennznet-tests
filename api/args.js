@@ -27,4 +27,6 @@ function _getArgs()
 
 _getArgs()
 
-module.exports.nodeServerWsIp = nodeServerWsIp
+module.exports.getDefaultWsIp = function(){
+    return nodeServerWsIp
+}

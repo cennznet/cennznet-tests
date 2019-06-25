@@ -50,13 +50,8 @@ module.exports.startNewValidatorNode = async function (sessionKeyAccount) {
     // start a new node
     docker.startNewNode(sessionKeyAccount)
 
-    // init the connection to the new node, using 'ws://127.0.0.1:XXXX'
-    const newNodeWsIp = bootNodeApi.getWsIp().replace('9944', sessionKeyAccount.wsPort)
-    const newNodeApi = new WsApi(newNodeWsIp)
-    await newNodeApi.init()
-
     // await at least 2 blocks
-    await block.waitBlockCnt(2, newNodeApi)
+    await block.waitBlockCnt(2)
     
     // wait for the peer count change
     const txResult = await new Promise(async (resolve, reject) => {
@@ -65,13 +60,10 @@ module.exports.startNewValidatorNode = async function (sessionKeyAccount) {
             if ( currentPeerCnt != peersCnt_Before ) {
                 resolve(true)
             }
-        }).catch((error) => {
+       }).catch((error) => {
             reject(error)
         });
     });
-
-    // close the api
-    newNodeApi.close()
 
     return txResult
 }

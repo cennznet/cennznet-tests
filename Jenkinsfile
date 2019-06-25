@@ -30,7 +30,7 @@ pipeline {
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v /tmp:/tmp \
             ${TEST_IMAGE_NAME} \
-            npm testall integration_test/run.js'
+            yarn testall'
       }
     }
   }

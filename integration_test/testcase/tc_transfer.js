@@ -23,7 +23,7 @@ const BN = require('bignumber.js')
 describe('Transfer Token test suite:', function () {
     
     before(async function(){
-        await topupTestAccount()    // only for remote test
+        // await topupTestAccount()    // only for remote test
     })
 
     it('Transfer staking token', async function() {

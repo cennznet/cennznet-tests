@@ -43,7 +43,7 @@ describe('Generic Asset test suite:', function () {
     const assetAmount = 10000 // 1000000000000000000000000
 
     before(async function(){
-        await node.topupTestAccount()    // only for remote test
+        // await node.topupTestAccount()    // only for remote test
     })
 
     it('Create a new token', async function() {

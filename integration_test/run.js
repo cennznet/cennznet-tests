@@ -37,10 +37,10 @@ describe('Cennznet-Node Integration Test', function () {
         fs.copyFileSync(__dirname + '/../dependency/nodeConfig.json', '/tmp/nodeConfig.json')
         // start boot node
         await docker.startBootNode()
-        // init for simplyKeyring()
-        await cryptoWaitReady()
         // init api
         await bootNodeApi.init()
+        // init for simplyKeyring()
+        await cryptoWaitReady()
     })
 
     after(function(){

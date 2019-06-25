@@ -31,7 +31,7 @@ const endowment = '10000000000000000000'
 describe('Smart Contract test suite:', function () {
     
     before(async function(){
-        await node.topupTestAccount()    // only for remote test
+        // await node.topupTestAccount()    // only for remote test
 
         // create a random seed
         issuerSeed = 'issuer_' + Math.random().toString(36).substr(2)    

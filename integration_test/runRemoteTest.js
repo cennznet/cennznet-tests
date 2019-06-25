@@ -27,7 +27,7 @@ describe('Remote Test (for Rimu or Kauri)', function () {
     ]
 
     // set the default ws ip
-    args.nodeServerWsIp = 'ws://127.0.0.1:9944'
+    // args.nodeServerWsIp = 'ws://127.0.0.1:9944'
 
     require('./testcase/bootNode')
 

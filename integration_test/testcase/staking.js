@@ -64,7 +64,6 @@ describe('Staking test suite', () => {
     })
 
     it("Start a new node for validator <Charlie>", async function() {
-
         const txResult = await staking.startNewValidatorNode( validator.charlie.sessionKeyNode )    
         // judge the peer count
         assert.equal( txResult, true, `New node [${validator.charlie.sessionKeySeed}] failed to join the boot node.`)

@@ -48,14 +48,14 @@ yarn test integration_test/testcase/tc_ga.js --ws wss://cennznet-node-0.centrali
 
 ### Build a docker image
 
-Replace '{Your_Gemfury_token}' with your own token which is available from [https://manage.fury.io/manage/centrality/tokens?kind=api]()
+Run the following command to build a test image. Do not forget the '.' at the end.
 ```bash
-docker build -f integration_test/Dockerfile -t integration_test --build-arg GEMFURY={Your_Gemfury_token} .
+docker build -f integration_test/Dockerfile -t integration_test .
 ```
 
 ### Run tests
 
-Also need 'cennznet-node' docker image for local test.
+Before test, make sure the 'cennznet-node' docker image is available on your machine. The test script will automatically launch node via that docker image.
 
 __Run all test suites__
 
@@ -67,7 +67,7 @@ docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /tmp:/tmp \
   -it integration_test \
-  yarn test integration_test/run.js
+  yarn runlocaltest
   
 # Remote test
 docker run --rm \
@@ -75,7 +75,7 @@ docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /tmp:/tmp \
   -it integration_test \
-  yarn test integration_test/run.js --ws REMOTE_WS_IP
+  yarn runremotetest --ws REMOTE_WS_IP
 ```
 
 __Run specified test suite__
