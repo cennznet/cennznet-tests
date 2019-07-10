@@ -34,4 +34,7 @@ before( async () => {
 
     // top up account for rimu or kauri test
     await node.topupTestAccount()
+
+    // set config for local test
+    await node.setNodeConfig()
 })

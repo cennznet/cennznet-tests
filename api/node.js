@@ -75,7 +75,7 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
     if (nonce_in < 0){
         nonce = await getNonce(account.address);
     }
-
+    
     // Send and wait nonce changed
     await new Promise(async (resolve,reject) => {
         // get tx hash and length (byte)
@@ -243,6 +243,50 @@ async function topupTestAccount(){
 }
 
 
+/**
+ * set genesis file for local test
+ */
+async function setNodeConfig(){
+
+    const nodeServerWsIp = args.getDefaultWsIp()
+    if ( nodeServerWsIp.indexOf('127.0.0.1') < 0 ){
+        return
+    }
+
+    console.log('---- setNodeConfig')
+    const api = await bootNodeApi.getApi()
+    const adminSeed = 'Alice'
+    let nonce = await getNonce(adminSeed)
+    
+    async function sudoCall(proposal, bWait = false){
+        let tx = api.tx.sudo.sudo(proposal)
+        await signAndSendTx(tx, adminSeed, nonce++, bWait)
+    }
+
+    // validatorCount
+    await sudoCall(api.tx.staking.setValidatorCount(3))
+      
+    // minimumValidatorCount TODO: which api
+
+    // sessionReward
+    // tx = api.tx.rewards.setParameters() // TODO: how to use
+    // signAndSendTx(tx, traderSeed, nonce++, false)
+
+    // session number of an era
+    await sudoCall(api.tx.staking.setSessionsPerEra(2))
+
+    // block number of an session
+    await sudoCall(api.tx.session.setLength(2))
+
+    // ga transfer fee(0x0000)
+    await sudoCall(api.tx.fees.setFee('0x0000', '2000000000000000'))
+    // base fee(0x0100)
+    await sudoCall(api.tx.fees.setFee('0x0100', '1000000000000000'))
+    // bytes fee(0x0101)
+    await sudoCall(api.tx.fees.setFee('0x0101', '5000000000000'), true)
+}
+
+
 
 module.exports.setApiSigner = setApiSigner
 module.exports.transfer = transfer
@@ -254,3 +298,4 @@ module.exports.getNonce = getNonce
 module.exports.getAddressFromSeed = getAddressFromSeed
 module.exports.getTransferFee = getTransferFee
 module.exports.topupTestAccount = topupTestAccount
+module.exports.setNodeConfig = setNodeConfig
