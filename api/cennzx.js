@@ -40,6 +40,7 @@ class SpotXBalance{
      */
     constructor(methodParameter){ 
         methodParameter ? methodParameter : methodParameter = new MethodParameter()
+
         this.traderSeed = methodParameter.traderSeed
         this.recipientSeed = methodParameter.recipientSeed
         this.assetIdSell = methodParameter.assetIdSell
@@ -104,7 +105,13 @@ class SpotXBalance{
     async displayAll(){
         console.log('==========================')
         Object.keys(this).forEach(v => {
-            console.log(`${v} = ${BN(this[v]).toFixed()}`)
+            let printValueBN = BN(this[v])
+            // check if it's a number
+            if (printValueBN.isNaN()){
+                console.log(`${v} = ${this[v]}`)
+            }else{
+                console.log(`${v} = ${BN(this[v]).toFixed()}`)
+            }
         })
     }
 }
@@ -114,7 +121,9 @@ class BalanceChecker{
      * 
      * @param {MethodParameter} methodPara 
      */
-    constructor(methodPara){
+    constructor(methodPara, debugFlag = false){
+        this.debugFlag = debugFlag
+
         this.methodPara = methodPara
 
         this.isTxSell = false 
@@ -239,6 +248,13 @@ class BalanceChecker{
         this.priceSell_assetSellToCore = await getInputPrice(assetIdSell, coreAssetId, amountSell)
     }
 
+    printAllPrice(){
+        console.log('priceBuy_assetSellToBuy =', this.priceBuy_assetSellToBuy.toString())
+        console.log('priceBuy_assetCoreToBuy =', this.priceBuy_assetCoreToBuy.toString())
+        console.log('priceSell_assetSellToBuy =', this.priceSell_assetSellToBuy.toString())
+        console.log('priceSell_assetSellToCore =', this.priceSell_assetSellToCore.toString())
+    }
+
     /**
      * Run cennzxspot method and check all relevant balances and liquidities. 
      */
@@ -250,10 +266,15 @@ class BalanceChecker{
         // get balances before tx
         this.beforeTxBal = new SpotXBalance(methodPara)
         await this.beforeTxBal.fetchAll()
-        // this.beforeTxBal.displayAll()
-
+        
         // get swap price
         await this._getSwapPrice()
+
+        if ( this.debugFlag ){
+            console.log('methodName =', methodName)
+            this.beforeTxBal.displayAll()
+            this.printAllPrice()
+        }
 
         // run method
         if (methodName.indexOf('Input') >= 0) {
@@ -309,7 +330,10 @@ class BalanceChecker{
         // get balances after tx
         this.afterTxBal = new SpotXBalance(methodPara)
         await this.afterTxBal.fetchAll()
-        // this.afterTxBal.displayAll()
+        if (this.debugFlag){
+            console.log('txFee =', this.txFee)
+            this.afterTxBal.displayAll()
+        }
 
         this._checkBalance()
 
@@ -379,8 +403,8 @@ class LiquidityBalance{
  * Run cennzxspot method and check all relevant balances and liquidities. 
  * @param {MethodParameter} methodInput 
  */
-async function checkMethod(methodPara){
-    const checker = new BalanceChecker(methodPara)
+async function checkMethod(methodPara, debugFlag = false){
+    const checker = new BalanceChecker(methodPara, debugFlag)
     const txResult = await checker.doCheck()
     return txResult
 }
@@ -475,6 +499,12 @@ module.exports.defaultFeeRate = async function (nodeApi = bootNodeApi){
     const spotX = await initSpotX(nodeApi)
     const feeRate = await spotX.api.query.cennzxSpot.defaultFeeRate()
     return parseInt(feeRate.toString())
+}
+
+module.exports.liquidityPrice = async function (assetId, amount, nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    const liquidity_price = await spotX.liquidityPrice(assetId, amount)
+    return liquidity_price.toString()
 }
 
 /**

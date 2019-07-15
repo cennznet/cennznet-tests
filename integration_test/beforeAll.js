@@ -36,5 +36,5 @@ before( async () => {
     await node.topupTestAccount()
 
     // set config for local test
-    await node.setNodeConfig()
+    // await node.setNodeConfig()
 })

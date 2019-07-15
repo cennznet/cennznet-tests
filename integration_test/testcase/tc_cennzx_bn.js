@@ -45,23 +45,22 @@ const GA = require('../../api/ga')
 var coreAsssetId = -1
 var tokenAsssetId_1 = -1
 var tokenAsssetId_2 = -1
-var tokenIssuerSeed = 'Bob'
-const tokenTotalAmount = '200000000000000000'
+var tokenIssuerSeed = 'Eve'
+const tokenTotalAmount = '20000000000000000000000'
 var exchangeFeeRate = 0
-const maxOutAmount      = '100000000000000'   
-const tradeAmount       = '100000'
+const maxOutAmount      = '100000000000000000000'   
+const tradeAmount       = '10000000000000'
+const poolCoreInitBal   = '2000000000000000000'   // 200P
+const poolTokenInitBal  = '1000000000000000000'   // 100P
 
-const poolCoreInitBal   = '200000000000'   // 200P
-const poolTokenInitBal  = '100000000000'   // 100P
-
-describe('CennzX test suite', function () {
+describe('CennzX test suite for bignumber overflow', function () {
 
     before( async function(){
 
         // get core asset id
         coreAsssetId = (await cennzx.getCoreAssetId()).toString()
         mlog.log('Core asset ID =', coreAsssetId)
-        
+
         // create new token_1
         tokenAsssetId_1 = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
         mlog.log('Create new token_1 ID =', tokenAsssetId_1)
@@ -72,6 +71,7 @@ describe('CennzX test suite', function () {
 
         mlog.log('Exchange fee rate =', exchangeFeeRate.toString())
 
+        /*
         // create new token_2
         tokenAsssetId_2 = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
         mlog.log('Create new token_2 ID =', tokenAsssetId_2)
@@ -79,8 +79,11 @@ describe('CennzX test suite', function () {
 
         // create pool for tokenAsssetId_2
         const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, poolTokenInitBal, poolCoreInitBal)
+        // const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '19954051', '10023097')
+        // const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '100000', '200000')
         assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
         mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
+        */
     })
 
     it('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function () {
@@ -131,6 +134,37 @@ describe('CennzX test suite', function () {
         assert.equal(BN(afterTxBal.traderLiquidity).toFixed(), BN(coreAmountInput).toFixed(), `Trader's liquidity is wrong.`)
     });
 
+
+    it.skip('TEST: assetSwapInput: coreAsssetId -> tokenAsssetId_1', async function () {
+
+        const traderSeed = tokenIssuerSeed // Bob
+        const minLiquidityWanted = 2
+        const maxAssetAmountInput = '4999727416279531363'
+        const coreAmountInput = '120627710511649660'
+
+        // first add the liquidity for tokenAsssetId_1
+        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
+        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+
+        const mp = new cennzx.MethodParameter()
+        mp.method = cennzx.assetSwapInput
+        mp.traderSeed = 'Alice'
+        mp.assetIdSell = coreAsssetId
+        mp.assetIdBuy = tokenAsssetId_1
+        mp.amountSell = '100000000000000000'
+        mp.minAmountBuy = '2'
+
+        let price = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
+        console.log('price =', price.toString())
+
+        let myValue = BN(maxAssetAmountInput).div(
+            BN(coreAmountInput).times(BN(exchangeFeeRate).plus(1)).div(mp.amountSell).plus(1)
+        )
+        console.log('my value =', myValue.toString())
+
+        await cennzx.checkMethod(mp)
+    });
+
     it('assetSwapOutput: coreAsssetId -> tokenAsssetId_1', async function () {
         const mp = new cennzx.MethodParameter()
         mp.method = cennzx.assetSwapOutput
@@ -138,7 +172,7 @@ describe('CennzX test suite', function () {
         mp.assetIdSell = coreAsssetId
         mp.assetIdBuy = tokenAsssetId_1
         mp.amountBuy = tradeAmount
-        mp.maxAmountSell = maxOutAmount
+        mp.maxAmountSell = '2000000000000000000'
 
         await cennzx.checkMethod(mp)
     });
@@ -237,6 +271,10 @@ describe('CennzX test suite', function () {
         mp.amountBuy = tradeAmount
         mp.maxAmountSell = maxOutAmount
 
+        // top up assetSell account
+        // let txResult = await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.maxAmountSell, mp.assetIdSell)
+        // assert(txResult.bSucc, `Call transfer() failed. [MSG = ${txResult.message}]`)
+
         await cennzx.checkMethod(mp)
     });
 
@@ -326,16 +364,16 @@ describe('CennzX test suite', function () {
             maxPayment: maxPayAmount,
         });
 
-        // balance before tx
-        const transferTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, transferToken)
-        const feeTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, feeToken)
-        const coreBal_beforeTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
-
         // sign tx and calculate fee token cost
         const signedTx = tx.sign(node.getAccount(traderSeed), await node.getNonce(traderSeed))
         const txByteLength = signedTx.encodedLength
         const estimatedCoreFee = await fee.calulateTxFee(txByteLength)
         const actualTokenCost = await cennzx.getOutputPrice(feeToken, coreAsssetId, estimatedCoreFee)
+
+        // balance before tx
+        const transferTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, transferToken)
+        const feeTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, feeToken)
+        const coreBal_beforeTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
 
         // send tx
         // txResult = await node.signAndSendTx(tx, traderSeed)
@@ -366,27 +404,39 @@ describe('CennzX test suite', function () {
             `Balance of token to pay tx fee is wrong.`)
     });
 
-    it('TODO: BUG -- Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function () {
+    it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function () {
         const minLiquidityWanted = 2
+        const maxAssetAmountInput = 10000
         const coreAmountInput = tradeAmount
-        const maxAssetAmountInput = maxOutAmount
-        const traderSeed = 'Bob'
+        const traderSeed = 'Alice'
 
         // get all balances before tx
         const beforeTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
         await beforeTxBal.getAll()
-        // await beforeTxBal.displayInfo()
 
-        const liquidityPrice = await cennzx.liquidityPrice(tokenAsssetId_1, coreAmountInput)
-        // console.log('liquidityPrice =', liquidityPrice)
+        // await displayInfo(traderSeed)
+
+        // add new liquidity
+        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
+        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+
+        // await displayInfo(traderSeed)
+
+        // get tx fee
+        const txFee = txResult.txFee
+
+        // get all balances after tx
+        const afterTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
+        await afterTxBal.getAll()
+
 
         /**
          * Calculate the estimated token amount added to pool.
          * - formular: token_added / token_pool = core_added / core_pool
          *             => token_added = token_pool * core_added / core_pool
          */
-        // let estimatedTokenAmtAdded = beforeTxBal.poolTokenAsssetBal * coreAmountInput / beforeTxBal.poolCoreAsssetBal
-        // estimatedTokenAmtAdded = Math.ceil(estimatedTokenAmtAdded)  // round up
+        let estimatedTokenAmtAdded = beforeTxBal.poolTokenAsssetBal * coreAmountInput / beforeTxBal.poolCoreAsssetBal
+        estimatedTokenAmtAdded = Math.ceil(estimatedTokenAmtAdded)  // round up
 
         /**
          * Calculate the estimated liquidity increased
@@ -396,38 +446,22 @@ describe('CennzX test suite', function () {
         let estimatedLiquidityMinted = coreAmountInput * beforeTxBal.totalLiquidity / beforeTxBal.poolCoreAsssetBal
         estimatedLiquidityMinted = Math.floor(estimatedLiquidityMinted)  // round, only remove the digitals
 
-        console.log('estimatedLiquidityMinted =', estimatedLiquidityMinted)
-
-        // add new liquidity
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
-
-        // get tx fee
-        const txFee = txResult.txFee
-
-        // get all balances after tx
-        const afterTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await afterTxBal.getAll()
-        // await afterTxBal.displayInfo()
-        // console.log('txFee =', txFee)
-        
-
         // check issuer's token balance
         assert.equal(
             afterTxBal.traderTokenAssetBal,
-            BN(beforeTxBal.traderTokenAssetBal).minus(liquidityPrice).toFixed(),
+            BN(beforeTxBal.traderTokenAssetBal).minus(estimatedTokenAmtAdded).toFixed(),
             `Trader's token asset balance is wrong.`)
 
         // check issuer's core balance
         assert.equal(
             afterTxBal.traderCoreAssetBal,
-            BN(beforeTxBal.traderCoreAssetBal).minus(coreAmountInput).minus(txFee).toFixed(),
+            BN(beforeTxBal.traderCoreAssetBal).minus(coreAmountInput + txFee).toFixed(),
             `Trader's core asset balance is wrong.`)
 
         // check token amount in pool
         assert.equal(
             afterTxBal.poolTokenAsssetBal,
-            BN(beforeTxBal.poolTokenAsssetBal).plus(liquidityPrice).toFixed(),
+            BN(beforeTxBal.poolTokenAsssetBal).plus(estimatedTokenAmtAdded).toFixed(),
             `Pool token asset balance is wrong.`)
 
         // check core asset balance in exchange address
