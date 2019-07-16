@@ -67,8 +67,8 @@ describe('CennzX test suite', function () {
         mlog.log('Create new token_1 ID =', tokenAsssetId_1)
         mlog.log('Pool address token_1 =', await cennzx.getExchangeAddress(tokenAsssetId_1))
 
-        const feeRate = (await cennzx.defaultFeeRate()).toString()
-        exchangeFeeRate = BN(feeRate).div('1000000')    // the feeRate is for per mill
+        // const feeRate = (await cennzx.defaultFeeRate()).toString()
+        // exchangeFeeRate = BN(feeRate).div('1000000')    // the feeRate is for per mill
 
         mlog.log('Exchange fee rate =', exchangeFeeRate.toString())
 
@@ -366,7 +366,7 @@ describe('CennzX test suite', function () {
             `Balance of token to pay tx fee is wrong.`)
     });
 
-    it('TODO: BUG -- Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function () {
+    it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function () {
         const minLiquidityWanted = 2
         const coreAmountInput = tradeAmount
         const maxAssetAmountInput = maxOutAmount
@@ -395,8 +395,6 @@ describe('CennzX test suite', function () {
          */
         let estimatedLiquidityMinted = coreAmountInput * beforeTxBal.totalLiquidity / beforeTxBal.poolCoreAsssetBal
         estimatedLiquidityMinted = Math.floor(estimatedLiquidityMinted)  // round, only remove the digitals
-
-        console.log('estimatedLiquidityMinted =', estimatedLiquidityMinted)
 
         // add new liquidity
         const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)

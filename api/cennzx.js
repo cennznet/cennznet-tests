@@ -495,16 +495,18 @@ module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmoun
     return txResult
 }
 
-module.exports.defaultFeeRate = async function (nodeApi = bootNodeApi){
-    const spotX = await initSpotX(nodeApi)
-    const feeRate = await spotX.api.query.cennzxSpot.defaultFeeRate()
-    return parseInt(feeRate.toString())
-}
+
 
 module.exports.liquidityPrice = async function (assetId, amount, nodeApi = bootNodeApi){
     const spotX = await initSpotX(nodeApi)
     const liquidity_price = await spotX.liquidityPrice(assetId, amount)
     return liquidity_price.toString()
+}
+
+async function defaultFeeRate(nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    const feeRate = await spotX.api.query.cennzxSpot.defaultFeeRate()
+    return parseInt(feeRate.toString())
 }
 
 /**
@@ -610,6 +612,82 @@ async function getExchangeAddress( assetId, nodeApi = bootNodeApi){
     return address.toString()
 }
 
+async function getPoolAssetBalance(assetId, nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    const val = await spotX.getPoolAssetBalance(assetId)
+    return val.toString()
+}
+
+async function getPoolCoreAssetBalance(assetId, nodeApi = bootNodeApi){
+    const spotX = await initSpotX(nodeApi)
+    const val = await spotX.getPoolCoreAssetBalance(assetId)
+    return val.toString()
+}
+
+async function getFormulaInputPrice(assetIdSell, assetIdBuy, amountSell){
+    const coreAssetId = await getCoreAssetId()
+    let assetId = null
+    const feeRate = BN((await defaultFeeRate()).toString()).div('1000000')
+    let poolAssetSellBal = 0
+    let poolAssetBuyBal = 0
+
+    if (assetIdSell != coreAssetId && assetIdBuy != coreAssetId){
+        const token1_to_core_price = await getFormulaInputPrice(assetIdSell, coreAssetId, amountSell)
+        const core_to_token2_price = await getFormulaInputPrice(coreAssetId, assetIdBuy, token1_to_core_price)
+        return core_to_token2_price
+    }
+    else if (assetIdSell != coreAssetId){
+        assetId = assetIdSell
+        poolAssetSellBal = await getPoolAssetBalance(assetId)
+        poolAssetBuyBal = await getPoolCoreAssetBalance(assetId)
+    }
+    else{
+        assetId = assetIdBuy
+        poolAssetSellBal = await getPoolCoreAssetBalance(assetId)
+        poolAssetBuyBal = await getPoolAssetBalance(assetId)
+    }
+
+    // calcualte with formula
+    const inputPrice = BN(poolAssetBuyBal).times(amountSell).div(
+        BN(poolAssetSellBal).times(BN(feeRate).plus(1)).plus(amountSell)
+    )
+
+    return inputPrice.dp(0).toFixed()    // remove decimals
+}
+
+async function getFormulaOutputPrice(assetIdSell, assetIdBuy, amountBuy){
+
+    const coreAssetId = await getCoreAssetId()
+    let assetId = null
+    const feeRate = BN((await defaultFeeRate()).toString()).div('1000000')
+    let poolAssetSellBal = 0
+    let poolAssetBuyBal = 0
+
+    if (assetIdSell != coreAssetId && assetIdBuy != coreAssetId){
+        const core_to_token2_price = await getFormulaOutputPrice(coreAssetId, assetIdBuy, amountBuy)
+        const token1_to_core_price = await getFormulaOutputPrice(assetIdSell, coreAssetId, core_to_token2_price)
+        return token1_to_core_price
+    }
+    else if (assetIdSell != coreAssetId){
+        assetId = assetIdSell
+        poolAssetSellBal = await getPoolAssetBalance(assetId)
+        poolAssetBuyBal = await getPoolCoreAssetBalance(assetId)
+    }
+    else{
+        assetId = assetIdBuy
+        poolAssetSellBal = await getPoolCoreAssetBalance(assetId)
+        poolAssetBuyBal = await getPoolAssetBalance(assetId)
+    }
+
+    // calcualte with formula
+    const outputPrice = BN(poolAssetSellBal).times(amountBuy).times(BN(feeRate).plus(1)).div(
+        BN(poolAssetBuyBal).minus(amountBuy)
+    )
+
+
+    return outputPrice.dp(0).plus(1).toFixed()    // round up
+}
+
 module.exports.getCoreAssetId = getCoreAssetId
 module.exports.getTotalLiquidity = getTotalLiquidity 
 module.exports.getLiquidityBalance = getLiquidityBalance 
@@ -624,3 +702,7 @@ module.exports.getOutputPrice = getOutputPrice
 module.exports.MethodParameter = MethodParameter
 module.exports.LiquidityBalance = LiquidityBalance
 module.exports.SpotXBalance = SpotXBalance
+module.exports.getFormulaInputPrice = getFormulaInputPrice
+module.exports.getFormulaOutputPrice = getFormulaOutputPrice
+module.exports.getPoolAssetBalance = getPoolAssetBalance
+module.exports.getPoolCoreAssetBalance = getPoolCoreAssetBalance

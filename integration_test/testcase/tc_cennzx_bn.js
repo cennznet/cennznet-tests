@@ -15,6 +15,7 @@
 "use strict";
 
 const assert = require('chai').assert
+const expect = require('chai').expect
 const cennzx = require('../../api/cennzx')
 const fee = require('../../api/fee')
 const ga = require('../../api/ga')
@@ -43,15 +44,11 @@ const GA = require('../../api/ga')
  */
 
 var coreAsssetId = -1
-var tokenAsssetId_1 = -1
-var tokenAsssetId_2 = -1
 var tokenIssuerSeed = 'Eve'
-const tokenTotalAmount = '20000000000000000000000'
-var exchangeFeeRate = 0
-const maxOutAmount      = '100000000000000000000'   
-const tradeAmount       = '10000000000000'
-const poolCoreInitBal   = '2000000000000000000'   // 200P
-const poolTokenInitBal  = '1000000000000000000'   // 100P
+const tokenTotalAmount = BN(3.4e38).toFixed()
+const minLiquidityWanted = 1
+
+
 
 describe('CennzX test suite for bignumber overflow', function () {
 
@@ -60,430 +57,405 @@ describe('CennzX test suite for bignumber overflow', function () {
         // get core asset id
         coreAsssetId = (await cennzx.getCoreAssetId()).toString()
         mlog.log('Core asset ID =', coreAsssetId)
-
-        // create new token_1
-        tokenAsssetId_1 = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
-        mlog.log('Create new token_1 ID =', tokenAsssetId_1)
-        mlog.log('Pool address token_1 =', await cennzx.getExchangeAddress(tokenAsssetId_1))
-
-        const feeRate = (await cennzx.defaultFeeRate()).toString()
-        exchangeFeeRate = BN(feeRate).div('1000000')    // the feeRate is for per mill
-
-        mlog.log('Exchange fee rate =', exchangeFeeRate.toString())
-
-        /*
-        // create new token_2
-        tokenAsssetId_2 = (await ga.createNewToken(tokenIssuerSeed, tokenTotalAmount)).assetId.toString()
-        mlog.log('Create new token_2 ID =', tokenAsssetId_2)
-        mlog.log('Pool address token_2 =', await cennzx.getExchangeAddress(tokenAsssetId_2))
-
-        // create pool for tokenAsssetId_2
-        const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, poolTokenInitBal, poolCoreInitBal)
-        // const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '19954051', '10023097')
-        // const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, '100000', '200000')
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
-        mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
-        */
     })
 
-    it('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function () {
+    it('TODO: bug(price wrong) - assetSwapInput(token -> core): pool_token_amt << pool_core_amt', async function () {
 
-        const traderSeed = tokenIssuerSeed // Bob
-        const minLiquidityWanted = 2
-        const maxAssetAmountInput = poolTokenInitBal
-        const coreAmountInput = poolCoreInitBal
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(1e10).toFixed()
+        const poolCoreBalance   = BN(1e18).toFixed()
+        const swapTradeAmount   = BN(1e10).toFixed()
 
-        // get all balances before tx
-        const beforeTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1)
-        await beforeTxBal.getAll()
-        // await beforeTxBal.displayInfo()
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
 
-        // first add the liquidity for tokenAsssetId_1
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
 
-        // get tx fee
-        const txFee = txResult.txFee
-
-        // get all balances after tx
-        const afterTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1)
-        await afterTxBal.getAll()
-        // await afterTxBal.displayInfo()
-
-        // check issuer's token balance
-        assert.equal(
-            BN(afterTxBal.traderTokenAssetBal).toFixed(),
-            BN(beforeTxBal.traderTokenAssetBal).minus(maxAssetAmountInput).toFixed(),
-            `Token asset balance is wrong.`)
-        // check issuer's core balance
-        assert.equal(
-            BN(afterTxBal.traderCoreAssetBal).toFixed(),
-            BN(beforeTxBal.traderCoreAssetBal).minus(BN(coreAmountInput).plus(txFee)).toFixed(),
-            `Core asset balance is wrong.`)
-        // check core asset balance in exchange address
-        assert.equal(BN(afterTxBal.poolCoreAsssetBal).toFixed(), BN(coreAmountInput).toFixed(),
-            `Exchange core asset balance is wrong.`)
-        // check token asset balance in exchange address
-        assert.equal(BN(afterTxBal.poolTokenAsssetBal).toFixed(), BN(maxAssetAmountInput).toFixed(),
-            `Exchange token asset balance is wrong.`)
-
-        // check total liquidity
-        assert.equal(BN(afterTxBal.totalLiquidity).toFixed(), BN(coreAmountInput).toFixed(), `Total liquidity is wrong.`)
-
-        // check trader liquidity
-        assert.equal(BN(afterTxBal.traderLiquidity).toFixed(), BN(coreAmountInput).toFixed(), `Trader's liquidity is wrong.`)
-    });
-
-
-    it.skip('TEST: assetSwapInput: coreAsssetId -> tokenAsssetId_1', async function () {
-
-        const traderSeed = tokenIssuerSeed // Bob
-        const minLiquidityWanted = 2
-        const maxAssetAmountInput = '4999727416279531363'
-        const coreAmountInput = '120627710511649660'
-
-        // first add the liquidity for tokenAsssetId_1
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
-
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetSwapInput
-        mp.traderSeed = 'Alice'
-        mp.assetIdSell = coreAsssetId
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountSell = '100000000000000000'
-        mp.minAmountBuy = '2'
-
-        let price = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        console.log('price =', price.toString())
-
-        let myValue = BN(maxAssetAmountInput).div(
-            BN(coreAmountInput).times(BN(exchangeFeeRate).plus(1)).div(mp.amountSell).plus(1)
-        )
-        console.log('my value =', myValue.toString())
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it('assetSwapOutput: coreAsssetId -> tokenAsssetId_1', async function () {
+        // swap
         const mp = new cennzx.MethodParameter()
         mp.method = cennzx.assetSwapOutput
-        mp.traderSeed = 'Alice'
-        mp.assetIdSell = coreAsssetId
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountBuy = tradeAmount
-        mp.maxAmountSell = '2000000000000000000'
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = newTokenAsssetId
+        mp.assetIdBuy = coreAsssetId
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
+        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
+
+        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
+
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
+
+        // do swap and check
         await cennzx.checkMethod(mp)
     });
 
-    it('assetSwapOutput: tokenAsssetId_1 -> coreAsssetId', async function () {
+    it('TODO: bug(Pool balance is low) - assetSwapInput(token -> core): pool_token_amt >> pool_core_amt', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(1e18).toFixed()
+        const poolCoreBalance   = BN(1e10).toFixed()
+        const swapTradeAmount   = BN(9e20).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        // swap
         const mp = new cennzx.MethodParameter()
         mp.method = cennzx.assetSwapOutput
-        mp.traderSeed = 'Alice'
-        mp.assetIdSell = tokenAsssetId_1
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = newTokenAsssetId
         mp.assetIdBuy = coreAsssetId
-        mp.amountBuy = tradeAmount
-        mp.maxAmountSell = maxOutAmount
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
+        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
+
+        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
+
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
+
+        // do swap and check
         await cennzx.checkMethod(mp)
     });
 
-    it('assetSwapOutput: tokenAsssetId_2 -> tokenAsssetId_1', async function () {
+    it('TODO: bug(Pool balance is low) - assetSwapInput(core -> token): max pool_token_amt and swap nearly all token', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = tokenTotalAmount
+        const poolCoreBalance   = BN(10).toFixed()
+        const swapTradeAmount   = BN(9e20).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        // swap
         const mp = new cennzx.MethodParameter()
         mp.method = cennzx.assetSwapOutput
-        mp.traderSeed = 'Alice'
-        mp.assetIdSell = tokenAsssetId_2
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountBuy = tradeAmount
-        mp.maxAmountSell = maxOutAmount
-
-        // top up asset account
-        await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.maxAmountSell, mp.assetIdSell)
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it('assetSwapInput: coreAsssetId -> tokenAsssetId_1', async function () {
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetSwapInput
-        mp.traderSeed = 'Alice'
+        mp.traderSeed = tokenIssuerSeed
         mp.assetIdSell = coreAsssetId
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountSell = tradeAmount
-        mp.minAmountBuy = '2'
+        mp.assetIdBuy = newTokenAsssetId
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
+        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
+
+        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
+
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
+
+        // do swap and check
         await cennzx.checkMethod(mp)
     });
 
-    it('assetSwapInput: tokenAsssetId_1 -> coreAsssetId', async function () {
+    it('TODO: bug(price is 0) - assetSwapInput(core -> token): max pool_token_amt and swap nearly all token', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = tokenTotalAmount
+        const poolCoreBalance   = BN(10).toFixed()
+        const swapTradeAmount   = BN(1).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        // swap
         const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetSwapInput
-        mp.traderSeed = 'Alice'
-        mp.assetIdSell = tokenAsssetId_1
-        mp.assetIdBuy = coreAsssetId
-        mp.amountSell = tradeAmount
-        mp.minAmountBuy = '2'
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it(`assetSwapInput: tokenAsssetId_2 -> tokenAsssetId_1`, async function () {
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetSwapInput
-        mp.traderSeed = 'Alice'
-        mp.assetIdSell = tokenAsssetId_2
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountSell = tradeAmount
-        mp.minAmountBuy = '2'
-
-        // top up asset account
-        await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.amountSell, mp.assetIdSell)
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it(`assetTransferOutput: tokenAsssetId_1 -> coreAsssetId`, async function () {
-
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetTransferOutput
-        mp.traderSeed = 'Eve'
-        mp.recipientSeed = 'Dave'
-        mp.assetIdSell = tokenAsssetId_1
-        mp.assetIdBuy = coreAsssetId
-        mp.amountBuy = tradeAmount
-        mp.maxAmountSell = maxOutAmount
-
-        // top up assetSell account
-        await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.maxAmountSell, mp.assetIdSell)
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it(`assetTransferOutput: coreAsssetId -> tokenAsssetId_1`, async function () {
-
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetTransferOutput
-        mp.traderSeed = 'Eve'
-        mp.recipientSeed = 'Dave'
+        mp.method = cennzx.assetSwapOutput
+        mp.traderSeed = tokenIssuerSeed
         mp.assetIdSell = coreAsssetId
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountBuy = tradeAmount
-        mp.maxAmountSell = maxOutAmount
+        mp.assetIdBuy = newTokenAsssetId
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        // top up assetSell account
-        // let txResult = await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.maxAmountSell, mp.assetIdSell)
-        // assert(txResult.bSucc, `Call transfer() failed. [MSG = ${txResult.message}]`)
+        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
 
+        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
+
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
+
+        // do swap and check
         await cennzx.checkMethod(mp)
     });
 
-    it(`assetTransferOutput: tokenAsssetId_2 -> tokenAsssetId_1`, async function () {
+    it('assetSwapOutput(token -> core): pool_token_amt >> pool_core_amt', async function () {
 
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(1e18).toFixed()
+        const poolCoreBalance   = BN(1e10).toFixed()
+        const swapTradeAmount   = BN(9.999999999e9).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        // swap
         const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetTransferOutput
-        mp.traderSeed = 'Eve'
-        mp.recipientSeed = 'Dave'
-        mp.assetIdSell = tokenAsssetId_2
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountBuy = tradeAmount
-        mp.maxAmountSell = maxOutAmount
-
-        // top up assetSell account
-        let txResult = await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.maxAmountSell, mp.assetIdSell)
-        assert(txResult.bSucc, `Call transfer() failed. [MSG = ${txResult.message}]`)
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it(`assetTransferInput: coreAsssetId -> tokenAsssetId_1`, async function () {
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetTransferInput
-        mp.traderSeed = 'Eve'
-        mp.recipientSeed = 'Dave'
-        mp.assetIdSell = coreAsssetId
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountSell = tradeAmount
-        mp.minAmountBuy = '2'
-
-        await cennzx.checkMethod(mp)
-    });
-
-    it(`assetTransferInput: tokenAsssetId_1 -> coreAsssetId`, async function () {
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetTransferInput
-        mp.traderSeed = 'Eve'
-        mp.recipientSeed = 'Dave'
-        mp.assetIdSell = tokenAsssetId_1
+        mp.method = cennzx.assetSwapOutput
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = newTokenAsssetId
         mp.assetIdBuy = coreAsssetId
-        mp.amountSell = tradeAmount
-        mp.minAmountBuy = '2'
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        // top up asset account
-        await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.amountSell, mp.assetIdSell)
+        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
 
+        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
+
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
+
+        // do swap and check
         await cennzx.checkMethod(mp)
     });
 
-    it(`assetTransferInput: tokenAsssetId_2 -> tokenAsssetId_1`, async function () {
+    it('assetSwapOutput(token -> core): pool_token_amt << pool_core_amt', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(1e10).toFixed()
+        const poolCoreBalance   = BN(1e18).toFixed()
+        const swapTradeAmount   = BN(9.999999999999999e17).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        // swap
         const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetTransferInput
-        mp.traderSeed = 'Eve'
-        mp.recipientSeed = 'Dave'
-        mp.assetIdSell = tokenAsssetId_2
-        mp.assetIdBuy = tokenAsssetId_1
-        mp.amountSell = tradeAmount
-        mp.minAmountBuy = '2'
+        mp.method = cennzx.assetSwapOutput
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = newTokenAsssetId
+        mp.assetIdBuy = coreAsssetId
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        // top up asset account
-        await node.transfer(tokenIssuerSeed, mp.traderSeed, mp.amountSell, mp.assetIdSell)
+        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
 
+        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
+
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
+
+        // do swap and check
         await cennzx.checkMethod(mp)
     });
 
-    it('Pay tx fee with tokenAsssetId_2', async function () {
+    it('assetSwapOutput(core -> token): max pool_token_amt & tiny pool_core_amt and swap nearly all token', async function () {
 
-        const traderSeed = 'Bob'
-        const payeeSeed = 'James'
-        const transferAmt = '10000'
-        const transferToken = tokenAsssetId_1
-        const feeToken = tokenAsssetId_2
-        const maxPayAmount = maxOutAmount
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = tokenTotalAmount
+        const poolCoreBalance   = BN(10).toFixed()
+        const swapTradeAmount   = BN('339999999999999990000000000000000000000').toFixed()
 
-        let txResult = null
-        let tokenSellAmount = 0
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
 
-        // create tx
-        const ga = await GA.initGA(traderSeed)
-        const payeeAddress = node.getAddressFromSeed(payeeSeed)
-        const tx = ga.transfer(transferToken, payeeAddress, transferAmt.toString())
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
 
-        // add fee option
-        tx.addFeeExchangeOpt({
-            assetId: feeToken,
-            maxPayment: maxPayAmount,
-        });
+        // swap
+        const mp = new cennzx.MethodParameter()
+        mp.method = cennzx.assetSwapOutput
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = coreAsssetId
+        mp.assetIdBuy = newTokenAsssetId
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        // sign tx and calculate fee token cost
-        const signedTx = tx.sign(node.getAccount(traderSeed), await node.getNonce(traderSeed))
-        const txByteLength = signedTx.encodedLength
-        const estimatedCoreFee = await fee.calulateTxFee(txByteLength)
-        const actualTokenCost = await cennzx.getOutputPrice(feeToken, coreAsssetId, estimatedCoreFee)
+        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
 
-        // balance before tx
-        const transferTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, transferToken)
-        const feeTokenBal_beforeTx = await node.queryFreeBalance(traderSeed, feeToken)
-        const coreBal_beforeTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
+        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
 
-        // send tx
-        // txResult = await node.signAndSendTx(tx, traderSeed)
-        txResult = await node.signAndSendTx(tx, traderSeed)
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
 
-        // get sell amount from events
-        txResult.events.forEach(e => {
-            if (e.event.method == 'AssetPurchase') {
-                tokenSellAmount = e.event.data[3].toString()
-            }
-        })
-
-        // balance after tx
-        const transferTokenBal_afterTx = await node.queryFreeBalance(traderSeed, transferToken)
-        const feeTokenBal_afterTx = await node.queryFreeBalance(traderSeed, feeToken)
-        const coreBal_afterTx = await node.queryFreeBalance(traderSeed, coreAsssetId)
-
-        // check payee transferToken balance
-        assert.equal(transferTokenBal_afterTx, BN(transferTokenBal_beforeTx).minus(transferAmt).toFixed(),
-            `Balance of transfer token is wrong.`)
-        // check payer core balance
-        assert.equal(coreBal_afterTx, coreBal_beforeTx,
-            `Balance of core token is wrong.`)
-        // check expected spend token fee
-        assert.equal(tokenSellAmount.toString(), actualTokenCost.toString(), `The token amount to sell is wrong.`)
-        // check payer feeToken balance 
-        assert.equal(feeTokenBal_afterTx, BN(feeTokenBal_beforeTx).minus(actualTokenCost).toFixed(),
-            `Balance of token to pay tx fee is wrong.`)
+        // do swap and check
+        await cennzx.checkMethod(mp)
     });
 
-    it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function () {
-        const minLiquidityWanted = 2
-        const maxAssetAmountInput = 10000
-        const coreAmountInput = tradeAmount
-        const traderSeed = 'Alice'
+    it('assetSwapOutput(core -> token): tiny pool_token_amt & large pool_core_amt', async function () {
 
-        // get all balances before tx
-        const beforeTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await beforeTxBal.getAll()
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(10).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+        const swapTradeAmount   = BN('1').toFixed()
 
-        // await displayInfo(traderSeed)
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
 
-        // add new liquidity
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
 
-        // await displayInfo(traderSeed)
+        // swap
+        const mp = new cennzx.MethodParameter()
+        mp.method = cennzx.assetSwapOutput
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = coreAsssetId
+        mp.assetIdBuy = newTokenAsssetId
+        mp.amountBuy = swapTradeAmount
+        mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        // get tx fee
-        const txFee = txResult.txFee
+        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('apiPrice =', apiPrice.toString())
 
-        // get all balances after tx
-        const afterTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await afterTxBal.getAll()
+        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+        mlog.log('fmlPrice =', formulaPrice.toFixed())
 
+        // check price
+        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice.toFixed()})`)
 
-        /**
-         * Calculate the estimated token amount added to pool.
-         * - formular: token_added / token_pool = core_added / core_pool
-         *             => token_added = token_pool * core_added / core_pool
-         */
-        let estimatedTokenAmtAdded = beforeTxBal.poolTokenAsssetBal * coreAmountInput / beforeTxBal.poolCoreAsssetBal
-        estimatedTokenAmtAdded = Math.ceil(estimatedTokenAmtAdded)  // round up
-
-        /**
-         * Calculate the estimated liquidity increased
-         * - formular: liquidity_minted = core_added * total_liquidity / core_pool
-         * - note: the result should remove the digitals. (For all actions to add property into individual's account)
-         */
-        let estimatedLiquidityMinted = coreAmountInput * beforeTxBal.totalLiquidity / beforeTxBal.poolCoreAsssetBal
-        estimatedLiquidityMinted = Math.floor(estimatedLiquidityMinted)  // round, only remove the digitals
-
-        // check issuer's token balance
-        assert.equal(
-            afterTxBal.traderTokenAssetBal,
-            BN(beforeTxBal.traderTokenAssetBal).minus(estimatedTokenAmtAdded).toFixed(),
-            `Trader's token asset balance is wrong.`)
-
-        // check issuer's core balance
-        assert.equal(
-            afterTxBal.traderCoreAssetBal,
-            BN(beforeTxBal.traderCoreAssetBal).minus(coreAmountInput + txFee).toFixed(),
-            `Trader's core asset balance is wrong.`)
-
-        // check token amount in pool
-        assert.equal(
-            afterTxBal.poolTokenAsssetBal,
-            BN(beforeTxBal.poolTokenAsssetBal).plus(estimatedTokenAmtAdded).toFixed(),
-            `Pool token asset balance is wrong.`)
-
-        // check core asset balance in exchange address
-        assert.equal(
-            afterTxBal.poolCoreAsssetBal,
-            BN(beforeTxBal.poolCoreAsssetBal).plus(coreAmountInput).toFixed(),
-            `Pool core asset balance is wrong.`)
-
-        // check total liquidity
-        assert.equal(
-            afterTxBal.totalLiquidity,
-            BN(beforeTxBal.totalLiquidity).plus(estimatedLiquidityMinted).toFixed(),
-            `Total liquidity is wrong.`)
-
-        // check trader liquidity
-        assert.equal(
-            afterTxBal.traderLiquidity,
-            BN(beforeTxBal.traderLiquidity).plus(estimatedLiquidityMinted).toFixed(),
-            `Trader's liquidity is wrong.`)
+        // do swap and check
+        await cennzx.checkMethod(mp)
     });
 
-    it('Bob remove liquidity', async function () {
+    it('Add liquidity twice', async function () {
+
+        // const tokenAmount = BN(1e25).toFixed()
+        // const poolTokenBalance  = BN(1e10).toFixed()
+        // const poolCoreBalance   = BN(1e5).toFixed()
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(10).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+        mlog.log('getPoolAssetBalance =', (await cennzx.getPoolAssetBalance(newTokenAsssetId)).toString())
+        mlog.log('getPoolCoreAssetBalance =', (await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)).toString())
+        mlog.log('token balance =', (await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)).toString())
+
+        mlog.log('------- 2nd -----------')
+        const coreAmountInput = BN(1e5).toFixed()
+        const liquidityPrice = await cennzx.liquidityPrice(newTokenAsssetId, coreAmountInput)
+        mlog.log('liquidityPrice =', liquidityPrice)
+
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, liquidityPrice, coreAmountInput)
+
+        mlog.log('getPoolAssetBalance =', (await cennzx.getPoolAssetBalance(newTokenAsssetId)).toString())
+        mlog.log('getPoolCoreAssetBalance =', (await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)).toString())
+        mlog.log('token balance =', (await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)).toString())
+    });
+
+
+    it.only('Add liquidity twice', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+
+        mlog.log('------------------')
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        const before_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+        const before_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+
+        mlog.log('before_poolAssetBal =', before_poolAssetBal)
+        mlog.log('before_poolCoreBal =', before_poolCoreBal)
+
+        
+        const coreAmountInput = BN(1e15).toFixed()
+        const apiLiquidityPrice = await cennzx.liquidityPrice(newTokenAsssetId, coreAmountInput)
+
+        mlog.log('add core amount =', coreAmountInput)
+        mlog.log('apiLiquidityPrice =', apiLiquidityPrice)
+
+        const formulaLiquidityPrice = BN(before_poolAssetBal).times(coreAmountInput).div(before_poolCoreBal).dp(0).plus(1)
+        mlog.log('formulaLiquidityPrice =', formulaLiquidityPrice.toFixed())
+
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, apiLiquidityPrice, coreAmountInput)
+
+        const after_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+        const after_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+
+        mlog.log('after_poolAssetBal =', after_poolAssetBal)
+        mlog.log('after_poolCoreBal =', after_poolCoreBal)
+
+        assert(BN(formulaLiquidityPrice).minus(apiLiquidityPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiLiquidityPrice.toString()}) != formulaPrice(${formulaLiquidityPrice.toFixed()})`)
+
+        assert.equal(
+            after_poolAssetBal.toString(), 
+            BN(before_poolAssetBal).plus(apiLiquidityPrice).toFixed(),
+            'Pool asset balance is wrong.')
+        
+        assert.equal(
+            after_poolCoreBal.toString(),
+            BN(before_poolCoreBal).plus(coreAmountInput).toFixed(),
+            'Pool core balance is wrong.')
+    });
+
+    it('TODO: write new case - Remove liquidity', async function () {
 
         const traderSeed = 'Bob' // Bob
         const burnedAmount = '10000'
