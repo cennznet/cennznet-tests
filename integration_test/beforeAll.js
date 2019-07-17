@@ -23,7 +23,7 @@
 const { cryptoWaitReady } = require('@cennznet/util');
 const { bootNodeApi } = require('../api/websocket')
 const node = require('../api/node')
-const args = require('../api/args')
+const mlog = require('mocha-logger')
 
 before( async () => {
     // init api

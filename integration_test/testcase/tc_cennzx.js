@@ -377,7 +377,7 @@ describe('CennzX test suite', function () {
         await beforeTxBal.getAll()
         // await beforeTxBal.displayInfo()
 
-        const liquidityPrice = await cennzx.liquidityPrice(tokenAsssetId_1, coreAmountInput)
+        const liquidityPrice = await cennzx.getAddLiquidityPrice(tokenAsssetId_1, coreAmountInput)
         // console.log('liquidityPrice =', liquidityPrice)
 
         /**

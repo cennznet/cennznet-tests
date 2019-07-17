@@ -20,6 +20,7 @@ const node = require('./node')
 const { bootNodeApi } = require('./websocket');
 const fee = require('./fee');
 const BN = require('bignumber.js')
+const mlog = require('mocha-logger')
 
 
 function MethodParameter(){
@@ -103,14 +104,14 @@ class SpotXBalance{
     }
 
     async displayAll(){
-        console.log('==========================')
+        mlog.log('==========================')
         Object.keys(this).forEach(v => {
             let printValueBN = BN(this[v])
             // check if it's a number
             if (printValueBN.isNaN()){
-                console.log(`${v} = ${this[v]}`)
+                mlog.log(`${v} = ${this[v]}`)
             }else{
-                console.log(`${v} = ${BN(this[v]).toFixed()}`)
+                mlog.log(`${v} = ${BN(this[v]).toFixed()}`)
             }
         })
     }
@@ -249,10 +250,10 @@ class BalanceChecker{
     }
 
     printAllPrice(){
-        console.log('priceBuy_assetSellToBuy =', this.priceBuy_assetSellToBuy.toString())
-        console.log('priceBuy_assetCoreToBuy =', this.priceBuy_assetCoreToBuy.toString())
-        console.log('priceSell_assetSellToBuy =', this.priceSell_assetSellToBuy.toString())
-        console.log('priceSell_assetSellToCore =', this.priceSell_assetSellToCore.toString())
+        mlog.log('priceBuy_assetSellToBuy =', this.priceBuy_assetSellToBuy.toString())
+        mlog.log('priceBuy_assetCoreToBuy =', this.priceBuy_assetCoreToBuy.toString())
+        mlog.log('priceSell_assetSellToBuy =', this.priceSell_assetSellToBuy.toString())
+        mlog.log('priceSell_assetSellToCore =', this.priceSell_assetSellToCore.toString())
     }
 
     /**
@@ -271,7 +272,7 @@ class BalanceChecker{
         await this._getSwapPrice()
 
         if ( this.debugFlag ){
-            console.log('methodName =', methodName)
+            mlog.log('methodName =', methodName)
             this.beforeTxBal.displayAll()
             this.printAllPrice()
         }
@@ -331,7 +332,7 @@ class BalanceChecker{
         this.afterTxBal = new SpotXBalance(methodPara)
         await this.afterTxBal.fetchAll()
         if (this.debugFlag){
-            console.log('txFee =', this.txFee)
+            mlog.log('txFee =', this.txFee)
             this.afterTxBal.displayAll()
         }
 
@@ -393,9 +394,11 @@ class LiquidityBalance{
     async displayInfo(){
         await this.getAll()
         // display all member
+        mlog.log(`>>>>>>>>>>>>>>>>>>>>>>>>`)
         Object.keys(this).forEach(v => {
-            console.log(`${v} = ${this[v].toString()}`)
+            mlog.log(`${v} = ${this[v].toString()}`)
         })
+        mlog.log(`<<<<<<<<<<<<<<<<<<<<<<<<`)
     }
 }
 
@@ -453,13 +456,7 @@ module.exports.addLiquidity = async function (traderSeed, assetId, minLiquidity,
     let isCreated = false
 
     // check if the expected event appeared
-    isCreated = checkTxEvent(txResult, 'AddLiquidity')
-
-    if (isCreated){
-        txResult.bSucc = true
-        txResult.txFee = await fee.queryTxFee(txResult.blockHash, txResult.extrinsicIndex, nodeApi)
-    }
-    else{
+    if (!checkTxEvent(txResult, 'AddLiquidity')){
         txResult.bSucc = false
     }
 
@@ -468,7 +465,7 @@ module.exports.addLiquidity = async function (traderSeed, assetId, minLiquidity,
 
 /**
  * Burn exchange tokens to withdraw core asset and trade asset at current ratio
- * @ assetAmount: amount of exchange token to be burned. This is the value that will be definitely deducted.
+ * @ assetAmount: amount of exchange token to be burned. This is the liquidity that will be definitely deducted from trader's liquidity and total liquidity.
  * @ minAssetWithdraw: minimum core asset withdrawn. If actual asset amount withdrawed is lower than this value, tx will get failure.
  * @ minCoreWithdraw: minimum trade asset withdrawn. If actual core amount withdrawded is lower than this value, tx will get failure.
  */
@@ -479,16 +476,8 @@ module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmoun
 
     const txResult = await node.signAndSendTx(trans, traderSeed)
 
-    let bSucc = false
-
     // check if the expected event appeared
-    bSucc = checkTxEvent(txResult, 'RemoveLiquidity')
-
-    if (bSucc){
-        txResult.bSucc = true
-        txResult.txFee = await fee.queryTxFee(txResult.blockHash, txResult.extrinsicIndex, nodeApi)
-    }
-    else{
+    if (!checkTxEvent(txResult, 'RemoveLiquidity')){
         txResult.bSucc = false
     }
 
@@ -497,10 +486,31 @@ module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmoun
 
 
 
-module.exports.liquidityPrice = async function (assetId, amount, nodeApi = bootNodeApi){
+module.exports.getAddLiquidityPrice = async function (assetId, amount, nodeApi = bootNodeApi){
     const spotX = await initSpotX(nodeApi)
     const liquidity_price = await spotX.liquidityPrice(assetId, amount)
     return liquidity_price.toString()
+}
+
+module.exports.getRemoveLiquidityPrice = async function (traderSeed, assetId, burdLiquidityAmount){
+    const liquidity = new LiquidityBalance(traderSeed, assetId)
+    await liquidity.getAll()
+
+    // mlog.log('liquidity.poolTokenAsssetBal =', liquidity.poolTokenAsssetBal)
+    // mlog.log('liquidity.totalLiquidity =', liquidity.totalLiquidity)
+
+    // - formula: tokenWithdrawn = tokenPool * (amountBurned / totalLiquidity)
+    const withdrawalTokenAmt = BN(burdLiquidityAmount).times(liquidity.poolTokenAsssetBal).div(liquidity.totalLiquidity).dp(0).toFixed()
+    // mlog.log('withdrawalTokenAmt =', withdrawalTokenAmt)
+    
+    // - formula: coreWithdrawn = corePool * (amountBurned / totalLiquidity)
+    const withdrawalCoreAmt = BN(burdLiquidityAmount).times(liquidity.poolCoreAsssetBal).div(liquidity.totalLiquidity).dp(0).toFixed()
+    // mlog.log('withdrawalCoreAmt =', withdrawalCoreAmt)
+
+    return {
+        tokenAmount: withdrawalTokenAmt,
+        coreAmount: withdrawalCoreAmt
+    }
 }
 
 async function defaultFeeRate(nodeApi = bootNodeApi){

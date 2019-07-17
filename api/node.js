@@ -102,12 +102,13 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                     txResult.events = r.events
                     // get tx fee
                     txResult.txFee = await queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
-
+                   
                     // check if the extrinsic succeeded
                     r.events.forEach(({ phase, event: { data, method, section } }) => {
                         if (method == 'ExtrinsicFailed') {
                             txResult.bSucc = false
                             txResult.message = `Transaction failed at block(${txResult.blockHash}): ${section}.${method}`
+                            resolve(false)
                         }
                     });
                 }
@@ -118,7 +119,6 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                     reject(error);
                 }
                 
-
                 resolve(true); 
             }
             else if ('Invalid' == r.status.toString() || r.events == undefined){

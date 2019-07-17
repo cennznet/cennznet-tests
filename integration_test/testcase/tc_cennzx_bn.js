@@ -59,7 +59,7 @@ describe('CennzX test suite for bignumber overflow', function () {
         mlog.log('Core asset ID =', coreAsssetId)
     })
 
-    it('TODO: bug(price wrong) - assetSwapInput(token -> core): pool_token_amt << pool_core_amt', async function () {
+    it('TODO: retest bug(price wrong) - assetSwapInput(token -> core): pool_token_amt << pool_core_amt', async function () {
 
         const tokenAmount = tokenTotalAmount
         const poolTokenBalance  = BN(1e10).toFixed()
@@ -98,7 +98,7 @@ describe('CennzX test suite for bignumber overflow', function () {
         await cennzx.checkMethod(mp)
     });
 
-    it('TODO: bug(Pool balance is low) - assetSwapInput(token -> core): pool_token_amt >> pool_core_amt', async function () {
+    it('TODO: retest bug(Pool balance is low) - assetSwapInput(token -> core): pool_token_amt >> pool_core_amt', async function () {
 
         const tokenAmount = tokenTotalAmount
         const poolTokenBalance  = BN(1e18).toFixed()
@@ -137,7 +137,7 @@ describe('CennzX test suite for bignumber overflow', function () {
         await cennzx.checkMethod(mp)
     });
 
-    it('TODO: bug(Pool balance is low) - assetSwapInput(core -> token): max pool_token_amt and swap nearly all token', async function () {
+    it('TODO: retest bug(Pool balance is low) - assetSwapInput(core -> token): max pool_token_amt and swap nearly all token', async function () {
 
         const tokenAmount = tokenTotalAmount
         const poolTokenBalance  = tokenTotalAmount
@@ -176,7 +176,7 @@ describe('CennzX test suite for bignumber overflow', function () {
         await cennzx.checkMethod(mp)
     });
 
-    it('TODO: bug(price is 0) - assetSwapInput(core -> token): max pool_token_amt and swap nearly all token', async function () {
+    it('TODO: retest bug(price is 0) - assetSwapInput(core -> token): max pool_token_amt and swap nearly all token', async function () {
 
         const tokenAmount = tokenTotalAmount
         const poolTokenBalance  = tokenTotalAmount
@@ -371,41 +371,7 @@ describe('CennzX test suite for bignumber overflow', function () {
         await cennzx.checkMethod(mp)
     });
 
-    it('Add liquidity twice', async function () {
-
-        // const tokenAmount = BN(1e25).toFixed()
-        // const poolTokenBalance  = BN(1e10).toFixed()
-        // const poolCoreBalance   = BN(1e5).toFixed()
-
-        const tokenAmount = tokenTotalAmount
-        const poolTokenBalance  = BN(10).toFixed()
-        const poolCoreBalance   = BN(1e20).toFixed()
-
-        mlog.log('------------------')
-        mlog.log('poolTokenBalance =', poolTokenBalance)
-        mlog.log('poolCoreBalance =', poolCoreBalance)
-
-        // create new token and exchange pool
-        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
-        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
-        mlog.log('getPoolAssetBalance =', (await cennzx.getPoolAssetBalance(newTokenAsssetId)).toString())
-        mlog.log('getPoolCoreAssetBalance =', (await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)).toString())
-        mlog.log('token balance =', (await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)).toString())
-
-        mlog.log('------- 2nd -----------')
-        const coreAmountInput = BN(1e5).toFixed()
-        const liquidityPrice = await cennzx.liquidityPrice(newTokenAsssetId, coreAmountInput)
-        mlog.log('liquidityPrice =', liquidityPrice)
-
-        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, liquidityPrice, coreAmountInput)
-
-        mlog.log('getPoolAssetBalance =', (await cennzx.getPoolAssetBalance(newTokenAsssetId)).toString())
-        mlog.log('getPoolCoreAssetBalance =', (await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)).toString())
-        mlog.log('token balance =', (await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)).toString())
-    });
-
-
-    it.only('Add liquidity twice', async function () {
+    it('TODO: retest bug(add liquidity is wrong) - Add liquidity twice', async function () {
 
         const tokenAmount = tokenTotalAmount
         const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
@@ -417,118 +383,433 @@ describe('CennzX test suite for bignumber overflow', function () {
         const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
         await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
 
-        const before_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
-        const before_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+        const beforeTx_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+        const beforeTx_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
 
-        mlog.log('before_poolAssetBal =', before_poolAssetBal)
-        mlog.log('before_poolCoreBal =', before_poolCoreBal)
+        mlog.log('beforeTx_poolAssetBal =', beforeTx_poolAssetBal)
+        mlog.log('beforeTx_poolCoreBal =', beforeTx_poolCoreBal)
 
         
         const coreAmountInput = BN(1e15).toFixed()
-        const apiLiquidityPrice = await cennzx.liquidityPrice(newTokenAsssetId, coreAmountInput)
+        const apiLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
 
         mlog.log('add core amount =', coreAmountInput)
         mlog.log('apiLiquidityPrice =', apiLiquidityPrice)
 
-        const formulaLiquidityPrice = BN(before_poolAssetBal).times(coreAmountInput).div(before_poolCoreBal).dp(0).plus(1)
+        const formulaLiquidityPrice = BN(beforeTx_poolAssetBal).times(coreAmountInput).div(beforeTx_poolCoreBal).dp(0).plus(1)
         mlog.log('formulaLiquidityPrice =', formulaLiquidityPrice.toFixed())
 
         await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, apiLiquidityPrice, coreAmountInput)
 
-        const after_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
-        const after_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+        const afterTx_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+        const afterTx_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
 
-        mlog.log('after_poolAssetBal =', after_poolAssetBal)
-        mlog.log('after_poolCoreBal =', after_poolCoreBal)
+        mlog.log('afterTx_poolAssetBal =', afterTx_poolAssetBal)
+        mlog.log('afterTx_poolCoreBal =', afterTx_poolCoreBal)
 
         assert(BN(formulaLiquidityPrice).minus(apiLiquidityPrice).absoluteValue().isLessThanOrEqualTo(1), 
             `apiPrice(${apiLiquidityPrice.toString()}) != formulaPrice(${formulaLiquidityPrice.toFixed()})`)
 
         assert.equal(
-            after_poolAssetBal.toString(), 
-            BN(before_poolAssetBal).plus(apiLiquidityPrice).toFixed(),
+            afterTx_poolAssetBal.toString(), 
+            BN(beforeTx_poolAssetBal).plus(apiLiquidityPrice).toFixed(),
             'Pool asset balance is wrong.')
         
         assert.equal(
-            after_poolCoreBal.toString(),
-            BN(before_poolCoreBal).plus(coreAmountInput).toFixed(),
+            afterTx_poolCoreBal.toString(),
+            BN(beforeTx_poolCoreBal).plus(coreAmountInput).toFixed(),
             'Pool core balance is wrong.')
     });
 
-    it('TODO: write new case - Remove liquidity', async function () {
+    it('TODO: retest bug(Pool asset balance is wrong.) - Second trader add liquidity', async function () {
 
-        const traderSeed = 'Bob' // Bob
-        const burnedAmount = '10000'
-        const minAssetWithdraw = 1
-        const minCoreWithdraw = 1
+        let txResult = null
 
-        // await displayInfo(traderSeed)
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+        const secondTrader = 'Alice'
+        const coreAmountInput = BN(1e18).toFixed()
 
-        // get all balances before tx
-        const beforeTxBal = await new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await beforeTxBal.getAll()
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
 
-        // first add the liquidity
-        const txResult = await cennzx.removeLiquidity(traderSeed, tokenAsssetId_1, burnedAmount, minAssetWithdraw, minCoreWithdraw)
-        assert(txResult.bSucc, `Call removeLiquidity() failed. [MSG = ${txResult.message}]`)
+        const beforeTxInfo = new cennzx.LiquidityBalance(tokenIssuerSeed, newTokenAsssetId)
+        await beforeTxInfo.getAll()
+        await beforeTxInfo.displayInfo()
 
+        const apiLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
+
+        mlog.log('add core amount =', coreAmountInput)
+        mlog.log('apiLiquidityPrice =', apiLiquidityPrice)
+
+        const formulaLiquidityPrice = BN(beforeTxInfo.poolTokenAsssetBal).times(coreAmountInput).div(beforeTxInfo.poolCoreAsssetBal).dp(0).plus(1)
+        mlog.log('formulaLiquidityPrice =', formulaLiquidityPrice.toFixed())
+
+        txResult = await node.transfer(tokenIssuerSeed, secondTrader, BN(tokenTotalAmount).div(2).toFixed(), newTokenAsssetId)
+        assert.equal(txResult.bSucc, true, 'transfer() is wrong.')
+
+        txResult = await cennzx.addLiquidity(secondTrader, newTokenAsssetId, minLiquidityWanted, apiLiquidityPrice, coreAmountInput)
+        assert.equal(txResult.bSucc, true, 'addLiquidity() is wrong.')
+
+        const afterTxInfo_issuer = new cennzx.LiquidityBalance(tokenIssuerSeed, newTokenAsssetId)
+        await afterTxInfo_issuer.getAll()
+        await afterTxInfo_issuer.displayInfo()
+        
+        const afterTxInfo_trader2 = new cennzx.LiquidityBalance(secondTrader, newTokenAsssetId)
+        await afterTxInfo_trader2.getAll()
+        await afterTxInfo_trader2.displayInfo()
+
+        assert(BN(formulaLiquidityPrice).minus(apiLiquidityPrice).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${apiLiquidityPrice.toString()}) != formulaPrice(${formulaLiquidityPrice.toFixed()})`)
+
+        assert.equal(
+            afterTxInfo_issuer.poolTokenAsssetBal.toString(), 
+            BN(beforeTxInfo.poolTokenAsssetBal).plus(apiLiquidityPrice).toFixed(),
+            'Pool asset balance is wrong.')
+        
+        assert.equal(
+            afterTxInfo_issuer.poolCoreAsssetBal.toString(),
+            BN(beforeTxInfo.poolCoreAsssetBal).plus(coreAmountInput).toFixed(),
+            'Pool core balance is wrong.')
+
+        assert.equal(
+            afterTxInfo_issuer.totalLiquidity.toString(),
+            BN(beforeTxInfo.totalLiquidity).plus(coreAmountInput).toFixed(),
+            'Pool core balance is wrong.')
+    });
+
+    it('TODO: retest bug(Pool core asset balance is wrong) - Remove half liquidity', async function () {
+
+        const poolTokenBalance  = tokenTotalAmount
+        const poolCoreBalance   = BN(1e20).toFixed()
+        const burnedAmount = BN(poolCoreBalance).div(2).toFixed()
+
+        await checkRemoveLiquidity(poolTokenBalance, poolCoreBalance, burnedAmount)
+    });
+
+    it('Remove all liquidity', async function () {
+
+        const poolTokenBalance  = BN(1e10).toFixed()
+        const poolCoreBalance   = BN(2e10).toFixed()
+        const burnedAmount = BN(poolCoreBalance).toFixed()
+
+        await checkRemoveLiquidity(poolTokenBalance, poolCoreBalance, burnedAmount)
+    });
+
+    it('TODO: run test after remove liquidity bug fixed - Remove half liquidity of second trader', async function () {
+
+        let txResult = null
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+        const secondTrader = 'Alice'
+        const coreAmountInput = BN(1e18).toFixed()
+        const burnedAmount = BN(coreAmountInput).div(2).toFixed()
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        txResult = await node.transfer(tokenIssuerSeed, secondTrader, BN(tokenTotalAmount).div(2).toFixed(), newTokenAsssetId)
+        assert.equal(txResult.bSucc, true, 'transfer() is wrong.')
+
+        const addLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
+
+        txResult = await cennzx.addLiquidity(secondTrader, newTokenAsssetId, minLiquidityWanted, addLiquidityPrice, coreAmountInput)
+        assert.equal(txResult.bSucc, true, 'addLiquidity() is wrong.')
+
+        mlog.log('before tx -------->')
+        const beforeTxInfo_issuer = new cennzx.LiquidityBalance(tokenIssuerSeed, newTokenAsssetId)
+        await beforeTxInfo_issuer.getAll()
+        await beforeTxInfo_issuer.displayInfo()
+        
+        const beforeTxInfo_trader = new cennzx.LiquidityBalance(secondTrader, newTokenAsssetId)
+        await beforeTxInfo_trader.getAll()
+        await beforeTxInfo_trader.displayInfo()
+
+        const removePrice = await cennzx.getRemoveLiquidityPrice(secondTrader, newTokenAsssetId, burnedAmount)
+        mlog.log('burnedAmount =', burnedAmount)
+        mlog.log('removePrice =', JSON.stringify(removePrice))
+
+        txResult = await cennzx.removeLiquidity(secondTrader, newTokenAsssetId, burnedAmount, 1, 1)
+        assert.equal(txResult.bSucc, true, 'removeLiquidity() is wrong.')
+        const txFee = txResult.txFee
+
+        mlog.log('after tx -------->')
+
+        const afterInfo_issuer = new cennzx.LiquidityBalance(tokenIssuerSeed, newTokenAsssetId)
+        await afterInfo_issuer.getAll()
+        await afterInfo_issuer.displayInfo()
+        
+        const afterInfo_trader = new cennzx.LiquidityBalance(secondTrader, newTokenAsssetId)
+        await afterInfo_trader.getAll()
+        await afterInfo_trader.displayInfo()
+
+        // check pool token
+        assert.equal(
+            afterInfo_issuer.poolTokenAsssetBal.toString(), 
+            BN(beforeTxInfo_issuer.poolTokenAsssetBal).minus(removePrice.tokenAmount).toFixed(),
+            'Pool asset balance is wrong.')
+        // check pool core
+        assert.equal(
+            afterInfo_issuer.poolCoreAsssetBal.toString(),
+            BN(beforeTxInfo_issuer.poolCoreAsssetBal).minus(removePrice.coreAmount).toFixed(),
+            'Pool core balance is wrong.')
+        // check trader liquidity
+        assert.equal(
+            afterInfo_trader.traderLiquidity.toString(),
+            BN(beforeTxInfo_trader.traderLiquidity).minus(burnedAmount).toFixed(),
+            'Trader liquidity is wrong.')
+        // check issuer liquidity
+        assert.equal(
+            afterInfo_issuer.traderLiquidity,
+            beforeTxInfo_issuer.traderLiquidity,
+            'Issuer liquidity is wrong.')
+        // check trader token balance
+        assert.equal(
+            afterInfo_trader.traderTokenAssetBal.toString(),
+            BN(beforeTxInfo_trader.traderTokenAssetBal).plus(removePrice.tokenAmount).toFixed(),
+            'Trader token balance is wrong.')
+        // check trader core balance
+        assert.equal(
+            afterInfo_trader.traderCoreAssetBal.toString(),
+            BN(beforeTxInfo_trader.traderCoreAssetBal).plus(removePrice.coreAmount).minus(txFee).toFixed(),
+            'Trader core balance is wrong.')
+    });
+
+    it('TODO: run test after remove liquidity bug fixed - Remove all liquidity of second trader', async function () {
+
+        let txResult = null
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+        const secondTrader = 'Alice'
+        const coreAmountInput = BN(1e18).toFixed()
+        const burnedAmount = coreAmountInput
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        txResult = await node.transfer(tokenIssuerSeed, secondTrader, BN(tokenTotalAmount).div(2).toFixed(), newTokenAsssetId)
+        assert.equal(txResult.bSucc, true, 'transfer() is wrong.')
+
+        const addLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
+
+        txResult = await cennzx.addLiquidity(secondTrader, newTokenAsssetId, minLiquidityWanted, addLiquidityPrice, coreAmountInput)
+        assert.equal(txResult.bSucc, true, 'addLiquidity() is wrong.')
+
+        mlog.log('before tx -------->')
+        const beforeTxInfo_issuer = new cennzx.LiquidityBalance(tokenIssuerSeed, newTokenAsssetId)
+        await beforeTxInfo_issuer.getAll()
+        await beforeTxInfo_issuer.displayInfo()
+        
+        const beforeTxInfo_trader = new cennzx.LiquidityBalance(secondTrader, newTokenAsssetId)
+        await beforeTxInfo_trader.getAll()
+        await beforeTxInfo_trader.displayInfo()
+
+        const removePrice = await cennzx.getRemoveLiquidityPrice(secondTrader, newTokenAsssetId, burnedAmount)
+        mlog.log('burnedAmount =', burnedAmount)
+        mlog.log('removePrice =', JSON.stringify(removePrice))
+
+        txResult = await cennzx.removeLiquidity(secondTrader, newTokenAsssetId, burnedAmount, 1, 1)
+        assert.equal(txResult.bSucc, true, 'removeLiquidity() is wrong.')
+        const txFee = txResult.txFee
+
+        mlog.log('after tx -------->')
+
+        const afterInfo_issuer = new cennzx.LiquidityBalance(tokenIssuerSeed, newTokenAsssetId)
+        await afterInfo_issuer.getAll()
+        await afterInfo_issuer.displayInfo()
+        
+        const afterInfo_trader = new cennzx.LiquidityBalance(secondTrader, newTokenAsssetId)
+        await afterInfo_trader.getAll()
+        await afterInfo_trader.displayInfo()
+
+        // check pool token
+        assert.equal(
+            afterInfo_issuer.poolTokenAsssetBal.toString(), 
+            BN(beforeTxInfo_issuer.poolTokenAsssetBal).minus(removePrice.tokenAmount).toFixed(),
+            'Pool asset balance is wrong.')
+        // check pool core
+        assert.equal(
+            afterInfo_issuer.poolCoreAsssetBal.toString(),
+            BN(beforeTxInfo_issuer.poolCoreAsssetBal).minus(removePrice.coreAmount).toFixed(),
+            'Pool core balance is wrong.')
+        // check trader liquidity
+        assert.equal(
+            afterInfo_trader.traderLiquidity.toString(),
+            BN(beforeTxInfo_trader.traderLiquidity).minus(burnedAmount).toFixed(),
+            'Trader liquidity is wrong.')
+        // check issuer liquidity
+        assert.equal(
+            afterInfo_issuer.traderLiquidity,
+            beforeTxInfo_issuer.traderLiquidity,
+            'Issuer liquidity is wrong.')
+        // check trader token balance
+        assert.equal(
+            afterInfo_trader.traderTokenAssetBal.toString(),
+            BN(beforeTxInfo_trader.traderTokenAssetBal).plus(removePrice.tokenAmount).toFixed(),
+            'Trader token balance is wrong.')
+        // check trader core balance
+        assert.equal(
+            afterInfo_trader.traderCoreAssetBal.toString(),
+            BN(beforeTxInfo_trader.traderCoreAssetBal).plus(removePrice.coreAmount).minus(txFee).toFixed(),
+            'Trader core balance is wrong.')
+    });
+
+    it(`TODO: create - Remove 2nd trader's all liquidity`, async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(1e10).toFixed()
+        const poolCoreBalance   = BN(2e20).toFixed()
+        const burnedAmount = BN(poolTokenBalance).div(2).toFixed()
+
+        mlog.log('------------------')
+
+        // create new token and exchange pool
+        const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+        await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+        const beforeTx_coreBalance = await node.queryFreeBalance(tokenIssuerSeed, coreAsssetId)
+        const beforeTx_assetBalance = await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)
+        const beforeTx_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+        const beforeTx_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+
+        mlog.log('beforeTx_poolAssetBal =', beforeTx_poolAssetBal)
+        mlog.log('beforeTx_poolCoreBal =', beforeTx_poolCoreBal)
+        mlog.log('beforeTx_coreBalance =', beforeTx_coreBalance)
+        mlog.log('beforeTx_assetBalance =', beforeTx_assetBalance)
+
+        const txResult = await cennzx.removeLiquidity(tokenIssuerSeed, newTokenAsssetId, burnedAmount, 1, 1)
         // get tx fee
         const txFee = txResult.txFee
 
-        // get all balances after tx
-        const afterTxBal = await new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await afterTxBal.getAll()
+        const afterTx_coreBalance = await node.queryFreeBalance(tokenIssuerSeed, coreAsssetId)
+        const afterTx_assetBalance = await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)
+        const afterTx_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+        const afterTx_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
 
+        mlog.log('txFee =', txFee)
+        mlog.log('afterTx_poolAssetBal =', afterTx_poolAssetBal)
+        mlog.log('afterTx_poolCoreBal =', afterTx_poolCoreBal)
+        mlog.log('afterTx_coreBalance =', afterTx_coreBalance)
+        mlog.log('afterTx_assetBalance =', afterTx_assetBalance)
 
-        // await displayInfo(traderSeed)
-
-        // calucate the estimated token amount withdrawn 
-        // - formula: coreWithdrawn = corePool * (amountBurned / totalLiquidity)
-        let withdrawalTokenAmt = burnedAmount / beforeTxBal.totalLiquidity * beforeTxBal.poolTokenAsssetBal
-        withdrawalTokenAmt = Math.floor(withdrawalTokenAmt) // remove digitals
-
-        // calucate the estimated core amount withdrawn
-        // - formula: tokenWithdrawn = tokenPool * (amountBurned / totalLiquidity)
-        let withdrawalCoreAmt = burnedAmount / beforeTxBal.totalLiquidity * beforeTxBal.poolCoreAsssetBal
-        withdrawalCoreAmt = Math.floor(withdrawalCoreAmt)   // remove digitals
-
-        // check trader's liquidity balance
         assert.equal(
-            afterTxBal.traderLiquidity,
-            BN(beforeTxBal.traderLiquidity).minus(burnedAmount).toFixed(),
-            `Trader's liquidity balance is wrong.`)
-
-        // check total liquidity
+            afterTx_coreBalance,
+            BN(beforeTx_coreBalance).plus(poolCoreBalance).minus(txFee).toFixed(),
+            'Trader core asset balance is wrong.'
+        )
+        
         assert.equal(
-            afterTxBal.totalLiquidity,
-            BN(beforeTxBal.totalLiquidity).minus(burnedAmount).toFixed(),
-            `Total liquidity balance is wrong.`)
-
-        // check pool's core balance
+            afterTx_assetBalance, 
+            BN(beforeTx_assetBalance).plus(poolTokenBalance).toFixed(),
+            'Trader token asset balance is wrong.')
+        
         assert.equal(
-            afterTxBal.poolCoreAsssetBal,
-            BN(beforeTxBal.poolCoreAsssetBal).minus(withdrawalCoreAmt).toFixed(),
-            `Pool's core balance is wrong.`)
+            afterTx_poolCoreBal, '0', 'Pool core asset balance is wrong.')
 
-        // check pool's token balance
         assert.equal(
-            afterTxBal.poolTokenAsssetBal,
-            BN(beforeTxBal.poolTokenAsssetBal).minus(withdrawalTokenAmt).toFixed(),
-            `Pool's token balance is wrong.`)
+            afterTx_assetBalance, '0', 'Pool token asset balance is wrong.')
+    });
 
-        // check trader's core balance
-        assert.equal(
-            afterTxBal.traderCoreAssetBal,
-            BN(beforeTxBal.traderCoreAssetBal).plus(withdrawalCoreAmt).minus(txFee).toFixed(),
-            `Trader's core balance is wrong.`)
+    it.only(`TODO: create - Add multiply traders' liquidity, then remove them`, async function () {
 
-        // check trader's token balance
-        assert.equal(
-            afterTxBal.traderTokenAssetBal,
-            BN(beforeTxBal.traderTokenAssetBal).plus(withdrawalTokenAmt).toFixed(),
-            `Trader's token balance is wrong.`)
+        const currentTokenTotalAmount = tokenTotalAmount
+        const traderCount = 3
+        const traderList = []
+
+        function TraderInfo(){
+            this.seed           = ''
+            this.tokenAmount    = 0
+
+        }
+
+        // generate trader seed
+        for (let index = 0; index < traderCount; index++) {
+            let trader = new TraderInfo()
+            trader.seed = 'trader_' + (1000000 + index).toString()
+            traderList.push(trader)
+        }
+
+        // console.log(traderList);
+        
+
+        // topup all traders with core asset (if balance < 1e18)
+
+        // determine the token amount rate of all traders
+
+        // add liquidity and check
+
+        // remove liquidity and check
     });
 
 });
 
+async function checkRemoveLiquidity(poolTokenBalance, poolCoreBalance, burnedAmount) {
 
+    const tokenAmount = tokenTotalAmount
+
+    // create new token and exchange pool
+    const newTokenAsssetId = (await ga.createNewToken(tokenIssuerSeed, tokenAmount)).assetId.toString()
+    await cennzx.addLiquidity(tokenIssuerSeed, newTokenAsssetId, minLiquidityWanted, poolTokenBalance, poolCoreBalance)
+
+    const beforeTx_coreBalance = await node.queryFreeBalance(tokenIssuerSeed, coreAsssetId)
+    const beforeTx_assetBalance = await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)
+    const beforeTx_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+    const beforeTx_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+
+    const removePrice = await cennzx.getRemoveLiquidityPrice(tokenIssuerSeed, newTokenAsssetId, burnedAmount)
+
+    mlog.log('beforeTx_poolAssetBal =', beforeTx_poolAssetBal)
+    mlog.log('beforeTx_poolCoreBal =', beforeTx_poolCoreBal)
+    mlog.log('beforeTx_coreBalance =', beforeTx_coreBalance)
+    mlog.log('beforeTx_assetBalance =', beforeTx_assetBalance)
+    mlog.log('burnedAmount =', burnedAmount)
+    mlog.log('removeCoreAmount =', removePrice.coreAmount)
+    mlog.log('removeTokenAmount =', removePrice.tokenAmount)
+
+    const txResult = await cennzx.removeLiquidity(tokenIssuerSeed, newTokenAsssetId, burnedAmount, 1, 1)
+    assert.equal(txResult.bSucc, true, 'Transaction failed')
+    mlog.log('removeLiquidity result =', txResult.bSucc)
+
+    // get tx fee
+    const txFee = txResult.txFee
+
+    const afterTx_coreBalance = await node.queryFreeBalance(tokenIssuerSeed, coreAsssetId)
+    const afterTx_assetBalance = await node.queryFreeBalance(tokenIssuerSeed, newTokenAsssetId)
+    const afterTx_poolAssetBal = await cennzx.getPoolAssetBalance(newTokenAsssetId)
+    const afterTx_poolCoreBal = await cennzx.getPoolCoreAssetBalance(newTokenAsssetId)
+
+    mlog.log('txFee =', txFee)
+    mlog.log('afterTx_poolAssetBal =', afterTx_poolAssetBal)
+    mlog.log('afterTx_poolCoreBal =', afterTx_poolCoreBal)
+    mlog.log('afterTx_coreBalance =', afterTx_coreBalance)
+    mlog.log('afterTx_assetBalance =', afterTx_assetBalance)
+
+    assert.equal(
+        afterTx_poolCoreBal, 
+        BN(beforeTx_poolCoreBal).minus(removePrice.coreAmount).toFixed(), 
+        'Pool core asset balance is wrong.')
+
+    assert.equal(
+        afterTx_poolAssetBal, 
+        BN(beforeTx_poolAssetBal).minus(removePrice.tokenAmount).toFixed(), 
+        'Pool token asset balance is wrong.')
+
+    assert.equal(
+        afterTx_coreBalance,
+        BN(beforeTx_coreBalance).plus(removePrice.coreAmount).minus(txFee).toFixed(),
+        'Trader core asset balance is wrong.'
+    )
+
+    assert.equal(
+        afterTx_assetBalance,
+        BN(beforeTx_assetBalance).plus(removePrice.tokenAmount).toFixed(),
+        'Trader token asset balance is wrong.')
+}
