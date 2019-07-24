@@ -280,6 +280,13 @@ class BalanceChecker{
         // run method
         if (methodName.indexOf('Input') >= 0) {
             this.isTxSell = true
+
+            // check price
+            const apiPrice = await getInputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell)
+            const formulaPrice = await getFormulaInputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell)
+            assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+                `apiPriceInput(${apiPrice}) != formulaPriceInput(${formulaPrice})`)
+
             // run the method
             if (methodName.indexOf('Transfer') >= 0) {
                 this.isTransfer = true
@@ -296,6 +303,13 @@ class BalanceChecker{
         }
         else if (methodName.indexOf('Output') >= 0) {
             this.isTxSell = false
+
+            // check price
+            const apiPrice = await getOutputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell)
+            const formulaPrice = await getFormulaOutputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell)
+            assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
+                `apiPriceOutput(${apiPrice}) != formulaPriceOutput(${formulaPrice})`)
+
             // run the method
             if (methodName.indexOf('Transfer') >= 0) {
                 this.isTransfer = true
@@ -392,7 +406,7 @@ class LiquidityBalance{
     }
 
     async displayInfo(){
-        await this.getAll()
+        // await this.getAll()
         // display all member
         mlog.log(`>>>>>>>>>>>>>>>>>>>>>>>>`)
         Object.keys(this).forEach(v => {
@@ -446,7 +460,7 @@ async function checkTxEvent(txResult, eventMethod){
  *                              This is for keep the proportion of the token and core.
  * @param coreAmount: the exact core asset amount to add into pool. This value is the initial liquidity.
  */
-module.exports.addLiquidity = async function (traderSeed, assetId, minLiquidity, maxAssetAmount, coreAmount, nodeApi = bootNodeApi){
+async function addLiquidity(traderSeed, assetId, minLiquidity, maxAssetAmount, coreAmount, nodeApi = bootNodeApi){
     const spotX = await initSpotX(nodeApi)
 
     const trans = spotX.addLiquidity(assetId, minLiquidity, maxAssetAmount, coreAmount, 10)
@@ -469,7 +483,7 @@ module.exports.addLiquidity = async function (traderSeed, assetId, minLiquidity,
  * @ minAssetWithdraw: minimum core asset withdrawn. If actual asset amount withdrawed is lower than this value, tx will get failure.
  * @ minCoreWithdraw: minimum trade asset withdrawn. If actual core amount withdrawded is lower than this value, tx will get failure.
  */
-module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmount, minAssetWithdraw, minCoreWithdraw, nodeApi = bootNodeApi){
+async function removeLiquidity(traderSeed, assetId, assetAmount, minAssetWithdraw, minCoreWithdraw, nodeApi = bootNodeApi){
     const spotX = await initSpotX(nodeApi)
 
     const trans = spotX.removeLiquidity(assetId, assetAmount, minAssetWithdraw, minCoreWithdraw)
@@ -484,28 +498,228 @@ module.exports.removeLiquidity = async function (traderSeed, assetId, assetAmoun
     return txResult
 }
 
+/**
+ * Add liquidity and check result
+ * @param {*} traderSeed 
+ * @param {*} tokenId 
+ * @param {*} tokenAmountInput: for creating pool, it's the token amount; for add more liquidity, it's calculated by {coreAmountInput}.
+ * @param {*} coreAmountInput 
+ */
+async function addLiquidityAndCheck(traderSeed, tokenId, tokenAmountInput, coreAmountInput ) {
 
+    let txResult = null
+    const poolTokenBal = await getPoolAssetBalance(tokenId)
+    const poolCoreBal = await getPoolCoreAssetBalance(tokenId)
 
-module.exports.getAddLiquidityPrice = async function (assetId, amount, nodeApi = bootNodeApi){
+    if (BN(poolTokenBal).lte(0) || BN(poolCoreBal).lte(0)){ // empty pool means it hasn't been created
+    // create pool    
+        const beforeTxInfo = new LiquidityBalance(traderSeed, tokenId)
+        await beforeTxInfo.getAll()
+        mlog.log('-- status before create liquidity pool:')
+        await beforeTxInfo.displayInfo()
+
+        mlog.log(`add poolTokenBalance = ${tokenAmountInput}`)
+        mlog.log(`add poolCoreBalance = ${coreAmountInput}`)
+
+        txResult = await addLiquidity(traderSeed, tokenId, 1, tokenAmountInput, coreAmountInput)
+        assert.equal(txResult.bSucc, true, `addLiquidity() created pool failed. (${traderSeed})`)
+        mlog.log(`txResult.fee = ${txResult.txFee}`)
+
+        const afterTxInfo = new LiquidityBalance(traderSeed, tokenId)
+        await afterTxInfo.getAll()
+        mlog.log('-- status after create liquidity pool:')
+        await afterTxInfo.displayInfo()
+
+        // check issuer's token balance
+        assert.equal(
+            afterTxInfo.traderTokenAssetBal,
+            BN(beforeTxInfo.traderTokenAssetBal).minus(tokenAmountInput).toFixed(),
+            `Token token balance is wrong. ${traderSeed}`)
+
+        // check issuer's core balance
+        assert.equal(
+            afterTxInfo.traderCoreAssetBal,
+            BN(beforeTxInfo.traderCoreAssetBal).minus(coreAmountInput).minus(txResult.txFee).toFixed(),
+            `Core balance is wrong. ${traderSeed}`)
+
+        // check pool core balance
+        assert.equal(
+            afterTxInfo.poolCoreAsssetBal, 
+            BN(coreAmountInput).toFixed(),
+            `Exchange core asset balance is wrong.${traderSeed}`)
+        // check pool token balance
+        assert.equal(
+            afterTxInfo.poolTokenAsssetBal, 
+            BN(tokenAmountInput).toFixed(),
+            `Exchange token asset balance is wrong.${traderSeed}`)
+
+        // check total liquidity
+        assert.equal(
+            afterTxInfo.totalLiquidity, 
+            BN(coreAmountInput).toFixed(), 
+            `Total liquidity is wrong.${traderSeed}`)
+
+        // check trader liquidity
+        assert.equal(
+            afterTxInfo.traderLiquidity, 
+            BN(coreAmountInput).toFixed(), 
+            `Trader's liquidity is wrong.${traderSeed}`)
+    }
+    else{ // add liquidity
+        // get core amount via inputing token
+        const inputCoreAmount = coreAmountInput
+        const inputTokenAmount = await getAddLiquidityPrice(tokenId, coreAmountInput)
+
+        const formulaTokenPrice = await getAddLiquidityPrice_formula(tokenId, coreAmountInput)
+
+        mlog.log(`input CoreAmount          = ${inputCoreAmount}`)
+        mlog.log(`api TokenAmount price     = ${inputTokenAmount}`)
+        mlog.log(`formula TokenAmount price = ${inputTokenAmount}`)
+
+        let beforeTxInfo = new LiquidityBalance(traderSeed, tokenId)
+        await beforeTxInfo.getAll()
+        mlog.log('-- status before addLiquidity:')
+        await beforeTxInfo.displayInfo()
+
+        // expect(BN(inputTokenAmount)).to.be.gt(BN(beforeTxInfo.traderTokenAssetBal), `(${traderSeed}) Token balance is not sufficient.`)
+        if ( BN(inputTokenAmount).gt(beforeTxInfo.traderTokenAssetBal) ){
+            assert(false, `(${traderSeed}) Token balance(${beforeTxInfo.traderTokenAssetBal}) is smaller than need (${inputTokenAmount}).`)
+        }
+
+        txResult = await addLiquidity(traderSeed, tokenId, 1, inputTokenAmount, inputCoreAmount)
+        assert.equal(txResult.bSucc, true,`addLiquidity() add new liquidity failed. (${traderSeed})`)
+
+        mlog.log(`txResult.fee = ${txResult.txFee}`)
+
+        let afterTxInfo = new LiquidityBalance(traderSeed, tokenId)
+        await afterTxInfo.getAll()
+        mlog.log('-- status after addLiquidity:')
+        await afterTxInfo.displayInfo()
+        
+        // price
+        assert(BN(formulaTokenPrice).minus(inputTokenAmount).absoluteValue().isLessThanOrEqualTo(1), 
+            `apiPrice(${inputTokenAmount}) != formulaPrice(${formulaTokenPrice})`)
+        assert.equal(
+            afterTxInfo.poolCoreAsssetBal,
+            BN(beforeTxInfo.poolCoreAsssetBal).plus(inputCoreAmount).toFixed(),
+            `poolCoreAsssetBal is wrong (${traderSeed})`)
+        assert.equal(
+            afterTxInfo.poolTokenAsssetBal,
+            BN(beforeTxInfo.poolTokenAsssetBal).plus(inputTokenAmount).toFixed(),
+            `poolTokenAsssetBal is wrong (${traderSeed})`)
+        assert.equal(
+            afterTxInfo.totalLiquidity,
+            BN(beforeTxInfo.totalLiquidity).plus(inputCoreAmount).toFixed(),
+            `totalLiquidity is wrong (${traderSeed})`)
+        assert.equal(
+            afterTxInfo.traderLiquidity, 
+            BN(beforeTxInfo.traderLiquidity).plus(inputCoreAmount).toFixed(),
+            `trader liquidity is wrong (${traderSeed})`)
+        assert.equal(
+            afterTxInfo.traderCoreAssetBal, 
+            BN(beforeTxInfo.traderCoreAssetBal).minus(txResult.txFee).minus(inputCoreAmount).toFixed(), 
+            `traderCoreAssetBal is wrong (${traderSeed})`)
+        assert.equal(
+            afterTxInfo.traderTokenAssetBal,
+            BN(beforeTxInfo.traderTokenAssetBal).minus(inputTokenAmount).toFixed(),
+            `traderTokenAssetBal is wrong (${traderSeed})`)
+    }
+}
+
+async function removeLiquidityAndCheck(traderSeed, tokenId, burnedAmount) {
+
+    const removePrice = await getRemoveLiquidityPrice(traderSeed, tokenId, burnedAmount)
+
+    const beforeTxInfo = new LiquidityBalance(traderSeed, tokenId)
+    await beforeTxInfo.getAll()
+    mlog.log('-- status before removeLiquidity:')
+    await beforeTxInfo.displayInfo()
+
+    mlog.log('burnedAmount =', burnedAmount)
+    mlog.log('removeCoreAmount =', removePrice.coreAmount)
+    mlog.log('removeTokenAmount =', removePrice.tokenAmount)
+
+    const txResult = await removeLiquidity(traderSeed, tokenId, burnedAmount, 1, 1)
+    assert.equal(txResult.bSucc, true, `removeLiquidity failed for ${traderSeed}`)
+    mlog.log('removeLiquidity result =', txResult.bSucc)
+
+    // get tx fee
+    const txFee = txResult.txFee
+    mlog.log('txFee =', txFee)
+    
+    const afterTxInfo = new LiquidityBalance(traderSeed, tokenId)
+    await afterTxInfo.getAll()
+    mlog.log('-- status after removeLiquidity:')
+    await afterTxInfo.displayInfo()
+
+    assert.equal(
+        afterTxInfo.poolCoreAsssetBal,
+        BN(beforeTxInfo.poolCoreAsssetBal).minus(removePrice.coreAmount).toFixed(),
+        `poolCoreAsssetBal is wrong (${traderSeed})`)
+
+    // assert(
+    //     BN(beforeTxInfo.poolTokenAsssetBal).minus(removePrice.tokenAmount).minus(afterTxInfo.poolTokenAsssetBal).absoluteValue().isLessThanOrEqualTo(1),
+    //     `poolTokenAsssetBal(${afterTxInfo.poolTokenAsssetBal}) is wrong (expected = ${BN(beforeTxInfo.poolTokenAsssetBal).minus(removePrice.tokenAmount).toFixed()}). [${tokenId}]`)
+
+    assert.equal(
+        afterTxInfo.poolTokenAsssetBal,
+        BN(beforeTxInfo.poolTokenAsssetBal).minus(removePrice.tokenAmount).toFixed(),
+        `poolTokenAsssetBal(${afterTxInfo.poolTokenAsssetBal}) is wrong (${traderSeed})`)
+
+    assert.equal(
+        afterTxInfo.totalLiquidity,
+        BN(beforeTxInfo.totalLiquidity).minus(burnedAmount).toFixed(),
+        `totalLiquidity is wrong (${traderSeed})`)
+
+    assert.equal(
+        afterTxInfo.traderLiquidity, 
+        BN(beforeTxInfo.traderLiquidity).minus(burnedAmount).toFixed(),
+        `trader liquidity is wrong (${traderSeed})`)
+
+    assert.equal(
+        afterTxInfo.traderCoreAssetBal, 
+        BN(beforeTxInfo.traderCoreAssetBal).minus(txResult.txFee).plus(removePrice.coreAmount).toFixed(), 
+        `traderCoreAssetBal is wrong (${traderSeed})`)
+
+    assert.equal(
+        afterTxInfo.traderTokenAssetBal,
+        BN(beforeTxInfo.traderTokenAssetBal).plus(removePrice.tokenAmount).toFixed(),
+        `traderTokenAssetBal is wrong (${traderSeed})`)
+}
+
+async function getAddLiquidityPrice(assetId, amount, nodeApi = bootNodeApi){
     const spotX = await initSpotX(nodeApi)
     const liquidity_price = await spotX.liquidityPrice(assetId, amount)
     return liquidity_price.toString()
 }
 
-module.exports.getRemoveLiquidityPrice = async function (traderSeed, assetId, burdLiquidityAmount){
+async function getAddLiquidityPrice_formula(assetId, amount, bInputCore = true, nodeApi = bootNodeApi){
+    let liquidity_price = 0
+    const poolCoreBal = await getPoolCoreAssetBalance(assetId)
+    const poolTokenBal = await getPoolAssetBalance(assetId)
+
+    if (bInputCore){
+        // input core amount
+        liquidity_price = BN(poolTokenBal).times(amount).div(poolCoreBal).dp(0,1).toFixed()
+    }else{
+        // input token amount
+        liquidity_price = BN(poolCoreBal).times(amount).div(poolTokenBal).dp(0,1).toFixed()
+    }
+
+    return liquidity_price
+}
+
+async function getRemoveLiquidityPrice(traderSeed, assetId, burdLiquidityAmount){
     const liquidity = new LiquidityBalance(traderSeed, assetId)
     await liquidity.getAll()
 
-    // mlog.log('liquidity.poolTokenAsssetBal =', liquidity.poolTokenAsssetBal)
-    // mlog.log('liquidity.totalLiquidity =', liquidity.totalLiquidity)
-
     // - formula: tokenWithdrawn = tokenPool * (amountBurned / totalLiquidity)
-    const withdrawalTokenAmt = BN(burdLiquidityAmount).times(liquidity.poolTokenAsssetBal).div(liquidity.totalLiquidity).dp(0).toFixed()
-    // mlog.log('withdrawalTokenAmt =', withdrawalTokenAmt)
+    const withdrawalTokenAmt = BN(burdLiquidityAmount).times(liquidity.poolTokenAsssetBal).div(liquidity.totalLiquidity).dp(0,1).toFixed()
+    mlog.log('withdrawalTokenAmt =', withdrawalTokenAmt)
     
     // - formula: coreWithdrawn = corePool * (amountBurned / totalLiquidity)
-    const withdrawalCoreAmt = BN(burdLiquidityAmount).times(liquidity.poolCoreAsssetBal).div(liquidity.totalLiquidity).dp(0).toFixed()
-    // mlog.log('withdrawalCoreAmt =', withdrawalCoreAmt)
+    const withdrawalCoreAmt = BN(burdLiquidityAmount).times(liquidity.poolCoreAsssetBal).div(liquidity.totalLiquidity).dp(0,1).toFixed()
+    mlog.log('withdrawalCoreAmt =', withdrawalCoreAmt)
 
     return {
         tokenAmount: withdrawalTokenAmt,
@@ -658,11 +872,16 @@ async function getFormulaInputPrice(assetIdSell, assetIdBuy, amountSell){
     }
 
     // calcualte with formula
-    const inputPrice = BN(poolAssetBuyBal).times(amountSell).div(
-        BN(poolAssetSellBal).times(BN(feeRate).plus(1)).plus(amountSell)
-    )
+    const actualAmountSell = BN(amountSell).div(BN(feeRate).plus(1)).dp(0,1).toFixed() // remove the fee first
+    let inputPrice = BN(poolAssetBuyBal).times(actualAmountSell).div(
+        BN(poolAssetSellBal).plus(actualAmountSell)
+    ).dp(0,1).toFixed()   // remove decimals
 
-    return inputPrice.dp(0).toFixed()    // remove decimals
+    if ( inputPrice == 'NaN' ){
+        inputPrice = '0'
+    }
+
+    return inputPrice   
 }
 
 async function getFormulaOutputPrice(assetIdSell, assetIdBuy, amountBuy){
@@ -690,12 +909,15 @@ async function getFormulaOutputPrice(assetIdSell, assetIdBuy, amountBuy){
     }
 
     // calcualte with formula
-    const outputPrice = BN(poolAssetSellBal).times(amountBuy).times(BN(feeRate).plus(1)).div(
+    let outputPrice = BN(poolAssetSellBal).times(amountBuy).times(BN(feeRate).plus(1)).div(
         BN(poolAssetBuyBal).minus(amountBuy)
-    )
+    ).plus(1).dp(0,1).toFixed()   // round up
 
+    if ( outputPrice == 'NaN' ){
+        outputPrice = '0'
+    }
 
-    return outputPrice.dp(0).plus(1).toFixed()    // round up
+    return outputPrice    
 }
 
 module.exports.getCoreAssetId = getCoreAssetId
@@ -716,3 +938,8 @@ module.exports.getFormulaInputPrice = getFormulaInputPrice
 module.exports.getFormulaOutputPrice = getFormulaOutputPrice
 module.exports.getPoolAssetBalance = getPoolAssetBalance
 module.exports.getPoolCoreAssetBalance = getPoolCoreAssetBalance
+module.exports.addLiquidityAndCheck = addLiquidityAndCheck
+module.exports.removeLiquidityAndCheck = removeLiquidityAndCheck
+module.exports.getRemoveLiquidityPrice = getRemoveLiquidityPrice
+module.exports.getAddLiquidityPrice = getAddLiquidityPrice
+module.exports.getAddLiquidityPrice_formula = getAddLiquidityPrice_formula

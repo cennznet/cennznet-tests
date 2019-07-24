@@ -25,6 +25,7 @@ const { nodeServerWsIp } = require('./args')
 const BN = require('bignumber.js')
 const block = require('./block')
 const args = require('./args')
+const util = require('./util')
 
 
 
@@ -177,6 +178,20 @@ async function queryFreeBalance( seed, assetId = CURRENCY.STAKE, nodeApi = bootN
     return balance.toString();
 }
 
+async function waitBalanceChange(seed, assetId = CURRENCY.STAKE, nodeApi = bootNodeApi){
+    const preBalance = await queryFreeBalance(seed, assetId, nodeApi)
+
+    for (let i = 0; i < 300; i++){
+        await util.sleep(1000)
+        let currentBalance = await queryFreeBalance(seed, assetId, nodeApi)
+        if (currentBalance != preBalance){
+            break
+        }
+    }
+
+    throw new Error('waitBalanceChange() timeout')
+}
+
 async function setApiSigner(api, signerSeed){ // signerSeed - string, like 'Alice'
     // create wallet
     const wallet = new Wallet(); 
@@ -299,3 +314,4 @@ module.exports.getAddressFromSeed = getAddressFromSeed
 module.exports.getTransferFee = getTransferFee
 module.exports.topupTestAccount = topupTestAccount
 module.exports.setNodeConfig = setNodeConfig
+module.exports.waitBalanceChange = waitBalanceChange

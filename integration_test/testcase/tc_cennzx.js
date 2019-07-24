@@ -84,51 +84,11 @@ describe('CennzX test suite', function () {
     })
 
     it('Bob creates pool and liquidity for tokenAsssetId_1 [1st time to call addLiquidity()]', async function () {
-
-        const traderSeed = tokenIssuerSeed // Bob
-        const minLiquidityWanted = 2
+        const traderSeed = tokenIssuerSeed 
         const maxAssetAmountInput = poolTokenInitBal
         const coreAmountInput = poolCoreInitBal
 
-        // get all balances before tx
-        const beforeTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1)
-        await beforeTxBal.getAll()
-        // await beforeTxBal.displayInfo()
-
-        // first add the liquidity for tokenAsssetId_1
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
-
-        // get tx fee
-        const txFee = txResult.txFee
-
-        // get all balances after tx
-        const afterTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1)
-        await afterTxBal.getAll()
-        // await afterTxBal.displayInfo()
-
-        // check issuer's token balance
-        assert.equal(
-            BN(afterTxBal.traderTokenAssetBal).toFixed(),
-            BN(beforeTxBal.traderTokenAssetBal).minus(maxAssetAmountInput).toFixed(),
-            `Token asset balance is wrong.`)
-        // check issuer's core balance
-        assert.equal(
-            BN(afterTxBal.traderCoreAssetBal).toFixed(),
-            BN(beforeTxBal.traderCoreAssetBal).minus(BN(coreAmountInput).plus(txFee)).toFixed(),
-            `Core asset balance is wrong.`)
-        // check core asset balance in exchange address
-        assert.equal(BN(afterTxBal.poolCoreAsssetBal).toFixed(), BN(coreAmountInput).toFixed(),
-            `Exchange core asset balance is wrong.`)
-        // check token asset balance in exchange address
-        assert.equal(BN(afterTxBal.poolTokenAsssetBal).toFixed(), BN(maxAssetAmountInput).toFixed(),
-            `Exchange token asset balance is wrong.`)
-
-        // check total liquidity
-        assert.equal(BN(afterTxBal.totalLiquidity).toFixed(), BN(coreAmountInput).toFixed(), `Total liquidity is wrong.`)
-
-        // check trader liquidity
-        assert.equal(BN(afterTxBal.traderLiquidity).toFixed(), BN(coreAmountInput).toFixed(), `Trader's liquidity is wrong.`)
+        await cennzx.addLiquidityAndCheck(traderSeed, tokenAsssetId_1, maxAssetAmountInput, coreAmountInput)
     });
 
     it('assetSwapOutput: coreAsssetId -> tokenAsssetId_1', async function () {
