@@ -382,6 +382,21 @@ describe('CennzX test suite for bignumber overflow', function () {
         await cennzx.addLiquidityAndCheck(tokenIssuerSeed, newTokenAsssetId, null, coreAmountInput)
     });
 
+    it.only('Add liquidity twice', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN('99999601803').toFixed()
+        const poolCoreBalance   = BN('200000802401').toFixed()
+
+        // create new token and exchange pool
+        const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
+
+        const coreAmountInput = BN(1e15).toFixed()
+        // const apiLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
+
+        await cennzx.addLiquidityAndCheck(tokenIssuerSeed, newTokenAsssetId, null, coreAmountInput)
+    });
+
     it('Second trader add liquidity', async function () {
 
         const tokenAmount = tokenTotalAmount
@@ -574,43 +589,83 @@ describe('CennzX test suite for bignumber overflow', function () {
         }
     });
 
-    it.skip(`TODO: Continuously do swap tx`, async function () {
-
-    });
-
-    it.only('Continuously do output swap tx', async function () {
+    it.skip('Continuously do input swap tx', async function () {
+        this.timeout(86400000)
 
         const tokenAmount = tokenTotalAmount
         const poolTokenBalance  = tokenAmount
-        const poolCoreBalance   = BN(10).toFixed()
+        const poolCoreBalance   = BN(100000).toFixed()
 
         const trader = 'Alice'
-        const amountSell = BN(2).toFixed()
+        let amountSell = BN(1)
 
         // create new token and exchange pool
         const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
 
-        // swap
-        const mp = new cennzx.MethodParameter()
-        mp.method = cennzx.assetSwapInput
-        mp.traderSeed = trader
-        mp.assetIdSell = coreAsssetId
-        mp.assetIdBuy = newTokenAsssetId
-        mp.amountSell = amountSell
-        mp.minAmountBuy = 1
+        for (let i = 0; i < 1000; i++){
+            // times 10 each time
+            amountSell = BN(amountSell).times(5).toFixed()
 
-        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('apiPrice =', apiPrice.toString())
 
-        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('fmlPrice =', formulaPrice)
+            // swap
+            const mp = new cennzx.MethodParameter()
+            mp.method = cennzx.assetSwapInput
+            mp.traderSeed = trader
+            mp.assetIdSell = coreAsssetId
+            mp.assetIdBuy = newTokenAsssetId
+            mp.amountSell = amountSell
+            mp.minAmountBuy = 1
 
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
-            
-        // do swap and check
-        await cennzx.checkMethod(mp)
+            const sellAssetBalance = await node.queryFreeBalance(mp.traderSeed, mp.assetIdSell)
+            const buyAssetPoolBalance = await cennzx.getPoolAssetBalance(mp.assetIdBuy)
+            const price = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
+            if (BN(buyAssetPoolBalance).lt(price) || BN(sellAssetBalance).lt(amountSell)){
+                break
+            }
+
+            // do swap and check
+            await cennzx.checkMethod(mp, true)
+        }
+    });
+
+    it.skip('Continuously do output swap tx', async function () {
+        this.timeout(86400000)
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = BN(tokenAmount).div(2).toFixed()
+        const poolCoreBalance   = BN(100001).toFixed()
+
+        const trader = 'Alice'
+        let amountBuy = BN(100)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
+
+        const txResult = await node.transfer(tokenIssuerSeed, trader, BN(tokenAmount).div(2).toFixed(), newTokenAsssetId)
+        assert.equal(txResult.bSucc, true, 'transfer() is wrong.')
+
+        for (let i = 0; i < 100; i++){
+            // times 10 each time
+            amountBuy = BN(amountBuy).plus(100).toFixed()
+
+            // swap
+            const mp = new cennzx.MethodParameter()
+            mp.method = cennzx.assetSwapOutput
+            mp.traderSeed = trader
+            mp.assetIdSell = newTokenAsssetId
+            mp.assetIdBuy = coreAsssetId
+            mp.amountBuy = amountBuy
+            mp.maxAmountSell = BN(3.4e38).toFixed()
+
+            const sellAssetBalance = await node.queryFreeBalance(mp.traderSeed, mp.assetIdSell)
+            const price = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
+            if (BN(sellAssetBalance).lt(price)){
+                break
+            }
+
+            // do swap and check
+            await cennzx.checkMethod(mp, true)
+        }
     });
 });
 

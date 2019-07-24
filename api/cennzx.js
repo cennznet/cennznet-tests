@@ -272,6 +272,7 @@ class BalanceChecker{
         await this._getSwapPrice()
 
         if ( this.debugFlag ){
+            mlog.log('------> before tx')
             mlog.log('methodName =', methodName)
             this.beforeTxBal.displayAll()
             this.printAllPrice()
@@ -305,8 +306,8 @@ class BalanceChecker{
             this.isTxSell = false
 
             // check price
-            const apiPrice = await getOutputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell)
-            const formulaPrice = await getFormulaOutputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountSell)
+            const apiPrice = await getOutputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountBuy)
+            const formulaPrice = await getFormulaOutputPrice(methodPara.assetIdSell, methodPara.assetIdBuy, methodPara.amountBuy)
             assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
                 `apiPriceOutput(${apiPrice}) != formulaPriceOutput(${formulaPrice})`)
 
@@ -347,6 +348,7 @@ class BalanceChecker{
         await this.afterTxBal.fetchAll()
         if (this.debugFlag){
             mlog.log('txFee =', this.txFee)
+            mlog.log('<------ after tx')
             this.afterTxBal.displayAll()
         }
 
@@ -502,7 +504,7 @@ async function removeLiquidity(traderSeed, assetId, assetAmount, minAssetWithdra
  * Add liquidity and check result
  * @param {*} traderSeed 
  * @param {*} tokenId 
- * @param {*} tokenAmountInput: for creating pool, it's the token amount; for add more liquidity, it's calculated by {coreAmountInput}.
+ * @param {*} tokenAmountInput: for creating pool, it's the token amount; for add more liquidity, it can be anything as it's calculated by {coreAmountInput}, .
  * @param {*} coreAmountInput 
  */
 async function addLiquidityAndCheck(traderSeed, tokenId, tokenAmountInput, coreAmountInput ) {
@@ -595,6 +597,8 @@ async function addLiquidityAndCheck(traderSeed, tokenId, tokenAmountInput, coreA
         await afterTxInfo.getAll()
         mlog.log('-- status after addLiquidity:')
         await afterTxInfo.displayInfo()
+
+        const liquidityMinted = BN(inputCoreAmount).times(beforeTxInfo.totalLiquidity).div(beforeTxInfo.poolCoreAsssetBal).dp(0,1).toFixed()
         
         // price
         assert(BN(formulaTokenPrice).minus(inputTokenAmount).absoluteValue().isLessThanOrEqualTo(1), 
@@ -609,11 +613,11 @@ async function addLiquidityAndCheck(traderSeed, tokenId, tokenAmountInput, coreA
             `poolTokenAsssetBal is wrong (${traderSeed})`)
         assert.equal(
             afterTxInfo.totalLiquidity,
-            BN(beforeTxInfo.totalLiquidity).plus(inputCoreAmount).toFixed(),
+            BN(beforeTxInfo.totalLiquidity).plus(liquidityMinted).toFixed(),
             `totalLiquidity is wrong (${traderSeed})`)
         assert.equal(
             afterTxInfo.traderLiquidity, 
-            BN(beforeTxInfo.traderLiquidity).plus(inputCoreAmount).toFixed(),
+            BN(beforeTxInfo.traderLiquidity).plus(liquidityMinted).toFixed(),
             `trader liquidity is wrong (${traderSeed})`)
         assert.equal(
             afterTxInfo.traderCoreAssetBal, 

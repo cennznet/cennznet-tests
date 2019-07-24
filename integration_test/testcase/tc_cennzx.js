@@ -78,8 +78,7 @@ describe('CennzX test suite', function () {
         mlog.log('Pool address token_2 =', await cennzx.getExchangeAddress(tokenAsssetId_2))
 
         // create pool for tokenAsssetId_2
-        const txResult = await cennzx.addLiquidity(tokenIssuerSeed, tokenAsssetId_2, 2, poolTokenInitBal, poolCoreInitBal)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
+        await cennzx.addLiquidityAndCheck(tokenIssuerSeed, tokenAsssetId_2, poolTokenInitBal, poolCoreInitBal)
         mlog.log(`Created the exchange pool for token ${tokenAsssetId_2}`)
     })
 
@@ -327,158 +326,17 @@ describe('CennzX test suite', function () {
     });
 
     it('Alice adds new liquility into tokenAsssetId_1 [2nd time to call addLiquidity()]', async function () {
-        const minLiquidityWanted = 2
         const coreAmountInput = tradeAmount
-        const maxAssetAmountInput = maxOutAmount
-        const traderSeed = 'Bob'
+        const traderSeed = 'Alice'
 
-        // get all balances before tx
-        const beforeTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await beforeTxBal.getAll()
-        // await beforeTxBal.displayInfo()
-
-        const liquidityPrice = await cennzx.getAddLiquidityPrice(tokenAsssetId_1, coreAmountInput)
-        // console.log('liquidityPrice =', liquidityPrice)
-
-        /**
-         * Calculate the estimated token amount added to pool.
-         * - formular: token_added / token_pool = core_added / core_pool
-         *             => token_added = token_pool * core_added / core_pool
-         */
-        // let estimatedTokenAmtAdded = beforeTxBal.poolTokenAsssetBal * coreAmountInput / beforeTxBal.poolCoreAsssetBal
-        // estimatedTokenAmtAdded = Math.ceil(estimatedTokenAmtAdded)  // round up
-
-        /**
-         * Calculate the estimated liquidity increased
-         * - formular: liquidity_minted = core_added * total_liquidity / core_pool
-         * - note: the result should remove the digitals. (For all actions to add property into individual's account)
-         */
-        let estimatedLiquidityMinted = coreAmountInput * beforeTxBal.totalLiquidity / beforeTxBal.poolCoreAsssetBal
-        estimatedLiquidityMinted = Math.floor(estimatedLiquidityMinted)  // round, only remove the digitals
-
-        // add new liquidity
-        const txResult = await cennzx.addLiquidity(traderSeed, tokenAsssetId_1, minLiquidityWanted, maxAssetAmountInput, coreAmountInput)
-        assert(txResult.bSucc, `Call addLiquidity() failed. [MSG = ${txResult.message}]`)
-
-        // get tx fee
-        const txFee = txResult.txFee
-
-        // get all balances after tx
-        const afterTxBal = new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await afterTxBal.getAll()
-        // await afterTxBal.displayInfo()
-        // console.log('txFee =', txFee)
-        
-
-        // check issuer's token balance
-        assert.equal(
-            afterTxBal.traderTokenAssetBal,
-            BN(beforeTxBal.traderTokenAssetBal).minus(liquidityPrice).toFixed(),
-            `Trader's token asset balance is wrong.`)
-
-        // check issuer's core balance
-        assert.equal(
-            afterTxBal.traderCoreAssetBal,
-            BN(beforeTxBal.traderCoreAssetBal).minus(coreAmountInput).minus(txFee).toFixed(),
-            `Trader's core asset balance is wrong.`)
-
-        // check token amount in pool
-        assert.equal(
-            afterTxBal.poolTokenAsssetBal,
-            BN(beforeTxBal.poolTokenAsssetBal).plus(liquidityPrice).toFixed(),
-            `Pool token asset balance is wrong.`)
-
-        // check core asset balance in exchange address
-        assert.equal(
-            afterTxBal.poolCoreAsssetBal,
-            BN(beforeTxBal.poolCoreAsssetBal).plus(coreAmountInput).toFixed(),
-            `Pool core asset balance is wrong.`)
-
-        // check total liquidity
-        assert.equal(
-            afterTxBal.totalLiquidity,
-            BN(beforeTxBal.totalLiquidity).plus(estimatedLiquidityMinted).toFixed(),
-            `Total liquidity is wrong.`)
-
-        // check trader liquidity
-        assert.equal(
-            afterTxBal.traderLiquidity,
-            BN(beforeTxBal.traderLiquidity).plus(estimatedLiquidityMinted).toFixed(),
-            `Trader's liquidity is wrong.`)
+        await cennzx.addLiquidityAndCheck(traderSeed, tokenAsssetId_1, null, coreAmountInput)
     });
 
     it('Bob remove liquidity', async function () {
-
         const traderSeed = 'Bob' // Bob
         const burnedAmount = '10000'
-        const minAssetWithdraw = 1
-        const minCoreWithdraw = 1
 
-        // await displayInfo(traderSeed)
-
-        // get all balances before tx
-        const beforeTxBal = await new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await beforeTxBal.getAll()
-
-        // first add the liquidity
-        const txResult = await cennzx.removeLiquidity(traderSeed, tokenAsssetId_1, burnedAmount, minAssetWithdraw, minCoreWithdraw)
-        assert(txResult.bSucc, `Call removeLiquidity() failed. [MSG = ${txResult.message}]`)
-
-        // get tx fee
-        const txFee = txResult.txFee
-
-        // get all balances after tx
-        const afterTxBal = await new cennzx.LiquidityBalance(traderSeed, tokenAsssetId_1, coreAsssetId)
-        await afterTxBal.getAll()
-
-
-        // await displayInfo(traderSeed)
-
-        // calucate the estimated token amount withdrawn 
-        // - formula: coreWithdrawn = corePool * (amountBurned / totalLiquidity)
-        let withdrawalTokenAmt = burnedAmount / beforeTxBal.totalLiquidity * beforeTxBal.poolTokenAsssetBal
-        withdrawalTokenAmt = Math.floor(withdrawalTokenAmt) // remove digitals
-
-        // calucate the estimated core amount withdrawn
-        // - formula: tokenWithdrawn = tokenPool * (amountBurned / totalLiquidity)
-        let withdrawalCoreAmt = burnedAmount / beforeTxBal.totalLiquidity * beforeTxBal.poolCoreAsssetBal
-        withdrawalCoreAmt = Math.floor(withdrawalCoreAmt)   // remove digitals
-
-        // check trader's liquidity balance
-        assert.equal(
-            afterTxBal.traderLiquidity,
-            BN(beforeTxBal.traderLiquidity).minus(burnedAmount).toFixed(),
-            `Trader's liquidity balance is wrong.`)
-
-        // check total liquidity
-        assert.equal(
-            afterTxBal.totalLiquidity,
-            BN(beforeTxBal.totalLiquidity).minus(burnedAmount).toFixed(),
-            `Total liquidity balance is wrong.`)
-
-        // check pool's core balance
-        assert.equal(
-            afterTxBal.poolCoreAsssetBal,
-            BN(beforeTxBal.poolCoreAsssetBal).minus(withdrawalCoreAmt).toFixed(),
-            `Pool's core balance is wrong.`)
-
-        // check pool's token balance
-        assert.equal(
-            afterTxBal.poolTokenAsssetBal,
-            BN(beforeTxBal.poolTokenAsssetBal).minus(withdrawalTokenAmt).toFixed(),
-            `Pool's token balance is wrong.`)
-
-        // check trader's core balance
-        assert.equal(
-            afterTxBal.traderCoreAssetBal,
-            BN(beforeTxBal.traderCoreAssetBal).plus(withdrawalCoreAmt).minus(txFee).toFixed(),
-            `Trader's core balance is wrong.`)
-
-        // check trader's token balance
-        assert.equal(
-            afterTxBal.traderTokenAssetBal,
-            BN(beforeTxBal.traderTokenAssetBal).plus(withdrawalTokenAmt).toFixed(),
-            `Trader's token balance is wrong.`)
+        await cennzx.removeLiquidityAndCheck(traderSeed, tokenAsssetId_1, burnedAmount)
     });
 
 });
