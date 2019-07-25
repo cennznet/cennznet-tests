@@ -38,6 +38,10 @@ module.exports.createNewToken = async function (ownerSeed, totalAmount, permissi
     // Create GA
     const ga = await this.initGA(ownerSeed, nodeApi)
 
+    // set all permission to owerSeed if no permission input
+    permission ? permission : permission = {update: ownerSeed, mint: ownerSeed, burn: ownerSeed} 
+    permission = await this.getPermissionAddress(permission)
+
     // create transaction
     const tx = ga.create({ initialIssuance: totalAmount, permissions: permission })
 

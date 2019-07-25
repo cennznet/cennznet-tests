@@ -143,7 +143,7 @@ describe('Generic Asset test suite:', function () {
         const ownerAssetBal_beforeTx = await node.queryFreeBalance(ownerSeed, assetId)
         const minterSpendBal_beforeTx = await node.queryFreeBalance(minterSeed, CURRENCY.SPEND)
 
-        // burn the asset
+        // mint the asset
         const txResult = await ga.mint(minterSeed, assetId, ownerSeed, mint_amount)
         assert.equal(txResult.bSucc, true, `Mint asset failed`)
         assert(txResult.txFee > 0, `Tx fee is 0.`)

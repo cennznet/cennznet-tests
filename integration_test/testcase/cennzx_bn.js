@@ -28,25 +28,10 @@ const util = require('../../api/util')
 
 
 
-/**
- * Formula for token exchange:
- * -- Buy token: [poolCoreBal + coreCost ] * (poolTokenBal - tokenBuy) = poolCoreBal * poolTokenBal
- *       @ Buy fixed amount of token: actualCoreCost = coreCost ( 1 + feeRate )
- *       @ Sell fixed amount of core: actualCoreSell = coreCost / ( 1 + feeRate )
- *            
- * -- Buy core: [poolCoreBal - coreBuy] * (poolTokenBal + tokenCost) = poolCoreBal * poolTokenBal
- *       @ Buy fixed amount of core: actualTokenCost = tokenCost ( 1 + feeRate )
- *       @ Sell fixed amount of token: actualTokenSell = tokenCost / ( 1 + feeRate )
- * 
- * @ Result gets rounded down in Input Tx
- *      eg. 100.7 -> 100
- * @ Result（includes integer) gets rounded up in Output Tx:
- *      eg. 0.12 -> 1,  10 -> 11
- */
-
 var coreAsssetId = -1
 var tokenIssuerSeed = 'Eve'
 const tokenTotalAmount = BN(3.4e38).toFixed()
+const MAX_NUMBER = BN(2).pow(128).minus(1).toFixed()
 const minLiquidityWanted = 1
 const maxAmount = BN(3.4e38).toFixed()
 
@@ -59,6 +44,36 @@ describe('CennzX test suite for bignumber overflow', function () {
         coreAsssetId = (await cennzx.getCoreAssetId()).toString()
         mlog.log('Core asset ID =', coreAsssetId)
     })
+
+    it('assetSwapInput(token -> core): pool_token_amt << pool_core_amt', async function () {
+
+        const tokenAmount = tokenTotalAmount
+        const poolTokenBalance  = tokenAmount
+        const poolCoreBalance   = BN(1e20).toFixed()
+        const swapTradeAmount   = BN(1e20).toFixed()
+
+        mlog.log('------------------')
+        mlog.log('poolTokenBalance =', poolTokenBalance)
+        mlog.log('poolCoreBalance =', poolCoreBalance)
+        mlog.log('swapTradeAmount =', swapTradeAmount)
+
+        // create new token and exchange pool
+        const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
+
+        // swap
+        const mp = new cennzx.MethodParameter()
+        mp.method = cennzx.assetSwapInput
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = coreAsssetId
+        mp.assetIdBuy = newTokenAsssetId
+        mp.amountSell = swapTradeAmount
+        mp.minAmountBuy = 1
+
+        // do swap and check
+        await cennzx.checkMethod(mp, true)
+
+        await cennzx.removeLiquidityAndCheck(tokenIssuerSeed, newTokenAsssetId, BN(1e20).toFixed())
+    });
 
     it('assetSwapInput(token -> core): pool_token_amt << pool_core_amt', async function () {
 
@@ -83,16 +98,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.assetIdBuy = coreAsssetId
         mp.amountSell = swapTradeAmount
         mp.minAmountBuy = 1
-
-        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
 
         // do swap and check
         await cennzx.checkMethod(mp)
@@ -122,16 +127,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.amountSell = swapTradeAmount
         mp.minAmountBuy = 1
 
-        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
-
         // do swap and check
         await cennzx.checkMethod(mp)
     });
@@ -160,16 +155,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.amountSell = swapTradeAmount
         mp.minAmountBuy = 1
 
-        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
-
         // do swap and check
         await cennzx.checkMethod(mp)
     });
@@ -197,17 +182,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.assetIdBuy = newTokenAsssetId
         mp.amountSell = swapTradeAmount
         mp.minAmountBuy = 1
-
-        const formulaPrice = await cennzx.getFormulaInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        let apiPrice = await cennzx.getInputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountSell)
-        mlog.log('apiPrice =', apiPrice)
-
-        // check price
-        assert.equal(apiPrice, formulaPrice, `Input price is wrong.`)
-        // assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-        //     `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
 
         // do swap and check
         if ( apiPrice > 0 ){
@@ -239,16 +213,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.amountBuy = swapTradeAmount
         mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
-
         // do swap and check
         await cennzx.checkMethod(mp)
     });
@@ -276,16 +240,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.assetIdBuy = coreAsssetId
         mp.amountBuy = swapTradeAmount
         mp.maxAmountSell = BN(3.4e38).toFixed()
-
-        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
 
         // do swap and check
         await cennzx.checkMethod(mp)
@@ -315,16 +269,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.amountBuy = swapTradeAmount
         mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
-
         // do swap and check
         await cennzx.checkMethod(mp)
     });
@@ -353,16 +297,6 @@ describe('CennzX test suite for bignumber overflow', function () {
         mp.amountBuy = swapTradeAmount
         mp.maxAmountSell = BN(3.4e38).toFixed()
 
-        let apiPrice = await cennzx.getOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('apiPrice =', apiPrice.toString())
-
-        const formulaPrice = await cennzx.getFormulaOutputPrice(mp.assetIdSell, mp.assetIdBuy, mp.amountBuy)
-        mlog.log('fmlPrice =', formulaPrice)
-
-        // check price
-        assert(BN(formulaPrice).minus(apiPrice).absoluteValue().isLessThanOrEqualTo(1), 
-            `apiPrice(${apiPrice.toString()}) != formulaPrice(${formulaPrice})`)
-
         // do swap and check
         await cennzx.checkMethod(mp)
     });
@@ -370,29 +304,13 @@ describe('CennzX test suite for bignumber overflow', function () {
     it('Add liquidity twice', async function () {
 
         const tokenAmount = tokenTotalAmount
-        const poolTokenBalance  = BN(tokenAmount).div(2).toFixed()
+        const poolTokenBalance  = BN(tokenAmount).div(2).dp(0,1).toFixed()
         const poolCoreBalance   = BN(1e20).toFixed()
 
         // create new token and exchange pool
         const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
 
         const coreAmountInput = BN(1e15).toFixed()
-        // const apiLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
-
-        await cennzx.addLiquidityAndCheck(tokenIssuerSeed, newTokenAsssetId, null, coreAmountInput)
-    });
-
-    it.only('Add liquidity twice', async function () {
-
-        const tokenAmount = tokenTotalAmount
-        const poolTokenBalance  = BN('99999601803').toFixed()
-        const poolCoreBalance   = BN('200000802401').toFixed()
-
-        // create new token and exchange pool
-        const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
-
-        const coreAmountInput = BN(1e15).toFixed()
-        // const apiLiquidityPrice = await cennzx.getAddLiquidityPrice(newTokenAsssetId, coreAmountInput)
 
         await cennzx.addLiquidityAndCheck(tokenIssuerSeed, newTokenAsssetId, null, coreAmountInput)
     });
@@ -400,7 +318,7 @@ describe('CennzX test suite for bignumber overflow', function () {
     it('Second trader add liquidity', async function () {
 
         const tokenAmount = tokenTotalAmount
-        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).dp(0,1).toFixed()
         const poolCoreBalance   = BN(1e20).toFixed()
         const secondTrader = 'Alice'
         const coreAmountInput = BN(1e18).toFixed()
@@ -414,11 +332,35 @@ describe('CennzX test suite for bignumber overflow', function () {
         await cennzx.addLiquidityAndCheck(secondTrader, newTokenAsssetId, null, coreAmountInput)
     });
 
+    it('Add new liquidity to reach the max number of u128', async function () {
+
+        const swapTradeAmount = BN('98681886407072154376').toFixed()
+        const tokenAmount = MAX_NUMBER
+        const poolTokenBalance  = BN(tokenAmount).minus(swapTradeAmount).toFixed()
+        const poolCoreBalance   = BN(1e20).toFixed()
+        // const mint_amount = 10000
+
+        // create new token and exchange pool
+        const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenAmount, poolTokenBalance, poolCoreBalance)
+
+        // swap
+        const mp = new cennzx.MethodParameter()
+        mp.method = cennzx.assetSwapInput
+        mp.traderSeed = tokenIssuerSeed
+        mp.assetIdSell = newTokenAsssetId
+        mp.assetIdBuy = coreAsssetId
+        mp.amountSell = swapTradeAmount
+        mp.minAmountBuy = 1
+
+        // do swap and check
+        await cennzx.checkMethod(mp, true)
+    });
+
     it('Remove half liquidity', async function () {
 
         const poolTokenBalance  = tokenTotalAmount
         const poolCoreBalance   = BN(1e20).toFixed()
-        const burnedAmount = BN(poolCoreBalance).div(2).toFixed()
+        const burnedAmount = BN(poolCoreBalance).div(2).dp(0,1).toFixed()
 
         const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenTotalAmount, poolTokenBalance, poolCoreBalance)
         await cennzx.removeLiquidityAndCheck(tokenIssuerSeed, newTokenAsssetId, burnedAmount)
@@ -438,11 +380,11 @@ describe('CennzX test suite for bignumber overflow', function () {
 
         let txResult = null
 
-        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).dp(0,1).toFixed()
         const poolCoreBalance   = BN(1e20).toFixed()
         const secondTrader = 'Alice'
         const coreAmountInput = BN(1e18).toFixed()
-        const burnedAmount = BN(coreAmountInput).div(2).toFixed()
+        const burnedAmount = BN(coreAmountInput).div(2).dp(0,1).toFixed()
 
         // create new token and exchange pool
         const newTokenAsssetId = await createTokenAndPool(tokenIssuerSeed, tokenTotalAmount, poolTokenBalance, poolCoreBalance)
@@ -461,7 +403,7 @@ describe('CennzX test suite for bignumber overflow', function () {
 
         let txResult = null
 
-        const poolTokenBalance  = BN(tokenTotalAmount).div(2).toFixed()
+        const poolTokenBalance  = BN(tokenTotalAmount).div(2).dp(0,1).toFixed()
         const poolCoreBalance   = BN(1e20).toFixed()
         const secondTrader = 'Alice'
         const coreAmountInput = BN(1e18).toFixed()
@@ -632,7 +574,7 @@ describe('CennzX test suite for bignumber overflow', function () {
         this.timeout(86400000)
 
         const tokenAmount = tokenTotalAmount
-        const poolTokenBalance  = BN(tokenAmount).div(2).toFixed()
+        const poolTokenBalance  = BN(tokenAmount).div(2).dp(0,1).toFixed()
         const poolCoreBalance   = BN(100001).toFixed()
 
         const trader = 'Alice'
@@ -666,7 +608,7 @@ describe('CennzX test suite for bignumber overflow', function () {
             // do swap and check
             await cennzx.checkMethod(mp, true)
         }
-    });
+    });  
 });
 
 async function createTokenAndPool(issureSeed, tokenAmount, poolTokenBalance, poolCoreBalance) {
