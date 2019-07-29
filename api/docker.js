@@ -55,13 +55,13 @@ module.exports.startBootNode = async function(validator = cennznetNode.alice) {
     const cmd = `docker run --net bridge --rm --name ${validator.containerName} ${linkStr} ` +
                 `-v ${validator.workFolder}:${validator.workFolder} ` +
                 `-p ${validator.wsPort}:${validator.wsPort} ` +
-                `cennznet-node --base-path ${validator.workFolder}/node_data/${validator.seed} ` +
+                `cennznet-node --base-path ${validator.workFolder}/node_data/${validator.nodeName} ` +
                 `--chain ${validator.workFolder}/nodeConfig.json ` +
                 `--node-key ${validator.nodeKey} ` +
                 `--node-key-type secp256k1 ` +
                 `--port ${validator.htmlPort} ` +
-                `--key //${validator.seed} ` +
-                `--name ${validator.seed} ` +
+                `--key ${validator.rawSeed} ` +
+                `--name ${validator.nodeName} ` +
                 `--validator ` +
                 `--ws-external ` +
                 `--ws-port ${validator.wsPort}`
@@ -105,11 +105,12 @@ module.exports.startBootNode = async function(validator = cennznetNode.alice) {
 
 module.exports.startNewNode = function(validator) {
     const containerName = validator.containerName
-    const keySeed = validator.seed
+    const nodeName = validator.nodeName
     const htmlPort = validator.htmlPort
     const wsPort = validator.wsPort
     const workFolder = validator.workFolder
     const nodeKey = validator.nodeKey
+    const rawSeed = validator.rawSeed
 
     // run a validator node in the same container.
     const _bootNodeIp = this.getBootNodeIp()
@@ -117,14 +118,14 @@ module.exports.startNewNode = function(validator) {
     const cmd = `docker run --net bridge --rm --name ${containerName} ` + 
                 `-v ${workFolder}:${workFolder} ` + 
                 `-p ${wsPort}:${wsPort} ` + 
-                `cennznet-node --base-path ${workFolder}/node_data/${keySeed} ` + 
+                `cennznet-node --base-path ${workFolder}/node_data/${nodeName} ` + 
                 `--chain ${workFolder}/nodeConfig.json ` + 
                 `--node-key ${nodeKey} ` + 
                 `--node-key-type secp256k1 ` + 
                 `--bootnodes /ip4/${_bootNodeIp}/tcp/30333/p2p/QmQZ8TjTqeDj3ciwr93EJ95hxfDsb9pEYDizUAbWpigtQN ` + 
                 `--port ${htmlPort} ` + 
-                `--key //${keySeed} ` + 
-                `--name ${keySeed} ` + 
+                `--key ${rawSeed} ` + 
+                `--name ${nodeName} ` + 
                 `--validator ` + 
                 `--ws-external ` + 
                 `--ws-port ${wsPort}`

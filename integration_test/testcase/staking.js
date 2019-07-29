@@ -34,21 +34,18 @@ describe('Staking test suite', () => {
             stashSeed:      'Charlie',
             bondAmount:     '1000000000000000000',
             controllerSeed: 'Bob',
-            sessionKeySeed: 'Bunny',
             sessionKeyNode: cennznetNode.bunny
         },
         ferdie: {
             stashSeed:      'Ferdie',
             bondAmount:     '10000000000000000',
             controllerSeed: 'James',
-            sessionKeySeed: 'Pig',
             sessionKeyNode: cennznetNode.pig,
         },
         eve: {
             stashSeed:      'Eve',
             bondAmount:     '15000000000000000',
             controllerSeed: 'Dave',
-            sessionKeySeed: 'Monkey',
             sessionKeyNode: cennznetNode.monkey,
         }
     }
@@ -60,25 +57,67 @@ describe('Staking test suite', () => {
         staking.initValidatorConfig()
         // due to 0 fund bonded on Alice, need to bond extra fund for following test cases
         // await staking.bondExtra(cennznetNode.alice.seed, mediumBondAmount)
-        
     })
 
-    it("Start a new node for validator <Charlie>", async function() {
+    it.only("Start a new node for validator <Charlie>", async function() {
         const txResult = await staking.startNewValidatorNode( validator.charlie.sessionKeyNode )    
         // judge the peer count
-        assert.equal( txResult, true, `New node [${validator.charlie.sessionKeySeed}] failed to join the boot node.`)
+        assert.equal( txResult, true, `New node [${validator.charlie.sessionKeyNode.nodeName}] failed to join the boot node.`)
+    });
+
+    it.only('TODO: test - Make validator <Charlie> begin to stake', async function() {
+        const currValidator = validator.charlie
+        currValidator.bondAmount = '170141183460469231731687303715884105727'
+        const stakerId = await staking.startStaking(
+            currValidator.stashSeed,
+            currValidator.controllerSeed,
+            currValidator.sessionKeyNode.rawSeed,
+            currValidator.bondAmount)
+
+        // check if the validator is in the staker list
+        assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
+    });
+
+    it.only('TODO: test - <Eve> nominates on <Charlie> and cancels it, TODO: contains bugs', async function() {
+        const nominator = validator.eve
+        const nominee = validator.charlie
+        const nomineeSeedLst = []
+        const nominateAmount = '270141183460469231731687303715884105728'
+        
+        const totalNominateAmount_beforeTx = await staking.getTotalBondAmount(nominee.stashSeed)
+
+        console.log('totalNominateAmount_beforeTx =', totalNominateAmount_beforeTx.toString())
+
+        // create nominee list
+        nomineeSeedLst.push(nominee.stashSeed)
+
+        await staking.nominateStaker(nominator.stashSeed, nominator.controllerSeed, nominateAmount, nomineeSeedLst)
+
+        const totalNominateAmount_afterTx = await staking.getTotalBondAmount(nominee.stashSeed)
+
+        console.log('totalNominateAmount_afterTx =', totalNominateAmount_afterTx.toString())
+
+        // expect(totalNominateAmount_afterTx).to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toFixed(), `Total bond amount is wrong after nominate`)
+
+        await staking.unnominateStaker(nominator.controllerSeed)
+
+        const totalNominateAmount_afterUnominate = await staking.getTotalBondAmount(nominee.stashSeed)
+
+        console.log('totalNominateAmount_afterUnominate =', totalNominateAmount_afterUnominate.toString())
+
+        expect(totalNominateAmount_afterUnominate).to.be.equal(totalNominateAmount_beforeTx, `Total bond amount is wrong after unnominate`)
     });
 
     it('Make validator <Charlie> begin to stake', async function() {
-        const currvalidator = validator.charlie
+        const currValidator = validator.charlie
         const stakerId = await staking.startStaking(
-            currvalidator.stashSeed,
-            currvalidator.controllerSeed,
-            currvalidator.sessionKeySeed,
-            currvalidator.bondAmount)
+            currValidator.stashSeed,
+            currValidator.controllerSeed,
+            currValidator.sessionKeyNode.rawSeed,
+            currValidator.bondAmount)
 
         // check if the validator is in the staker list
-        assert( stakerId >= 0, `Failed to make controller [${currvalidator.controllerSeed}] stake.`)
+        assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
     });
 
     it('<Eve> nominates on <Charlie> and cancels it, TODO: contains bugs', async function() {
@@ -119,13 +158,13 @@ describe('Staking test suite', () => {
         // startup a new validator node 
         const txResult = await staking.startNewValidatorNode( currValidator.sessionKeyNode )
         // judge the result
-        assert.equal( txResult, true, `New node [${currValidator.sessionKeySeed}] failed to join the boot node.`)
+        assert.equal( txResult, true, `New node [${currValidator.sessionKeyNode.nodeName}] failed to join the boot node.`)
 
         // stake
         const stakerId = await staking.startStaking(
             currValidator.stashSeed,
             currValidator.controllerSeed,
-            currValidator.sessionKeySeed,
+            currValidator.sessionKeyNode.rawSeed,
             currValidator.bondAmount)
 
         // check if the validator is in the staker list
@@ -145,13 +184,13 @@ describe('Staking test suite', () => {
 
         // start up the new node
         const txResult = await staking.startNewValidatorNode(validator.eve.sessionKeyNode)
-        assert.equal( txResult, true, `New node [${validator.eve.sessionKeySeed}] failed to join the boot node.`)
+        assert.equal( txResult, true, `New node [${validator.eve.sessionKeyNode.nodeName}] failed to join the boot node.`)
 
         // make controller to stake
         const stakerId = await staking.startStaking(
             validator.eve.stashSeed,
             validator.eve.controllerSeed,
-            validator.eve.sessionKeySeed,
+            validator.eve.sessionKeyNode.rawSeed,
             validator.eve.bondAmount)
         // assert( stakerId >= 0, `Failed to make controller [${validator.eve.controllerSeed}] stake.`)
         expect(stakerId).to.be.gte(0, `Failed to make controller [${validator.eve.controllerSeed}] stake.`)

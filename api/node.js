@@ -139,7 +139,7 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
 function getAccount(seed, keyType = keypairCryptoType){  // Note: Should call 'await cryptoWaitReady()' first if api is not created.
     const seedUri = '//' + seed
     const simpleKeyring = new SimpleKeyring(); 
-    const account = simpleKeyring.addFromUri( seedUri, {}, keyType ); 
+    const account = simpleKeyring.addFromUri( seedUri, {}, keyType );
     return account
 }
 

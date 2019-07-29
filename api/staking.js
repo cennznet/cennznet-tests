@@ -22,14 +22,9 @@ const block = require('./block')
 const assert = require('assert')
 const {cennznetNode, CURRENCY} = require('./definition')
 const BN = require('bignumber.js')
+const { SimpleKeyring } = require('@cennznet/wallet')
+const { hexToU8a } = require('@cennznet/util')
 
-function ValidatorInfo(){
-    this.stashSeed = ''
-    this.bondAmount = ''     
-    this.controllerSeed = '' 
-    this.sessionKeySeed = '' 
-    this.sessionKeyNode = null
-}
 
 // initialize the information for cennznetNode
 module.exports.initValidatorConfig = function (){
@@ -89,12 +84,12 @@ module.exports.unnominateStaker = async function (controllerSeed){
     return txResult
 }
 
-module.exports.startStaking = async function (stashAccSeed, controllerSeed, sessionKeySeed, bondAmount){
+module.exports.startStaking = async function (stashAccSeed, controllerSeed, rawSeed, bondAmount){
     // bond amount first
     await bond(stashAccSeed, controllerSeed, bondAmount)
 
     // set seesion key
-    await setSessionKey(controllerSeed, sessionKeySeed)
+    await setSessionKey(controllerSeed, rawSeed)
 
     // stake
     await stake(controllerSeed)
@@ -431,11 +426,18 @@ async function bond(stashAccSeed, controllerSeed, bondAmount, nodeApi = bootNode
     return txResult
 }
 
-async function setSessionKey(controllerSeed, sessionKeySeed, nodeApi = bootNodeApi){ 
+function getAddressFromRawSeed(rawSeed, keyType){
+    const u8aSeed = hexToU8a(rawSeed)
+    const simpleKeyring = new SimpleKeyring(); 
+    const account = simpleKeyring.addFromSeed(u8aSeed, {}, keyType)
+    return account.address
+}
+
+async function setSessionKey(controllerSeed, rawSeed, nodeApi = bootNodeApi){ 
     // get api
     const api = await nodeApi.getApi()
 
-    const sessionKey = node.getAddressFromSeed(sessionKeySeed, 'ed25519') // ed25519 is only for session key setting.
+    const sessionKey = getAddressFromRawSeed(rawSeed, 'ed25519') // ed25519 is only for session key setting.
 
     // Set the session key for a validator. The session key is an address.
     const tx = api.tx.session.setKey(sessionKey)
