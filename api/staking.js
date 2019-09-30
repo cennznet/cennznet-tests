@@ -16,14 +16,14 @@
 
 const mlog = require('mocha-logger')
 const node = require('./node')
-const { bootNodeApi, WsApi } = require('./websocket');
+const { bootNodeApi } = require('./websocket');
 const docker  = require('./docker')
-const block = require('./block')
 const assert = require('assert')
 const {cennznetNode, CURRENCY} = require('./definition')
 const BN = require('bignumber.js')
 const { SimpleKeyring } = require('@cennznet/wallet')
 const { hexToU8a } = require('@cennznet/util')
+const { sleep } = require('./util')
 
 
 // initialize the information for cennznetNode
@@ -38,27 +38,31 @@ module.exports.initValidatorConfig = function (){
 module.exports.startNewValidatorNode = async function (sessionKeyAccount) {
 
     // check peer count before new node joins in
+    let txResult = false
     const bootApi = await bootNodeApi.getApi()
     const peers_Before = await bootApi.rpc.system.peers()
     const peersCnt_Before = peers_Before.length
+    let currentPeerCnt = peersCnt_Before
 
     // start a new node
     docker.startNewNode(sessionKeyAccount)
 
+    console.log('new node started')
     // await at least 2 blocks
-    await block.waitBlockCnt(2)
-    
+    // await block.waitBlockCnt(2)
+
     // wait for the peer count change
-    const txResult = await new Promise(async (resolve, reject) => {
-       await bootApi.rpc.system.peers((peers) => {
-            let currentPeerCnt = peers.length
-            if ( currentPeerCnt != peersCnt_Before ) {
-                resolve(true)
-            }
-       }).catch((error) => {
-            reject(error)
-        });
-    });
+    for (let i = 0; i < 120; i++){
+        currentPeerCnt = (await bootApi.rpc.system.peers()).length
+        if ( BN(currentPeerCnt).gt(peersCnt_Before) ) {
+            txResult = true
+            console.log('peers count changed')
+            break
+        }
+        else{
+            await sleep(1000)
+        }
+    }
 
     return txResult
 }
@@ -88,14 +92,22 @@ module.exports.startStaking = async function (stashAccSeed, controllerSeed, rawS
     // bond amount first
     await bond(stashAccSeed, controllerSeed, bondAmount)
 
+    console.log('bond done')
+
     // set seesion key
     await setSessionKey(controllerSeed, rawSeed)
+
+    console.log('setSessionKey done')
 
     // stake
     await stake(controllerSeed)
 
+    console.log('stake done')
+
     // validator will be added in next era
     await this.waitEraChange()
+
+    console.log('waitEraChange done')
 
     // get staker sequence id
     const stakerId = await this.queryStakingControllerIndex(controllerSeed)
@@ -146,61 +158,94 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     const blockReward = (await api.query.rewards.blockReward()).toString()
     const blockPerSession = (await api.query.session.sessionLength()).toString()
 
-    // wait for a new era
-    await this.waitEraChange()
-
     // get balance before era reward happen
-    const balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
+    let balBeforeEra = 0
+    let balAfterEra = 0
+
+    console.log('rewardMultiplierPermill =', rewardMultiplierPermill)
+    console.log('blockReward =', blockReward)
+    console.log('blockPerSession =', blockPerSession)
+    console.log('balBeforeEra =', balBeforeEra)
     
-    // push a transfer tx (do not wait finalise) to trigger an tx fee
-    // node.transfer('Alice', 'James', '10000', 16000, false, bootNodeApi)
-    // node.transfer('Charlie', 'James', '10000', 16000, false, bootNodeApi)
-    // node.transfer('Dave', 'James', '10000', 16000, false, bootNodeApi)
-    node.transfer('Eve', 'James', '10000', 16000, false, bootNodeApi)
-    await node.transfer('Ferdie', 'James', '10000', 16000, true, bootNodeApi)
-    node.transfer('Alice', 'James', '10000', 16000, false, bootNodeApi)
-    node.transfer('Charlie', 'James', '10000', 16000, false, bootNodeApi)
-    node.transfer('Dave', 'James', '10000', 16000, false, bootNodeApi)
-    // node.transfer('Eve', 'James', '10000', 16000, false, bootNodeApi)
-    // node.transfer('Ferdie', 'James', '10000', 16000, false, bootNodeApi)
+    const senderList = ['Eve', 'Alice', 'Ferdie', 'Charlie', 'Dave']
+    let index = 0
+    
+    let unsubscribe = null
 
     // listen to new block to check all fees
     const finalEraReward = await new Promise(async (resolve, reject) => { 
+        let startCollectFlag = false
+        
         let totalEraReward = 0
+
         let preEraId = (await api.query.staking.currentEra()).toString()
         let preEraReward = (await api.query.staking.currentEraReward()).toString() 
         let preSessionId = (await api.query.session.currentIndex()).toString()
         let preSessionTxFee = (await api.query.rewards.sessionTransactionFee()).toString()
 
         // subscribe the block change
-        api.rpc.chain.subscribeNewHead( async (block) => {
+        unsubscribe = await api.rpc.chain.subscribeNewHead( async (block) => {
+
+            // make a tx
+            node.transfer(senderList[index++ % senderList.length], 'James', '10000', 16000, false, bootNodeApi)
+
             // get current information
+            const currEraId = (await api.query.staking.currentEra()).toString()
             const currSessionId = (await api.query.session.currentIndex()).toString()
             const currEraReward = (await api.query.staking.currentEraReward()).toString() // era reward will change for each block
             const currSessionTxFee = (await api.query.rewards.sessionTransactionFee()).toString()
 
+            console.log('blockid =', block.number.toString())
+            console.log('currEraId =', currEraId)
+            console.log('currSessionId =', currSessionId)
+            console.log('currEraReward =', currEraReward)
+            console.log('currSessionTxFee =', currSessionTxFee)
+            console.log('preEraId =', preEraId)
+            console.log('preEraReward =', preEraReward)
+            console.log('preSessionId =', preSessionId)
+            console.log('preSessionTxFee =', preSessionTxFee)
+
             // calculate last session's reward and add it into total reward
-            if ( currSessionId > preSessionId ){
+            // note: session tx fee will be added up in next block, but for the last block of era, fee has no chance to add up.
+            if ( BN(currSessionId).gt(preSessionId) ){
                 // calculate the additional_reward = block_reward * block_per_session + session_tx_fee * fee_reward_multiplier
                 const sessionReward = BN(blockReward).times(blockPerSession).plus(BN(preSessionTxFee).times(rewardMultiplierPermill).div('1000000'))
                 totalEraReward = BN(totalEraReward).plus(sessionReward)
 
                 // get total era tx fee
-                queryEraTxFee = BN(preSessionTxFee).plus(queryEraTxFee)
-
-                const currEraId = (await api.query.staking.currentEra()).toString()
+                queryEraTxFee = BN(preSessionTxFee).plus(queryEraTxFee) // session tx fee is accruing in one session and reset after that.
                 
-                // check if era changed
-                if (currEraId > preEraId){
-                    expectedEraReward = preEraReward    // get last era reward
-                    resolve(totalEraReward)             // return final reward
-                    return
-                }
+                console.log('totalEraReward =', totalEraReward.toFixed())
+                console.log('queryEraTxFee =', queryEraTxFee.toFixed())
             }
 
-            // add block number to the list
-            eraBlockIdLst.push(block.number.toString())
+            if ( BN(currEraId).gt(preEraId) ){
+                if (startCollectFlag != true){
+                    startCollectFlag = true
+                    // get balance before era reward happen
+                    balBeforeEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
+
+                    // clean reward and session tx fee in last era 
+                    queryEraTxFee = 0
+                    totalEraReward = 0
+                }
+                else{
+                    balAfterEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
+                    expectedEraReward = BN(preEraReward).plus(preSessionTxFee).toFixed()    // get last era total reward
+                    unsubscribe()
+                    resolve(totalEraReward)
+                    return 
+                }
+            }
+            console.log('startCollectFlag =', startCollectFlag)
+
+            if ( startCollectFlag == true ){
+                // add block number to the list
+                eraBlockIdLst.push(block.number.toString()) 
+            }
+
             // update values for next use
+            preEraId = currEraId
             preSessionId = currSessionId
             preEraReward = currEraReward
             preSessionTxFee = currSessionTxFee
@@ -209,6 +254,9 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
             reject(error)
         });
     })
+
+    console.log('eraBlockIdLst =', eraBlockIdLst)
+    
 
     // calculate all tx fee in the era
     for (let i = 0; i < eraBlockIdLst.length; i++ ){
@@ -228,7 +276,11 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
     }
 
     // get balance after era reward got
-    const balAfterEra = await node.queryFreeBalance(controllerSeed, CURRENCY.SPEND)
+    
+    console.log('calEraTxFee =', calEraTxFee.toString())
+    console.log('expectedEraReward =', expectedEraReward.toString())
+    console.log('balBeforeEra =', balBeforeEra)
+    console.log('balAfterEra =', balAfterEra)
 
     // check era tx fee
     assert.equal(
@@ -236,19 +288,20 @@ module.exports.checkAdditionalReward = async function ( controllerSeed ){
         calEraTxFee.toString(),
         `The amount of session tx fee in an era is wrong.`)
 
-    // check reward
-    assert.equal(
-        finalEraReward.toString(), expectedEraReward.toString(), `Final era reward is wrong.`)
-
     // check balance
     assert.equal(
         BN(balAfterEra).toFixed(),
         BN(balBeforeEra).plus(expectedEraReward).toFixed(),
         `${controllerSeed}'s asset(${CURRENCY.SPEND}) balance is wrong`)
 
+    // check reward
+    assert.equal(
+        finalEraReward.toString(), expectedEraReward.toString(), `Final era reward is wrong.`)
+
     bRet = true
     return bRet
 }
+
 
 module.exports.queryIntentionIndex = async function(stakerSeed, nodeApi = bootNodeApi){ 
     let index = -1;
@@ -339,23 +392,37 @@ module.exports.getEraReward = async function(nodeApi = bootNodeApi){
 }
 
 module.exports.waitEraChange = async function(nodeApi = bootNodeApi){
+    let newEraId = -1 
+
     // get api
     const api = await nodeApi.getApi()
 
     // get current session
     const previouseEraId = (await api.query.staking.currentEra()).toString()
+    let currentEraId = previouseEraId
 
+    // wait for era change
+    for (let i = 0; i < 120; i++){
+        currentEraId = (await api.query.staking.currentEra()).toString()
+        if ( BN(currentEraId).gt(previouseEraId) ){
+            newEraId = currentEraId
+            break
+        }
+        else{
+            await sleep(1000)
+        }
+    }
     // listen to new session
-    const newEraId = await new Promise(async (resolve, reject) => { 
-        api.query.staking.currentEra(async (era) => {
-            let currentEraId = era.toString()
-            if ( currentEraId > previouseEraId ){
-                resolve(currentEraId)
-            }
-        }).catch((error) => {
-            reject(error)
-        });
-    })
+    // const newEraId = await new Promise(async (resolve, reject) => { 
+    //     api.query.staking.currentEra(async (era) => {
+    //         let currentEraId = era.toString()
+    //         if ( currentEraId > previouseEraId ){
+    //             resolve(currentEraId)
+    //         }
+    //     }).catch((error) => {
+    //         reject(error)
+    //     });
+    // })
 
     return newEraId
 }

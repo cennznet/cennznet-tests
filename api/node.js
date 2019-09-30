@@ -96,7 +96,11 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                     // get block hash
                     txResult.blockHash = r.status.raw.toString()
                     // get extrinsic id
+                    if (r.events[0] ==  undefined) 
+                        console.log('undefined event. r =', r)
+
                     txResult.extrinsicIndex = r.events[0].phase.asApplyExtrinsic.toString()
+
                     // set tx result symbol
                     txResult.bSucc = true
                     // get all events
@@ -105,13 +109,23 @@ async function signAndSendTx(transaction, seedOrAccount, nonce_in = -1, waitFina
                     txResult.txFee = await queryTxFee(txResult.blockHash, txResult.extrinsicIndex)
                    
                     // check if the extrinsic succeeded
-                    r.events.forEach(({ phase, event: { data, method, section } }) => {
-                        if (method == 'ExtrinsicFailed') {
+                    // r.events.forEach(({ phase, event: { data, method, section } }) => {
+                    //     if (method == 'ExtrinsicFailed') {
+                    //         txResult.bSucc = false
+                    //         txResult.message = `Transaction failed at block(${txResult.blockHash}): ${section}.${method}`
+                    //         resolve(false)
+                    //     }
+                    // });
+
+                    r.events.forEach((eachEvent) => {
+                        // { phase, event: { data, method, section } } = eachEvent
+                        if (eachEvent.event.method == 'ExtrinsicFailed') {
                             txResult.bSucc = false
-                            txResult.message = `Transaction failed at block(${txResult.blockHash}): ${section}.${method}`
+                            txResult.message = `Transaction failed at block(${txResult.blockHash}): ${eachEvent.event.section}.${eachEvent.event.method}`
                             resolve(false)
                         }
                     });
+
                 }
                 catch(error){
                     txResult.bSucc = false

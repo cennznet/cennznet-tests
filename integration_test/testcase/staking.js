@@ -32,7 +32,7 @@ describe('Staking test suite', () => {
     const validator = {
         charlie: {
             stashSeed:      'Charlie',
-            bondAmount:     '1000000000000000000',
+            bondAmount:     '1000000000000000000',  // bond amount should >= max[total_issuance() / (2^64 - 1), 1]
             controllerSeed: 'Bob',
             sessionKeyNode: cennznetNode.bunny
         },
@@ -59,53 +59,10 @@ describe('Staking test suite', () => {
         // await staking.bondExtra(cennznetNode.alice.seed, mediumBondAmount)
     })
 
-    it.only("Start a new node for validator <Charlie>", async function() {
+    it("Start a new node for validator <Charlie>", async function() {
         const txResult = await staking.startNewValidatorNode( validator.charlie.sessionKeyNode )    
         // judge the peer count
         assert.equal( txResult, true, `New node [${validator.charlie.sessionKeyNode.nodeName}] failed to join the boot node.`)
-    });
-
-    it.only('TODO: test - Make validator <Charlie> begin to stake', async function() {
-        const currValidator = validator.charlie
-        currValidator.bondAmount = '170141183460469231731687303715884105727'
-        const stakerId = await staking.startStaking(
-            currValidator.stashSeed,
-            currValidator.controllerSeed,
-            currValidator.sessionKeyNode.rawSeed,
-            currValidator.bondAmount)
-
-        // check if the validator is in the staker list
-        assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
-    });
-
-    it.only('TODO: test - <Eve> nominates on <Charlie> and cancels it, TODO: contains bugs', async function() {
-        const nominator = validator.eve
-        const nominee = validator.charlie
-        const nomineeSeedLst = []
-        const nominateAmount = '270141183460469231731687303715884105728'
-        
-        const totalNominateAmount_beforeTx = await staking.getTotalBondAmount(nominee.stashSeed)
-
-        console.log('totalNominateAmount_beforeTx =', totalNominateAmount_beforeTx.toString())
-
-        // create nominee list
-        nomineeSeedLst.push(nominee.stashSeed)
-
-        await staking.nominateStaker(nominator.stashSeed, nominator.controllerSeed, nominateAmount, nomineeSeedLst)
-
-        const totalNominateAmount_afterTx = await staking.getTotalBondAmount(nominee.stashSeed)
-
-        console.log('totalNominateAmount_afterTx =', totalNominateAmount_afterTx.toString())
-
-        // expect(totalNominateAmount_afterTx).to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toFixed(), `Total bond amount is wrong after nominate`)
-
-        await staking.unnominateStaker(nominator.controllerSeed)
-
-        const totalNominateAmount_afterUnominate = await staking.getTotalBondAmount(nominee.stashSeed)
-
-        console.log('totalNominateAmount_afterUnominate =', totalNominateAmount_afterUnominate.toString())
-
-        expect(totalNominateAmount_afterUnominate).to.be.equal(totalNominateAmount_beforeTx, `Total bond amount is wrong after unnominate`)
     });
 
     it('Make validator <Charlie> begin to stake', async function() {
@@ -135,15 +92,15 @@ describe('Staking test suite', () => {
 
         const totalNominateAmount_afterTx = await staking.getTotalBondAmount(nominee.stashSeed)
 
-        expect(totalNominateAmount_afterTx)
-            .to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toString(), `Total bond amount is wrong after nominate`)
-
         await staking.unnominateStaker(nominator.controllerSeed)
 
         const totalNominateAmount_afterUnominate = await staking.getTotalBondAmount(nominee.stashSeed)
 
         expect(totalNominateAmount_afterUnominate)
             .to.be.equal(totalNominateAmount_beforeTx, `Total bond amount is wrong after unnominate`)
+
+        expect(totalNominateAmount_afterTx)
+            .to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toString(), `Total bond amount is wrong after nominate`)
     });
 
     it('Launch new node for validator <Ferdie> (controller uses new account) and make it stake', async function() {
@@ -171,12 +128,13 @@ describe('Staking test suite', () => {
         assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
     });
 
-    it('Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
+    it('TODO: a bug, era reward not include fee of last sesstion - Controller <Bob> obtains reward. TODO: only check additional_reward here, will check session reward in the future if needed', async function() {
+        this.timeout(120000)
         // additional_reward belongs to Cennznet-node, should be tested here.
         await staking.checkAdditionalReward(validator.charlie.controllerSeed)
     });
 
-    it('Let richer validator <Eve> join in and least-bond staker <call it staker_x> will be replaced', async function() {
+    it('Let richer validator <Eve> join in and least-bond staker <name it staker_x> will be replaced', async function() {
         this.timeout(180000)
     
         // find the least-bond staker's controller
@@ -314,4 +272,46 @@ describe('Staking test suite', () => {
         assert(currBlockId > preBlockId, `Chain did not work well. (Current block id [${currBlockId}], previouse is []${preBlockId})`)
     });
     
+    it.skip('TODO: temp case - Make validator <Charlie> begin to stake', async function() {
+        const currValidator = validator.charlie
+        currValidator.bondAmount = '170141183460469231731687303715884105727'
+        const stakerId = await staking.startStaking(
+            currValidator.stashSeed,
+            currValidator.controllerSeed,
+            currValidator.sessionKeyNode.rawSeed,
+            currValidator.bondAmount)
+
+        // check if the validator is in the staker list
+        assert( stakerId >= 0, `Failed to make controller [${currValidator.controllerSeed}] stake.`)
+    });
+
+    it.skip('TODO: temp case - <Eve> nominates on <Charlie> and cancels it, TODO: contains bugs', async function() {
+        const nominator = validator.eve
+        const nominee = validator.charlie
+        const nomineeSeedLst = []
+        const nominateAmount = '270141183460469231731687303715884105728'
+        
+        const totalNominateAmount_beforeTx = await staking.getTotalBondAmount(nominee.stashSeed)
+
+        console.log('totalNominateAmount_beforeTx =', totalNominateAmount_beforeTx.toString())
+
+        // create nominee list
+        nomineeSeedLst.push(nominee.stashSeed)
+
+        await staking.nominateStaker(nominator.stashSeed, nominator.controllerSeed, nominateAmount, nomineeSeedLst)
+
+        const totalNominateAmount_afterTx = await staking.getTotalBondAmount(nominee.stashSeed)
+
+        console.log('totalNominateAmount_afterTx =', totalNominateAmount_afterTx.toString())
+
+        // expect(totalNominateAmount_afterTx).to.be.equal(BN(totalNominateAmount_beforeTx).plus(nominateAmount).toFixed(), `Total bond amount is wrong after nominate`)
+
+        // await staking.unnominateStaker(nominator.controllerSeed)
+
+        // const totalNominateAmount_afterUnominate = await staking.getTotalBondAmount(nominee.stashSeed)
+
+        // console.log('totalNominateAmount_afterUnominate =', totalNominateAmount_afterUnominate.toString())
+
+        // expect(totalNominateAmount_afterUnominate).to.be.equal(totalNominateAmount_beforeTx, `Total bond amount is wrong after unnominate`)
+    });
 });
