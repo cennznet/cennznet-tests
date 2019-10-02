@@ -34,7 +34,7 @@ module.exports.TxResult = class {
     }
 }
 
-// all nodes
+// Node details that will be called when launched by docker
 module.exports.cennznetNode = {
     alice: {
         containerName: 'integration_test_node',
@@ -75,15 +75,3 @@ module.exports.cennznetNode = {
 }
 
 module.exports.chainDataFolder = this.cennznetNode.alice.workFolder + '/node_data'
-
-/**
- * Set 'uri' as String's inner property. This would be easy for Seed to get the value.
- */
-Object.defineProperties(String.prototype, {
-    // the seed's uri
-    'uri': {
-        get: function(){
-            return '//' + this
-        }
-    },
-})

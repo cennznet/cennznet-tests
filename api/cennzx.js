@@ -73,7 +73,7 @@ class SpotXBalance{
         this.coreAssetId = ''
     }
     
-    // get al balances and liquidities
+    // get al balances and liquidities.
     async fetchAll(){
         this.coreAssetId = await getCoreAssetId()
         const poolAddress_assetSell = await getExchangeAddress(this.assetIdSell)
@@ -103,6 +103,7 @@ class SpotXBalance{
         this.totalLiquidity_assetBuy  = await getTotalLiquidity(this.assetIdBuy)
     }
 
+    // Display all relevant balances. Mainly for debug purposes.
     async displayAll(){
         mlog.log('==========================')
         Object.keys(this).forEach(v => {
@@ -119,7 +120,6 @@ class SpotXBalance{
 
 class BalanceChecker{
     /**
-     * 
      * @param {MethodParameter} methodPara 
      */
     constructor(methodPara, debugFlag = false){
@@ -146,6 +146,7 @@ class BalanceChecker{
         this.pool_assetCore_bal_change = 0
     }
 
+    // Check all kinds of balances before and after transactions.
     _checkBalance(){
         if (this.beforeTxBal == '' || this.afterTxBal == ''){
             assert(false, `Balance set is empty.`)
@@ -249,6 +250,7 @@ class BalanceChecker{
         this.priceSell_assetSellToCore = await getInputPrice(assetIdSell, coreAssetId, amountSell)
     }
 
+    // (For debug)
     printAllPrice(){
         mlog.log('priceBuy_assetSellToBuy =', this.priceBuy_assetSellToBuy.toString())
         mlog.log('priceBuy_assetCoreToBuy =', this.priceBuy_assetCoreToBuy.toString())
@@ -407,6 +409,7 @@ class LiquidityBalance{
         return this
     }
 
+    // (For debug)
     async displayInfo(){
         // await this.getAll()
         // display all member
@@ -852,6 +855,7 @@ async function getPoolCoreAssetBalance(assetId, nodeApi = bootNodeApi){
     return val.toString()
 }
 
+// Calculate the input price via theoretical formula
 async function getFormulaInputPrice(assetIdSell, assetIdBuy, amountSell){
     const coreAssetId = await getCoreAssetId()
     let assetId = null
@@ -888,6 +892,7 @@ async function getFormulaInputPrice(assetIdSell, assetIdBuy, amountSell){
     return inputPrice   
 }
 
+// Calculate the input price via theoretical formula
 async function getFormulaOutputPrice(assetIdSell, assetIdBuy, amountBuy){
 
     const coreAssetId = await getCoreAssetId()

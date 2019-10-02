@@ -17,6 +17,7 @@
 const { bootNodeApi } = require('./websocket');
 const { sleep } = require('./util');
 
+// Wait until the specified block appears
 module.exports.waitBlockId = async function(blockId, nodeApi = bootNodeApi){
     const api = await nodeApi.getApi()
     let blockHash = ''
@@ -36,7 +37,7 @@ module.exports.waitBlockId = async function(blockId, nodeApi = bootNodeApi){
     return blockHash
 }
 
-// await new count of blocks appear
+// Wait until specified count of blocks generated
 module.exports.waitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi) {
 
     const api = await nodeApi.getApi()
@@ -72,7 +73,7 @@ module.exports.waitBlockCnt = async function ( blockNum, nodeApi = bootNodeApi) 
     return currBlockId
 }
 
-// await specified block number
+
 module.exports.getCurrentBlockIndex = async function (nodeApi = bootNodeApi) {
     return await this.waitBlockCnt(0)
 }

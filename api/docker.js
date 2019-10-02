@@ -158,7 +158,7 @@ module.exports.getBootNodeIp = function(){
 
     const wsIp = shell.exec(`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${cennznetNode.alice.containerName}`,
                             { silent: true },
-                            { async: false} )
+                            { async: false } )
     
     return wsIp.stdout.toString().replace('\n', '')
 }
